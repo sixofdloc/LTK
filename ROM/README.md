@@ -1,1 +1,0 @@
-A re-sourcing of the ROM and SYSGEN files for the LTK HD controller.
