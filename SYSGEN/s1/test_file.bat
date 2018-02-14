@@ -1,0 +1,1 @@
+fc /b output\%1.prg original\%2.prg
