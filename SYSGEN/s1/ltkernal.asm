@@ -2,7 +2,7 @@
 ;re-sourced and cleaned by Six/DLoC (Oliver VieBrooks)
 ;February 2018
 
-	.include "include/ltk_equates.asm"
+	.include "../../include/ltk_equates.asm"
 	*=$8000 	;rewrite start address to $4000 for sysgen disk
 	
 ;=============================================================================

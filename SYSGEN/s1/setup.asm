@@ -1,5 +1,5 @@
 
-	.include "include/kernal.asm"
+	.include "../../include/kernal.asm"
 	*=$8000
 ;setup.prg
  

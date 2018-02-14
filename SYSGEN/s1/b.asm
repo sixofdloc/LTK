@@ -1,4 +1,4 @@
-	.include "include/kernal.asm"
+	.include "../../include/kernal.asm"
 	*=$0100
 	.repeat $100,$02
 	.byte $00,$00,$00

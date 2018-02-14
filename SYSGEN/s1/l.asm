@@ -1,7 +1,7 @@
 	;l.r.prg
 	
-	.include "include/ltk_dos_addresses.asm"
-	.include "include/ltk_equates.asm"
+	.include "../../include/ltk_dos_addresses.asm"
+	.include "../../include/ltk_equates.asm"
 	
 	*=$95e0 ;overlay, change to $4000 for the sysgen disk
  	

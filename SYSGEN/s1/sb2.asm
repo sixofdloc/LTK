@@ -1,5 +1,5 @@
 
-	.include "include/kernal.asm"
+	.include "../../include/kernal.asm"
 	*=$0810
 	lda #$05	;0810 a9 05    
 	ldx #<setupTxt	;0812 a2 af    

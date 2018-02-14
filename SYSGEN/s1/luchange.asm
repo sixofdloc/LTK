@@ -1,6 +1,6 @@
-	.include "include/ltk_dos_addresses.asm"
-	.include "include/ltk_equates.asm"
 ;luchange.r.prg
+	.include "../../include/ltk_dos_addresses.asm"
+	.include "../../include/ltk_equates.asm"
 	*=LTK_MiniSubExeArea ;$93e0 - change to $4000 for sysgen
 	
 START               jmp prg_start

@@ -1,4 +1,4 @@
-	.include "include/ltk_sysdefs.asm"
+	.include "../../include/ltk_sysdefs.asm"
 ;dir.r.prg
 	*=$c000 ;rewrite start address to $4000 for sysgen disk 
 Lc000               pha
