@@ -15,5 +15,7 @@ call build messfile
 call build new
 call build sb2
 call build setup
+call build user
+
 
 

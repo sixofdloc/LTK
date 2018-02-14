@@ -15,3 +15,5 @@ call test_file messfile messfile.r
 call test_file new new.r
 call test_file sb2 sb2
 call test_file setup setup
+call test_file user user.r
+
