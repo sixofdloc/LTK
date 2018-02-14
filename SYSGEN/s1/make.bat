@@ -5,6 +5,7 @@ call build checksum
 call build convrtio
 call build d
 call build dir
+call build fastcpqd
 call build fileprot
 call build l
 call build ltkernal
