@@ -455,7 +455,7 @@ L847e
 	sta $963e
 	jsr S9603
 	sta $8ce6
-	jsr S8cf7
+	jsr Zero_9c00_9dff
 	ldx #$09
 L84aa
 	lda L90d4,x
@@ -513,7 +513,7 @@ L8522
 	sta $8ceb
 	lda $8ce6
 	sta $8cec
-	jsr S8cf7
+	jsr Zero_9c00_9dff
 L8535
 	lda $8cea
  	sta staAndIncDest + 1
@@ -556,7 +556,7 @@ L8580
  	jsr staAndIncDest
  	jsr staAndIncDest
  	jsr S8c9e
- 	jsr S8cf7
+ 	jsr Zero_9c00_9dff
  	ldx #$0a
 L859f
 	lda L90de,x
@@ -607,7 +607,7 @@ L85e6
 	lda $8cf4
 	sta $9c36
 	jsr S8c9e
-	jsr S8cf7
+	jsr Zero_9c00_9dff
 L8622
 	inc $979a
 	lda $979a
@@ -642,12 +642,12 @@ L8636
 	lda #$07
 	sta $979d
 	lda #$01
-	ldx #$40
-	ldy #$8e
+	ldx #<fname_LtKernal
+	ldy #>fname_LtKernal ;$8e40
 	jsr sg_LoadFile
 	lda #$08
-	ldx #$4e
-	ldy #$8f
+	ldx #<fname_LtKrn128 
+	ldy #>fname_LtKrn128 ;$8f4e
 	jsr sg_LoadFile
 	lda #$ff
 	sta $8cf1
@@ -661,7 +661,7 @@ L8636
 	sta $979a
 	jsr S8c96
 	jsr S979e
-	jsr S8cf7
+	jsr Zero_9c00_9dff
 	ldx #$0a
 L86a4
 	lda L90e9,x
@@ -690,7 +690,7 @@ L86a4
 	dec $8ced
 	lda #$10
 	sta $8cee
-	jsr S8cf7
+	jsr Zero_9c00_9dff
 	lda #$1d
 	sta L86f8 + 1
 	lda #$9c
@@ -721,7 +721,7 @@ L8719
 	bne L8719
 	lda #$00
 	sta $8cef
-	jsr S8cf7
+	jsr Zero_9c00_9dff
 	ldy #$0f
 L872b
 	lda L9104,y
@@ -747,7 +747,7 @@ L872b
 	sta $9c1d
 	jsr S8c9e
 	jsr S8c4c
-	jsr S8cf7
+	jsr Zero_9c00_9dff
 	ldy #$0f
 L876d
 	lda L90f4,y
@@ -890,43 +890,43 @@ L87c2
 	jsr sg_LoadFile
 	
 	lda #$23
-	ldx #$ea
-	ldy #$8e
+	ldx #<fname_SubCallr
+	ldy #>fname_SubCallr ;$8eea
 	jsr sg_LoadFile
 	
 	lda #$25
-	ldx #$8a
-	ldy #$8f
+	ldx #<fname_SubCl128
+	ldy #>fname_SubCl128 ;$8f8a
 	jsr sg_LoadFile
 	
 	lda #$24
-	ldx #$3a
-	ldy #$8f
+	ldx #<fname_CatalogR
+	ldy #>fname_CatalogR ;$8f3a
 	jsr sg_LoadFile
 	
 	lda #$1f
-	ldx #$ae
-	ldy #$8e
+	ldx #<fname_AdjIndex
+	ldy #>fname_AdjIndex ;$8eae
 	jsr sg_LoadFile
 	
 	lda #$28
-	ldx #$02
-	ldy #$90
+	ldx #<fname_ConvrtIO
+	ldy #>fname_ConvrtIO ;$9002
 	jsr sg_LoadFile
 	
 	lda #$29
-	ldx #$48
-	ldy #$90
+	ldx #<fname_FileProt
+	ldy #>fname_FileProt ;$9048
 	jsr sg_LoadFile
 	
 	lda #$2a
-	ldx #$84
-	ldy #$90
+	ldx #<fname_GoCPMode
+	ldy #>fname_GoCPMode ;$9084
 	jsr sg_LoadFile
 	
 	lda #$2f
-	ldx #$98
-	ldy #$90
+	ldx #<fname_AltSerch
+	ldy #>fname_AltSerch ;$9098
 	jsr sg_LoadFile
 	
 	lda #$00
@@ -935,324 +935,330 @@ L87c2
 	sta $979d
 	
 	lda #$44
-	ldx #$68
-	ldy #$8e
+	ldx #<fname_RelaExpn
+	ldy #>fname_RelaExpn ;$8e68
 	jsr sg_LoadFile
 	
 	lda #$48
-	ldx #$5e
-	ldy #$8e
+	ldx #<fname_OpenRela
+	ldy #>fname_OpenRela ;$8e5e
 	jsr sg_LoadFile
 	
 	lda #$4c
-	ldx #$04
-	ldy #$8e
+	ldx #<fname_DosOvrly
+	ldy #>fname_DosOvrly ;$8e04
 	jsr sg_LoadFile
 	
 	lda #$9a
-	ldx #$58
-	ldy #$8f
+	ldx #<fname_DosOv128
+	ldy #>fname_DosOv128 ;$8f58
 	jsr sg_LoadFile
 	
 	lda #$50
-	ldx #$0e
-	ldy #$8e
+	ldx #<fname_OpenFile
+	ldy #>fname_OpenFile ;$8e0e
 	jsr sg_LoadFile
 	
 	lda #$9e
-	ldx #$62
-	ldy #$8f
+	ldx #<fname_OpenF128
+	ldy #>fname_OpenF128 ;$8f62
 	jsr sg_LoadFile
 	
 	lda #$54
-	ldx #$18
-	ldy #$8e
+	ldx #<fname_CloseFil
+	ldy #>fname_CloseFil ;$8e18
 	jsr sg_LoadFile
 	
 	lda #$a2
-	ldx #$6c
-	ldy #$8f
+	ldx #<fname_Close128
+	ldy #>fname_Close128 ;$8f6c
 	jsr sg_LoadFile
 	
 	lda #$58
-	ldx #$22
-	ldy #$8e
+	ldx #<fname_SaveToDv
+	ldy #>fname_SaveToDv ;$8e22
 	jsr sg_LoadFile
 	
 	lda #$5c
-	ldx #$2c
-	ldy #$8e
+	ldx #<fname_CmndChn1
+	ldy #>fname_CmndChn1 ;$8e2c
 	jsr sg_LoadFile
 	
 	lda #$ca
-	ldx #$52
-	ldy #$90
+	ldx #<fname_CmndChn2
+	ldy #>fname_CmndChn2 ;$9052
 	jsr sg_LoadFile
 	
 	lda #$60
-	ldx #$36
-	ldy #$8e
+	ldx #<fname_Directry
+	ldy #>fname_Directry ;$8e36
 	jsr sg_LoadFile
 	
 	lda #$08
 	sta $979d
+
 	lda #$3b
-	ldx #$9a
-	
-	ldy #$8e
+	ldx #<fname_ConfigLU
+	ldy #>fname_ConfigLU ;$8e9a
 	jsr sg_LoadFile
+
 	lda #$08
 	sta $979d
 	
 	lda #$e6
-	ldx #$a4
-	ldy #$8e
+	ldx #<fname_MessFile
+	ldy #>fname_MessFile ;$8ea4
 	jsr sg_LoadFile
 	
 	lda #$04
 	sta $979d
 	
 	lda #$6a
-	ldx #$b8
-	ldy #$8e
+	ldx #<fname_CommLoad
+	ldy #>fname_CommLoad ;$8eb8
 	jsr sg_LoadFile
 	
 	lda #$ce
-	ldx #$5c
-	ldy #$90
+	ldx #<fname_IndxMod0
+	ldy #>fname_IndxMod0 ;$905c
 	jsr sg_LoadFile
 	
 	lda #$7e
-	ldx #$f4
-	ldy #$8e
+	ldx #<fname_IndxMod1
+	ldy #>fname_IndxMod1 ;$8ef4
 	jsr sg_LoadFile
 	
 	lda #$82
-	ldx #$fe
-	ldy #$8e
+	ldx #<fname_IndxMod2
+	ldy #>fname_IndxMod2 ;$8efe
 	jsr sg_LoadFile
 	
 	lda #$86
-	ldx #$08
-	ldy #$8f
+	ldx #<fname_IndxMod3
+	ldy #>fname_IndxMod3 ;$8f08
 	jsr sg_LoadFile
 	
 	lda #$8a
-	ldx #$12
-	ldy #$8f
+	ldx #<fname_IndxMod4
+	ldy #>fname_IndxMod4 ;$8f12
 	jsr sg_LoadFile
 	
 	lda #$8e
-	ldx #$1c
-	ldy #$8f
+	ldx #<fname_IndxMod5
+	ldy #>fname_IndxMod5 ;$8f1c
 	jsr sg_LoadFile
 	
 	lda #$92
-	ldx #$26
-	ldy #$8f
+	ldx #<fname_IndxMod6
+	ldy #>fname_IndxMod6; $8f26
 	jsr sg_LoadFile
 	
 	lda #$96
-	ldx #$30
-	ldy #$8f
+	ldx #<fname_IndxMod7
+	ldy #>fname_IndxMod7 ;$8f30
 	jsr sg_LoadFile
 	
 	lda #$d2
-	ldx #$66
-	ldy #$90
+	ldx #<fname_IdxM0128
+	ldy #>fname_IdxM0128 ;$9066
 	jsr sg_LoadFile
 	
 	lda #$a6
-	ldx #$94
-	ldy #$8f
+	ldx #<fname_IdxM1128
+	ldy #>fname_IdxM1128 ;$8f94
 	jsr sg_LoadFile
 	
 	lda #$aa
-	ldx #$9e
-	ldy #$8f
+	ldx #<fname_IdxM2128
+	ldy #>fname_IdxM2128 ;$8f9e
 	jsr sg_LoadFile
 	
 	lda #$ae
-	ldx #$a8
-	ldy #$8f
+	ldx #<fname_IdxM3128
+	ldy #>fname_IdxM3128 ;$8fa8
 	jsr sg_LoadFile
 	
 	lda #$b2
-	ldx #$b2
-	ldy #$8f
+	ldx #<fname_IdxM4128
+	ldy #>fname_IdxM4128 ;$8fb2
 	jsr sg_LoadFile
 	
 	lda #$b6
-	ldx #$bc
-	ldy #$8f
+	ldx #<fname_IdxM5128
+	ldy #>fname_IdxM5128 ;$8fbc
 	jsr sg_LoadFile
 	
 	lda #$ba
-	ldx #$c6
-	ldy #$8f
+	ldx #<fname_IdxM6128
+	ldy #>fname_IdxM6128 ;$8fc6
 	jsr sg_LoadFile
 	
 	lda #$be
-	ldx #$d0
-	ldy #$8f
+	ldx #<fname_IdxM7128
+	ldy #>fname_IdxM7128 ;$8fd0
 	jsr sg_LoadFile
 	
 	lda #$02
 	sta $979d
 	
 	lda #$0f
-	ldx #$44
-	ldy #$8f
+	ldx #<fname_SysBootR
+	ldy #>fname_SysBootR ;$8f44
 	jsr sg_LoadFile
 	
 	lda #$31
-	ldx #$76
-	ldy #$8f
+	ldx #<fname_SysBt128 
+	ldy #>fname_SysBt128 ;$8f76
 	jsr sg_LoadFile
 	
 	lda #$04
 	sta $979d
 	
 	lda #$c6
-	ldx #$80
-	ldy #$8f
+	ldx #<fname_InitC128
+	ldy #>fname_InitC128 ;$8f80
 	jsr sg_LoadFile
 	
 	lda #$64
-	ldx #$a2
-	ldy #$90
+	ldx #<fname_InitC064
+	ldy #>fname_InitC064 ;$90a2
 	jsr sg_LoadFile
 	
 	lda #$02
 	sta $979d
 	
 	lda #$2d
-	ldx #$da
-	ldy #$8f
+	ldx #<fname_Go64Boot
+	ldy #>fname_Go64Boot ;$8fda
 	jsr sg_LoadFile
 	
 	lda #$72
-	ldx #$ee
-	ldy #$8f
+	ldx #<fname_OpenRand
+	ldy #>fname_OpenRand ;$8fee
 	jsr sg_LoadFile
 	
 	lda #$01
 	sta $979d
 	
 	lda #$c2
-	ldx #$0c
-	ldy #$90
+	ldx #<fname_AutoUpdt
+	ldy #>fname_AutoUpdt ;$900c
 	jsr sg_LoadFile
 	
 	lda #$01
 	jsr S8be7
-	
 	lda #$0c
-	ldx #$16
-	ldy #$90
-	jsr S8bf8
+	ldx #<fname_FastFDos
+	ldy #>fname_FastFDos ;$9016
+	jsr sg_Load_8bf8
 	
 	lda #$0d
 	jsr S8be7
-	
 	lda #$0c
-	ldx #$c0
-	ldy #$90
-	jsr S8bf8
+	ldx #<fname_FastFD81
+	ldy #>fname_FastFD81 ;$90c0
+	jsr sg_Load_8bf8
+
 	lda #$19
 	jsr S8be7
 	lda #$08
-	ldx #$20
-	ldy #$90
-	jsr S8bf8
+	ldx #<fname_FastCpy1
+	ldy #>fname_FastCpy1 ;$9020
+	jsr sg_Load_8bf8
+
 	lda #$21
 	jsr S8be7
 	lda #$08
-	ldx #$2a
-	ldy #$90
-	jsr S8bf8
+	ldx #<fname_FastCp1a
+	ldy #>fname_FastCp1a ;$902a
+	jsr sg_Load_8bf8
+
 	lda #$29
 	jsr S8be7
 	lda #$08
-	ldx #$34
-	ldy #$90
-	jsr S8bf8
+	ldx #<fname_FastCpy2
+	ldy #>fname_FastCpy2 ;$9034
+	jsr sg_Load_8bf8
+
 	lda #$31
 	jsr S8be7
 	lda #$08
-	ldx #$3e
-	ldy #$90
-	jsr S8bf8
+	ldx #<fname_FastCp2a
+	ldy #>fname_FastCp2a ;$903e
+	jsr sg_Load_8bf8
+
 	lda #$39
 	jsr S8be7
 	lda #$08
-	ldx #$ca
-	ldy #$90
-	jsr S8bf8
+	ldx #<fname_FastCpDD
+	ldy #>fname_FastCpDD ;$90ca
+	jsr sg_Load_8bf8
+
 	lda #$a3
 	jsr S8be7
 	lda #$0a
-	ldx #$ac
-	ldy #$90
-	jsr S8bf8
+	ldx #<fname_FastCpRm
+	ldy #>fname_FastCpRm ;$90ac
+	jsr sg_Load_8bf8
+
 	lda #$ad
 	jsr S8be7
 	lda #$01
-	ldx #$b6
-	ldy #$90
-	jsr S8bf8
+	ldx #<fname_FastCpQD
+	ldy #>fname_FastCpQD ;$90b6
+	jsr sg_Load_8bf8
 	
-	lda #<fname_ptr_table_2 ;37
-	sta S8d07 + 1
-	lda #>fname_ptr_table_2 ;99
-	sta S8d07 + 2
+	lda #<fname_ptr_table_2
+	sta ReadTable + 1
+	lda #>fname_ptr_table_2 ;$9937
+	sta ReadTable + 2
 	jsr S8ad0
 	jmp L8b40
                     
-S8ad0  
-	jsr S8d07
-	beq S8ad0_return
-	sta $b7
-	jsr S8d07
-	sta $bb
-	jsr S8d07
-	sta $bc
+S8ad0   ; load files from table?
+	jsr ReadTable     ; get file name length
+	beq S8ad0_return  ;  zero? We're done.
+	sta len_fname     ;  set kernal variable
+	jsr ReadTable     ; get name low byte
+	sta ptr_fname     ;  set kernal variable
+	jsr ReadTable     ; get name high byte
+	sta ptr_fname+1   ;  set kernal variable
 	lda #$08
-	sta $ba
+	sta $ba           ; device 8
 	lda #$01
-	sta $b9
-	jsr S8ccc
+	sta $b9           ; secondary address 1
+	jsr Zero_801_86f  ; clear some memory
 	cli
-	lda #$00
+	lda #$00          ; .A=0 -> LOAD
 	jsr LOAD
-	bcc L8af7
+	bcc L8af7	  ; continue if no error
 	jmp Break2
                     
 L8af7
 	sei
-	jsr S8cf7
-	ldx $b7
+	jsr Zero_9c00_9dff
+	ldx len_fname     ; get file name length
 	dex
-	dex
+	dex               ; cut '.R' off the end
 	ldy #$00
 L8b01
-	lda ($bb),y
-	sta $9c00,y
-	sta $c000,y
+	lda (ptr_fname),y ; copy filename 
+	sta $9c00,y       ;  to 9c00
+	sta $c000,y       ;  and c000
 	iny
 	dex
 	bne L8b01
 	lda #$00
-	sta $c000,y
+	sta $c000,y       ; zero-terminate c000 copy
 	lda #$0a
 	sta $9c1d
-	jsr S8d07
+	jsr ReadTable	;4
 	sta $9c1b
-	jsr S8d07
+	jsr ReadTable	;5
 	sta $9c1a
-	jsr S8d07
+	jsr ReadTable	;6
 	sta $9c11
-	jsr S8d07
+	jsr ReadTable	;7
 	sta $9c18
 	cmp #$03
 	bne L8b38
@@ -1267,42 +1273,49 @@ Break
 Break2
 	brk
                     
-S8ad0_return               rts
+S8ad0_return
+        rts
                     
-L8b40               ldx #$14
-                    ldy #$91
-                    jsr printZTString
-                    cli
-L8b48               jsr GETIN
+L8b40   ldx #<str_Flip_Disk
+        ldy #>str_Flip_Disk ;$9114
+        jsr printZTString
+
+        cli
+L8b48   jsr GETIN
 	tax
-	beq L8b48
+	beq L8b48 ; wait for a key to be pressed
 	cmp #$0d
-	bne L8b40
-	ldx #$59
-	ldy #$91
+	bne L8b40 ; not return? Repeat the prompt.
+
+	ldx #<str_Thankyou_Continuing
+	ldy #>str_Thankyou_Continuing ;$9159
 	jsr printZTString
+
 	lda #$10
 	sta $979d
 	lda #$d6
-	ldx #$8e
-	ldy #$90
+	ldx #<fname_CP_MBoot
+	ldy #>fname_CP_MBoot ;$908e
 	jsr sg_LoadFile
+
 	lda #$2e
 	sta $979a
 	lda #$03
 	sta $9799
 	lda #$37
-	ldx #$c2
-	ldy #$8e
-	jsr S8bf8
+	ldx #<fname_MasterCF
+	ldy #>fname_MasterCF ;$8ec2
+	jsr sg_Load_8bf8
+
 	lda #$33
 	sta $979a
 	lda #$00
 	sta $9799
 	lda #$08
-	ldx #$7a
-	ldy #$90
-	jsr S8bf8
+	ldx #<fname_ConfigCl
+	ldy #>fname_ConfigCl ;$907a
+	jsr sg_Load_8bf8
+
 	lda $822a
 	beq L8ba5
 	lda #$9e
@@ -1310,14 +1323,15 @@ L8b48               jsr GETIN
 	lda #$02
 	sta $9799
 	lda #$10
-	ldx #$70
-	ldy #$90
-	jsr S8bf8
+	ldx #<fname_Defaults
+	ldy #>fname_Defaults ;$9070
+	jsr sg_Load_8bf8
+
 L8ba5
 	lda #$1f
-	sta S8d07 + 1
+	sta ReadTable + 1
 	lda #$9a
-	sta S8d07 + 2
+	sta ReadTable + 2
 	jsr S8ad0
 	ldx #$00
 	stx $9799
@@ -1335,9 +1349,9 @@ L8ba5
 	lda $9e95
 	sta $8cf6
 	lda #$43
-	sta S8d07 + 1
+	sta ReadTable + 1
 	lda #$9a
-	sta S8d07 + 2
+	sta ReadTable + 2
 	jsr S8ad0
 	rts
                     
@@ -1352,13 +1366,13 @@ L8bf1
 	sta $979a
 	rts
                     
-S8bf8
+sg_Load_8bf8 ;$8bf8 ;Obviously needs a better name
 	sta $979d
-	stx $bb
-	sty $bc
+	stx ptr_fname
+	sty ptr_fname+1
 	jsr S8cc0
 	lda #$0a
-	sta $b7
+	sta len_fname
 	lda #$08
 	sta $ba
 	lda #$00
@@ -1464,49 +1478,56 @@ S8cc0               asl a
                     lda #$10
                     sta $fc
                     bne L8cd6
-S8ccc               lda #$01
-                    sta $fb
-                    lda #$08
-                    sta $fc
-                    ldx #$6e
-L8cd6               ldy #$00
-                    tya
-L8cd9               sta ($fb),y
-                    iny
-                    bne L8cd9
-                    inc $fc
-                    dex
-                    bne L8cd9
-                    rts
+
+Zero_801_86f; $8ccc
+	lda #<$0801 ; clear memory?
+	sta $fb
+	lda #>$0801
+	sta $fc     ; destination
+	ldx #$6e    ; count 110 bytes
+L8cd6	ldy #$00
+	tya
+L8cd9	sta ($fb),y ; zero memory
+	iny
+	bne L8cd9
+	inc $fc
+	dex
+	bne L8cd9
+	rts         ; set 0801 to 86F=0
                     
 	.byte $00,$00,$00,$00,$00,$00,$00,$00
 	.byte $00,$00,$00,$00,$00,$00,$00,$00 
 	.byte $00,$00,$00 
-S8cf7               lda #$00
-                    tay
-L8cfa               sta $9c00,y
-                    iny
-                    bne L8cfa
-L8d00               sta $9d00,y
-                    iny
-                    bne L8d00
-                    rts
+
+Zero_9c00_9df ; $8cf7
+	lda #$00
+	tay
+L8cfa	sta $9c00,y ; clear 9c00-9cff
+	iny
+	bne L8cfa
+L8d00	sta $9d00,y ; clear 9d00-9dff
+	iny
+	bne L8d00
+	rts
                     
-S8d07               lda S8d07
-                    inc S8d07 + 1
-                    bne L8d12
-                    inc S8d07 + 2
-L8d12               cmp #$00
-                    rts
+Read_Table; $8d07   
+	; Read a byte from a table and selfmod-increment to next byte
+	; returns Z set if end of table (re: fname_ptr_table2)
+	lda ReadTable       ; Get a byte from the table (selfmod operand)
+	inc ReadTable + 1   ; increment 16 bit pointer
+	bne L8d12
+	inc ReadTable + 2
+L8d12	cmp #$00        ; set zero flag
+	rts             ; return
                     
 sg_LoadFile ;$8d15               
 	sta $979a
-	stx $bb		;stash addr of filename to $bb as if SETNAM was called
-	sty $bc
+	stx ptr_fname	;stash addr of filename to $bb as if SETNAM was called
+	sty ptr_fname+1
 	lda $979d
 	jsr S8cc0
 	lda #$0a
-	sta $b7  ;filename length is 10 for all of the files this routine handles
+	sta len_fname  ;filename length is 10 for all of the files this routine handles
 	lda #$08 ; drive 8
 	sta $ba
 	lda #$00
@@ -1609,25 +1630,25 @@ fname_AppendRn ;$8df0
 fname_DealocRn ;$8dfa
 	.screen "DEALOCRN.R"
 	
-L8e04
+fname_DosOvrly ;$8e04
 	.screen "DOSOVRLY.R"
 	
-L8e0e
+fname_OpenFile ;$8e0e
 	.screen "OPENFILE.R"
 	
-L8e18
+fname_CloseFil ;$8e18
 	.screen "CLOSEFIL.R"
 	
-L8e22
+fname_SaveToDv ;$8e22
 	.screen "SAVETODV.R"
 	
-L8e2c
+fname_CmndChn1 ;$8e2c
 	.screen "CMNDCHN1.R"
 	
-L8e36
+fname_Directry ;$8e36
 	.screen "DIRECTRY.R"
 	
-L8e40
+fname_LtKernal ;$L8e40
 	.screen "LTKERNAL.R"
 	
 fname_DealocCn ;$8e4a
@@ -1636,10 +1657,10 @@ fname_DealocCn ;$8e4a
 fname_LuChange ;$8e54
 	.screen "LUCHANGE.R"
 	
-L8e5e
+fname_OpenRela ;$8e5e
 	.screen "OPENRELA.R"
 	
-L8e68
+fname_RelaExpn ;$8e68
 	.screen "RELAEXPN.R"
 	
 fname_AlocExRn ;$8e72
@@ -1654,19 +1675,19 @@ fname_ApndExRn ;$8e86
 fname_DealExRn ;$8e90
 	.screen "DEALEXRN.R"
 	
-L8e9a
+fname_ConfigLU ;$8e9a
 	.screen "CONFIGLU.R"
 	
-L8ea4
+fname_MessFile ;$8ea4
 	.screen "MESSFILE.R"
 	
-L8eae
+fname_AdjIndex ;$8eae
 	.screen "ADJINDEX.R"
 	
-L8eb8
+fname_CommLoad ;$8eb8
 	.screen "COMMLOAD.R"
 	
-L8ec2
+fname_MasterCF ;$8ec2
 	.screen "MASTERCF.R"
 	
 fname_FindFil2 ;$8ecc
@@ -1678,151 +1699,151 @@ fname_CreditsB ;$8ed6
 fname_ScraMidn ;$8ee0
 	.screen "SCRAMIDN.R"
 	
-L8eea
+fname_SubCallr ;$8eea
 	.screen "SUBCALLR.R"
 	
-L8ef4
+fname_IndxMod1 ;$8ef4
 	.screen "INDXMOD1.R"
 	
-L8efe
+fname_IndxMod2 ;$8efe
 	.screen "INDXMOD2.R"
 	
-L8f08
+fname_IndxMod3 ;$8f08
 	.screen "INDXMOD3.R"
 	
-L8f12
+fname_IndxMod4 ;$8f12
 	.screen "INDXMOD4.R"
 	
-L8f1c
+fname_IndxMod5 ;$8f1c
 	.screen "INDXMOD5.R"
 	
-L8f26
+fname_IndxMod6 ;$8f26
 	.screen "INDXMOD6.R"
 	
-L8f30
+fname_IndxMod7 ;$8f30
 	.screen "INDXMOD7.R"
 	
-L8f3a
+fname_CatalogR; $8f3a
 	.screen "CATALOGR.R"
 	
-L8f44
+fname_SysBootR; $8f44
 	.screen "SYSBOOTR.R"
 	
-L8f4e
+fname_LtKrn128; $8f4e
 	.screen "LTKRN128.R"
 	
-L8f58
+fname_DosOv128 ;$8f58
 	.screen "DOSOV128.R"
 	
-L8f62
+fname_OpenF128 ;$8f62
 	.screen "OPENF128.R"
 	
-L8f6c
+fname_Close128 ;$8f6c
 	.screen "CLOSE128.R"
 	
-L8f76
+fname_SysBt128 ;$8f76
 	.screen "SYSBT128.R"
 	
-L8f80
+fname_InitC128; $8f80
 	.screen "INITC128.R"
 	
-L8f8a
+fname_SubCl128; $8f8a
 	.screen "SUBCL128.R"
 	
-L8f94
+fname_IdxM1128 ;$8f94
 	.screen "IDXM1128.R"
 	
-L8f9e
+fname_IdxM2128 ;$8f9e
 	.screen "IDXM2128.R"
 	
-L8fa8
+fname_IdxM3128 ;$8fa8
 	.screen "IDXM3128.R"
 	
-L8fb2
+fname_IdxM4128 ;$8fb2
 	.screen "IDXM4128.R"
 	
-L8fbc
+fname_IdxM5128 ;$8fbc
 	.screen "IDXM5128.R"
 	
-L8fc6
+fname_IdxM6128 ;$8fc6
 	.screen "IDXM6128.R"
 	
-L8fd0
+fname_IdxM7128 ;$8fd0
 	.screen "IDXM7128.R"
 	
-L8fda
+fname_Go64Boot ;$8fda
 	.screen "GO64BOOT.R"
 	
 fname_LoadRnd2 ;$8fe4
 	.screen "LOADRND2.R"
 	
-L8fee
+fname_OpenRand ;$8fee
 	.screen "OPENRAND.R"
 	
 fname_LoadRnd3 ;$8ff8
 	.screen "LOADRND3.R"
 	
-L9002
+fname_ConvrtIO ;$9002
 	.screen "CONVRTIO.R"
 	
-L900c
+fname_AutoUpdt ;$900c
 	.screen "AUTOUPDT.R"
 	
-L9016
+fname_FastFDos ;$9016
 	.screen "FASTFDOS.R"
 	
-L9020
+fname_FastCpy1 ;$9020
 	.screen "FASTCPY1.R"
 	
-L902a
+fname_FastCp1a ;$902a
 	.screen "FASTCP1A.R"
 	
-L9034
+fname_FastCpy2 ;$9034
 	.screen "FASTCPY2.R"
 	
-L903e
+fname_FastCp2a ;$903e
 	.screen "FASTCP2A.R"
 	
-L9048
+fname_FileProt ;$9048
 	.screen "FILEPROT.R"
 	
-L9052
+fname_CmndChn2 ;$9052
 	.screen "CMNDCHN2.R"
 	
-L905c
+fname_IndxMod0 ;$905c
 	.screen "INDXMOD0.R"
 	
-L9066
+fname_IdxM0128 ;$9066
 	.screen "IDXM0128.R"
 	
-L9070
+fname_Defaults ;$9070
 	.screen "DEFAULTS.R"
 	
-L907a
+fname_ConfigCl ;$907a
 	.screen "CONFIGCL.R"
 	
-L9084
+fname_GoCPMode ;$9084
 	.screen "GOCPMODE.R"
 	
-L908e
+fname_CP_MBoot ;$908e
 	.screen "CP/MBOOT.R"
 	
-L9098
+fname_AltSerch ;$9098
 	.screen "ALTSERCH.R"
 	
-L90a2
+fname_InitC064 ;$90a2
 	.screen "INITC064.R"
 	
-L90ac
+fname_FastCpRm ;$90ac
 	.screen "FASTCPRM.R"
 	
-L90b6
+fname_FastCpQD ;$90b6
 	.screen "FASTCPQD.R"
 	
-L90c0
+fname_FastFD81; $90c0
 	.screen "FASTFD81.R"
 	
-L90ca
+fname_FastCpDD; $90ca
 	.screen "FASTCPDD.R"
 	
 L90d4
@@ -1840,11 +1861,11 @@ L90f4
 L9104
 	.screen "FASTCOPY.MODULES"
 	
-L9114
+str_Flip_Disk ;$9114
 	.text "{clr}{return}{rvs on}please turn sysgen disk over to side b.{return}{return}press return when ready."
 	.byte $00
 	
-L9159
+str_Thankyou_Continuing ;$9159
 	.text "{clr}{rvs on}thank you...sysgen continuing"
 	.byte $00
 	
@@ -1890,8 +1911,8 @@ L91c7               jsr S944d
                     ldx #$00
                     ldy #$c0
                     jsr printZTString
-                    ldx #$94
-                    ldy #$94
+                    ldx #<str_FileExists
+                    ldy #>str_FileExists ;$9494
                     jsr printZTString
                     ldx #$ff
                     rts
@@ -1985,14 +2006,14 @@ L924a               lda $9c00,y
 L92c4               lda $8cf0
                     bne L92cc
                     jsr S9327
-L92cc               ldx #$1a
-                    ldy #$95
+L92cc               ldx #<str_CR
+                    ldy #>str_CR ;$951a
                     jsr printZTString
                     ldx #$00
                     ldy #$c0
                     jsr printZTString
-                    ldx #$b3
-                    ldy #$94
+                    ldx #<str_FileCreated
+                    ldy #>str_FileCreated ;$94b3
                     jsr printZTString
                     ldx #$00
                     rts
@@ -2180,30 +2201,34 @@ S9486               lda S9486
 L9491               rts
                     
                     .byte $00,$00
-L9494               .text " - filename already exists !!{return}"
+str_FileExists ;$9494
+                    .text " - filename already exists !!{return}"
                     .byte $00 
-L94b3               .text " file has been created.{return}"
+str_FileCreated ;$94b3
+                    .text " file has been created.{return}"
                     .byte $00 
 str_InitComplete ;$94cc
 	.text "{return}system initialization complete !!!{return}{return}now do a full system reset{return}{return}{return}thank you.{return}"
 	.byte $00
-L951a               .text "{Return}"
+str_CR ;$951a
+                    .text "{Return}"
                     .byte $00 
-S951c               ldx #$00
-                    ldy #$9c
-                    sec
-                    jsr S9641
+
+S951c               ldx #<$9c00
+                    ldy #>$9c00        ; start reading at 9c00
+                    sec                ; sec = set source address
+                    jsr Read_Memory_xy ; set address to 9c00
                     lda #$10
-                    sta $95a4
-                    lda #$00
-                    sta $95a5
+                    sta $95a4          ; scratch space?
+                    lda #$00   
+                    sta $95a5          ; setting up $1000?
                     sta $95a6
                     sta $95a1
                     sta $95a0
                     sta $963e
-L953a               clc
-                    jsr S9641
-                    cmp #$00
+L953a               clc                ; clc = read byte
+                    jsr Read_Memory_xy ; get the next byte
+                    cmp #$00   
                     beq L955d
                     ldx #$05
 L9544               cmp L95a7,x
@@ -2311,16 +2336,20 @@ L9632               dex
                     rts
                     
                     .byte $00,$00,$00,$00
-S9641               bcc L964a
-                    stx L964a + 1
-                    sty L964a + 2
-                    rts
-                    
-L964a               lda L964a
-                    inc L964a + 1
-                    bne L9655
-                    inc L964a + 2
-L9655               rts
+
+Read_Memory_xy ;$9641
+	; Read a byte of memory using .x and .y as an address
+	; set the address if carry is set or read next if not.
+	bcc L964a       ; don't set address if carry clear
+	stx L964a + 1   ; set address of selfmod store below
+	sty L964a + 2
+	rts
+	
+L964a	lda L964a       ; get a byte
+	inc L964a + 1   ; increment/selfmod pointer
+	bne L9655
+	inc L964a + 2
+L9655	rts             ; return with the byte
                     
 S9656               lda #$c2
                     sta $9789
@@ -2673,58 +2702,58 @@ S9929
         ;9330
         .byte $00,$00,$00,$00,$00,$00,$00 
 	; 00 00 00 00 00 00 00 
-	;00 - String length
-	;   00 - Lo-Byte of string address
-	;      00 - Hi-Byte of string address
-	;         00 - Unknown
-	;            00 - Unknown
-	;               00 - Unknown
-	;                  00 - Unknown (Profit?)
+	;     00 - String length
+	;         00 - Lo-Byte of string address
+	;                        00 - Hi-Byte of string address
+	;                                         00 - copied to $9c1b
+	;                                             00 - copied to $9c1a
+	;                                                 00 - copied to $9c11
+	;                                                     00 - copied to $9c18
 fname_ptr_table_2 ;9937
-	.byte $05,<fname_Dir	,>fname_Dir	,$e0,$95,$08,$03 
-	.byte $03,<fname_S  	,>fname_S	,$e0,$95,$05,$02 ;993e
-	.byte $05,<fname_Era	,>fname_Era	,$e0,$95,$03,$02 
-	.byte $06,$6d,$9a,$e0,$95,$02,$02 
-	.byte $03,$73,$9a,$e0,$95,$03,$02 
-	.byte $03,$76,$9a,$e0,$95,$02,$02 
-	.byte $08,$79,$9a,$e0,$95,$04,$02 
-	.byte $06,$81,$9a,$e0,$95,$04,$02 
-	.byte $0a,$87,$9a,$e0,$95,$03,$02 
-	.byte $05,$91,$9a,$e0,$95,$02,$02 
-	.byte $06,$96,$9a,$e0,$95,$03,$02 
-	.byte $07,$9c,$9a,$e0,$95,$09,$03 
-	.byte $06,$a3,$9a,$e0,$95,$07,$03 
-	.byte $06,$a9,$9a,$e0,$95,$05,$03 
-	.byte $05,$af,$9a,$e0,$95,$03,$03 
-	.byte $07,$b4,$9a,$e0,$95,$04,$03 
-	.byte $07,$bb,$9a,$e0,$95,$03,$03 
-	.byte $04,$c2,$9a,$e0,$95,$02,$02 
-	.byte $07,$c6,$9a,$e0,$95,$05,$02 
-	.byte $08,$cd,$9a,$e0,$95,$05,$02 
-	.byte $07,$d5,$9a,$e0,$95,$05,$03 
-	.byte $0a,$dc,$9a,$e0,$95,$06,$03 
-	.byte $0a,$e6,$9a,$e0,$95,$09,$03 
-	.byte $09,$f0,$9a,$e0,$95,$07,$03 
-	.byte $06,$f9,$9a,$e0,$95,$02,$02 
-	.byte $07,$ff,$9a,$e0,$95,$03,$02 
-	.byte $04,$06,$9b,$e0,$95,$05,$02 
-	.byte $06,$0a,$9b,$e0,$95,$04,$02 
-	.byte $0c,$10,$9b,$e0,$95,$05,$02 
-	.byte $0a,$1c,$9b,$e0,$95,$03,$02 
-	.byte $0a,$26,$9b,$e0,$95,$08,$03 
-	.byte $09,$30,$9b,$e0,$95,$05,$02 
-	.byte $0a,$39,$9b,$e0,$95,$09,$03 
+	.byte $05,<fname_Dir     ,>fname_Dir     ,$e0,$95,$08,$03 
+	.byte $03,<fname_S       ,>fname_S       ,$e0,$95,$05,$02 ;993e
+	.byte $05,<fname_Era     ,>fname_Era     ,$e0,$95,$03,$02 
+	.byte $06,<fname_Ship    ,>fname_Ship    ,$e0,$95,$02,$02 ; 9a6d
+	.byte $03,$73            ,$9a            ,$e0,$95,$03,$02 
+	.byte $03,$76            ,$9a            ,$e0,$95,$02,$02 
+	.byte $08,$79            ,$9a            ,$e0,$95,$04,$02 
+	.byte $06,$81            ,$9a            ,$e0,$95,$04,$02 
+	.byte $0a,$87            ,$9a            ,$e0,$95,$03,$02 
+	.byte $05,$91            ,$9a            ,$e0,$95,$02,$02 
+	.byte $06,$96            ,$9a            ,$e0,$95,$03,$02 
+	.byte $07,$9c            ,$9a            ,$e0,$95,$09,$03 
+	.byte $06,$a3            ,$9a            ,$e0,$95,$07,$03 
+	.byte $06,$a9            ,$9a            ,$e0,$95,$05,$03 
+	.byte $05,$af            ,$9a            ,$e0,$95,$03,$03 
+	.byte $07,$b4            ,$9a            ,$e0,$95,$04,$03 
+	.byte $07,$bb            ,$9a            ,$e0,$95,$03,$03 
+	.byte $04,$c2            ,$9a            ,$e0,$95,$02,$02 
+	.byte $07,$c6            ,$9a            ,$e0,$95,$05,$02 
+	.byte $08,$cd            ,$9a            ,$e0,$95,$05,$02 
+	.byte $07,$d5            ,$9a            ,$e0,$95,$05,$03 
+	.byte $0a,$dc            ,$9a            ,$e0,$95,$06,$03 
+	.byte $0a,$e6            ,$9a            ,$e0,$95,$09,$03 
+	.byte $09,$f0            ,$9a            ,$e0,$95,$07,$03 
+	.byte $06,$f9            ,$9a            ,$e0,$95,$02,$02 
+	.byte $07,$ff            ,$9a            ,$e0,$95,$03,$02 
+	.byte $04,$06            ,$9b            ,$e0,$95,$05,$02 
+	.byte $06,$0a            ,$9b            ,$e0,$95,$04,$02 
+	.byte $0c,$10            ,$9b            ,$e0,$95,$05,$02 
+	.byte $0a,$1c            ,$9b            ,$e0,$95,$03,$02 
+	.byte $0a,$26            ,$9b            ,$e0,$95,$08,$03 
+	.byte $09,$30            ,$9b            ,$e0,$95,$05,$02 
+	.byte $0a,$39            ,$9b            ,$e0,$95,$09,$03 
         .byte $00 
-	.byte $0a,$43,$9b,$e0,$95,$07,$03 
-	.byte $07,$4d,$9b,$e0,$95,$02,$02 
-	.byte $06,$54,$9b,$e0,$95,$07,$03 
-	.byte $07,$5a,$9b,$e0,$95,$02,$02 
-	.byte $06,$61,$9b,$e0,$95,$04,$02 
+	.byte $0a,$43            ,$9b            ,$e0,$95,$07,$03 
+	.byte $07,$4d            ,$9b            ,$e0,$95,$02,$02 
+	.byte $06,$54            ,$9b            ,$e0,$95,$07,$03 
+	.byte $07,$5a            ,$9b            ,$e0,$95,$02,$02 
+	.byte $06,$61            ,$9b            ,$e0,$95,$04,$02 
 	.byte $00
-	.byte $0e,$67,$9b,$01,$08,$12,$0b 
-	.byte $07,$75,$9b,$01,$08,$17,$0b 
-	.byte $0e,$7c,$9b,$01,$08,$08,$0b 
-	.byte $00,$8a,$9b,$01,$08,$08,$0b 
+	.byte $0e,$67            ,$9b            ,$01,$08,$12,$0b 
+	.byte $07,$75            ,$9b            ,$01,$08,$17,$0b 
+	.byte $0e,$7c            ,$9b            ,$01,$08,$08,$0b 
+	.byte $00,$8a            ,$9b            ,$01,$08,$08,$0b 
 	.byte $00 
 fname_Dir
 	.screen "DIR.R"	;9a60
@@ -2732,6 +2761,7 @@ fname_S
 	.screen "S.R" ;$9a65               
 fname_Era
 	.screen "ERA.R" ;$9a68               
+fname_Ship
 	.screen "SHIP.R" ;$9a6d               
 	.screen "L.R" ;$9a73               
 	.screen "D.R" ;$9a76               
