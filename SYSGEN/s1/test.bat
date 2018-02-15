@@ -1,5 +1,6 @@
 call test_file adjindex adjindex.r
 call test_file b b
+call test_file catalogr catalogr.r
 call test_file creditsb creditsb.r
 call test_file checksum checksum.r
 call test_file convrtio convrtio.r

@@ -1,5 +1,6 @@
 call build adjindex
 call build b
+call build catalogr
 call build creditsb
 call build checksum
 call build convrtio
