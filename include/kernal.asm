@@ -39,3 +39,9 @@
 	PLOT   =$FFF0 ;(58634, $E50A) read/set position of cursor on screen
 	IOBASE =$FFF3 ;(58624, $E500) read base address of I/O devices
 	
+	NMI_LO		=	$FFFA
+	NMI_HI		=	$FFFB
+	COLDSTART_LO	= 	$FFFC
+	COLDSTART_HI	= 	$FFFD
+	IRQ_LO		=	$FFFE
+	IRQ_HI		=	$FFFF
