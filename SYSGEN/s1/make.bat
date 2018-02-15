@@ -18,6 +18,7 @@ call build sb2
 call build scramidn
 call build setup
 call build ship
+call build sysboot
 call build user
 
 

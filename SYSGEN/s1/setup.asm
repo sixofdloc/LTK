@@ -1,5 +1,6 @@
 
 	.include "../../include/kernal.asm"
+	.include "../../include/zeropage.asm"
 	*=$8000
 ;setup.prg
  
@@ -1499,7 +1500,7 @@ L8cd9	sta ($fb),y ; zero memory
 	.byte $00,$00,$00,$00,$00,$00,$00,$00 
 	.byte $00,$00,$00 
 
-Zero_9c00_9df ; $8cf7
+Zero_9c00_9dff ; $8cf7
 	lda #$00
 	tay
 L8cfa	sta $9c00,y ; clear 9c00-9cff
@@ -1510,7 +1511,7 @@ L8d00	sta $9d00,y ; clear 9d00-9dff
 	bne L8d00
 	rts
                     
-Read_Table; $8d07   
+ReadTable; $8d07   
 	; Read a byte from a table and selfmod-increment to next byte
 	; returns Z set if end of table (re: fname_ptr_table2)
 	lda ReadTable       ; Get a byte from the table (selfmod operand)
