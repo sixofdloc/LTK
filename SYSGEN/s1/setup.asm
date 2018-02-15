@@ -820,73 +820,73 @@ L87c2
 	jsr sg_LoadFile
 	
 	lda #$13
-	ldx #$c8
-	ldy #$8d
+	ldx #<fname_ErrorHan 
+	ldy #>fname_ErrorHan ;$8dc8
 	jsr sg_LoadFile
 	
 	lda #$14
-	ldx #$d2
-	ldy #$8d
+	ldx #<fname_LoadCntg 
+	ldy #>fname_LoadCntg ;$8dd2
 	jsr sg_LoadFile
 	
 	lda #$15
-	ldx #$dc
-	ldy #$8d
+	ldx #<fname_AlocAtRn 
+	ldy #>fname_AlocAtRn ;$8ddc
 	jsr sg_LoadFile
 	
 	lda #$16
-	ldx #$e6
-	ldy #$8d
+	ldx #<fname_AlocAtCn 
+	ldy #>fname_AlocAtCn ;$8de6
 	jsr sg_LoadFile
 	
 	lda #$17
-	ldx #$f0
-	ldy #$8d
+	ldx #<fname_AppendRn
+	ldy #>fname_AppendRn ;$8df0
 	jsr sg_LoadFile
 	
 	lda #$18
-	ldx #$fa
-	ldy #$8d
+	ldx #<fname_DealocRn
+	ldy #>fname_DealocRn ;$8dfa
 	jsr sg_LoadFile
 	
 	lda #$19
-	ldx #$4a
-	ldy #$8e
+	ldx #<fname_DealocCn
+	ldy #>fname_DealocCn ;$8e4a
 	jsr sg_LoadFile
 	
 	lda #$1a
-	ldx #$54
-	ldy #$8e
+	ldx #<fname_LuChange 
+	ldy #>fname_LuChange ;$8e54
 	jsr sg_LoadFile
 	
 	lda #$1b
-	ldx #$72
-	ldy #$8e
+	ldx #<fname_AlocExRn 
+	ldy #>fname_AlocExRn ;$8e72
 	jsr sg_LoadFile
 	
 	lda #$1c
-	ldx #$7c
-	ldy #$8e
+	ldx #<fname_ExpnRand
+	ldy #>fname_ExpnRand ;$8e7c
 	jsr sg_LoadFile
 	
 	lda #$1d
-	ldx #$86
-	ldy #$8e
+	ldx #<fname_ApndExRn
+	ldy #>fname_ApndExRn ;$8e86
 	jsr sg_LoadFile
 	
 	lda #$1e
-	ldx #$90
-	ldy #$8e
+	ldx #<fname_DealExRn
+	ldy #>fname_DealExRn ;$8e90
 	jsr sg_LoadFile
 	
 	lda #$21
-	ldx #$d6
-	ldy #$8e
+	ldx #<fname_CreditsB
+	ldy #>fname_CreditsB ;$8ed6
 	jsr sg_LoadFile
 	
 	lda #$22
-	ldx #$e0
-	ldy #$8e
+	ldx #<fname_ScraMidn
+	ldy #>fname_ScraMidn ;$8ee0
 	jsr sg_LoadFile
 	
 	lda #$23
@@ -1591,253 +1591,253 @@ fname_Findfile ;$8db4
 fname_LoadRand ;$8dbe
 	.screen "LOADRAND.R"
 	
-L8dc8
+fname_ErrorHan ;$8dc8
 	.screen "ERRORHAN.R"
 	
-L8dd2
+fname_LoadCntg ;$8dd2
 	.screen "LOADCNTG.R"
 	
-L8ddc
+fname_AlocAtRn ;$8ddc
 	.screen "ALOCATRN.R"
 	
-L8de6
+fname_AlocAtCn ;$8de6
 	.screen "ALOCATCN.R"
 	
-L8df0
+fname_AppendRn ;$8df0
 	.screen "APPENDRN.R"
 	
-L8dfa
+fname_DealocRn ;$8dfa
 	.screen "DEALOCRN.R"
 	
-L8e04
+fname_ ;$L8e04
 	.screen "DOSOVRLY.R"
 	
-L8e0e
+fname_ ;$L8e0e
 	.screen "OPENFILE.R"
 	
-L8e18
+fname_ ;$L8e18
 	.screen "CLOSEFIL.R"
 	
-L8e22
+fname_ ;$L8e22
 	.screen "SAVETODV.R"
 	
-L8e2c
+fname_ ;$L8e2c
 	.screen "CMNDCHN1.R"
 	
-L8e36
+fname_ ;$L8e36
 	.screen "DIRECTRY.R"
 	
-L8e40
+fname_ ;$L8e40
 	.screen "LTKERNAL.R"
 	
-L8e4a
+fname_DealocCn ;$8e4a
 	.screen "DEALOCCN.R"
 	
-L8e54
+fname_LuChange ;$8e54
 	.screen "LUCHANGE.R"
 	
-L8e5e
+fname_ ;$L8e5e
 	.screen "OPENRELA.R"
 	
-L8e68
+fname_ ;$L8e68
 	.screen "RELAEXPN.R"
 	
-L8e72
+fname_AlocExRn ;$8e72
 	.screen "ALOCEXRN.R"
 	
-L8e7c
+fname_ExpnRand ;$8e7c
 	.screen "EXPNRAND.R"
 	
-L8e86
+fname_ApndExRn ;$8e86
 	.screen "APNDEXRN.R"
 	
-L8e90
+fname_DealExRn ;$8e90
 	.screen "DEALEXRN.R"
 	
-L8e9a
+fname_ ;$L8e9a
 	.screen "CONFIGLU.R"
 	
-L8ea4
+fname_ ;$L8ea4
 	.screen "MESSFILE.R"
 	
-L8eae
+fname_ ;$L8eae
 	.screen "ADJINDEX.R"
 	
-L8eb8
+fname_ ;$L8eb8
 	.screen "COMMLOAD.R"
 	
-L8ec2
+fname_ ;$L8ec2
 	.screen "MASTERCF.R"
 	
 fname_FindFil2 ;$8ecc
 	.screen "FINDFIL2.R"
 	
-L8ed6
+fname_CreditsB ;$8ed6
 	.screen "CREDITSB.R"
 	
-L8ee0
+fname_ScraMidn ;$8ee0
 	.screen "SCRAMIDN.R"
 	
-L8eea
+fname_ ;$L8eea
 	.screen "SUBCALLR.R"
 	
-L8ef4
+fname_ ;$L8ef4
 	.screen "INDXMOD1.R"
 	
-L8efe
+fname_ ;$L8efe
 	.screen "INDXMOD2.R"
 	
-L8f08
+fname_ ;$L8f08
 	.screen "INDXMOD3.R"
 	
-L8f12
+fname_ ;$L8f12
 	.screen "INDXMOD4.R"
 	
-L8f1c
+fname_ ;$L8f1c
 	.screen "INDXMOD5.R"
 	
-L8f26
+fname_ ;$L8f26
 	.screen "INDXMOD6.R"
 	
-L8f30
+fname_ ;$L8f30
 	.screen "INDXMOD7.R"
 	
-L8f3a
+fname_ ;$L8f3a
 	.screen "CATALOGR.R"
 	
-L8f44
+fname_ ;$L8f44
 	.screen "SYSBOOTR.R"
 	
-L8f4e
+fname_ ;$L8f4e
 	.screen "LTKRN128.R"
 	
-L8f58
+fname_ ;$L8f58
 	.screen "DOSOV128.R"
 	
-L8f62
+fname_ ;$L8f62
 	.screen "OPENF128.R"
 	
-L8f6c
+fname_ ;$L8f6c
 	.screen "CLOSE128.R"
 	
-L8f76
+fname_ ;$L8f76
 	.screen "SYSBT128.R"
 	
-L8f80
+fname_ ;$L8f80
 	.screen "INITC128.R"
 	
-L8f8a
+fname_ ;$L8f8a
 	.screen "SUBCL128.R"
 	
-L8f94
+fname_ ;$L8f94
 	.screen "IDXM1128.R"
 	
-L8f9e
+fname_ ;$L8f9e
 	.screen "IDXM2128.R"
 	
-L8fa8
+fname_ ;$L8fa8
 	.screen "IDXM3128.R"
 	
-L8fb2
+fname_ ;$L8fb2
 	.screen "IDXM4128.R"
 	
-L8fbc
+fname_ ;$L8fbc
 	.screen "IDXM5128.R"
 	
-L8fc6
+fname_ ;$L8fc6
 	.screen "IDXM6128.R"
 	
-L8fd0
+fname_ ;$L8fd0
 	.screen "IDXM7128.R"
 	
-L8fda
+fname_ ;$L8fda
 	.screen "GO64BOOT.R"
 	
 fname_LoadRnd2 ;$8fe4
 	.screen "LOADRND2.R"
 	
-L8fee
+fname_ ;$L8fee
 	.screen "OPENRAND.R"
 	
 fname_LoadRnd3 ;$8ff8
 	.screen "LOADRND3.R"
 	
-L9002
+fname_ ;$L9002
 	.screen "CONVRTIO.R"
 	
-L900c
+fname_ ;$L900c
 	.screen "AUTOUPDT.R"
 	
-L9016
+fname_ ;$L9016
 	.screen "FASTFDOS.R"
 	
-L9020
+fname_ ;$L9020
 	.screen "FASTCPY1.R"
 	
-L902a
+fname_ ;$L902a
 	.screen "FASTCP1A.R"
 	
-L9034
+fname_ ;$L9034
 	.screen "FASTCPY2.R"
 	
-L903e
+fname_ ;$L903e
 	.screen "FASTCP2A.R"
 	
-L9048
+fname_ ;$L9048
 	.screen "FILEPROT.R"
 	
-L9052
+fname_ ;$L9052
 	.screen "CMNDCHN2.R"
 	
-L905c
+fname_ ;$L905c
 	.screen "INDXMOD0.R"
 	
-L9066
+fname_ ;$L9066
 	.screen "IDXM0128.R"
 	
-L9070
+fname_ ;$L9070
 	.screen "DEFAULTS.R"
 	
-L907a
+fname_ ;$L907a
 	.screen "CONFIGCL.R"
 	
-L9084
+fname_ ;$L9084
 	.screen "GOCPMODE.R"
 	
-L908e
+fname_ ;$L908e
 	.screen "CP/MBOOT.R"
 	
-L9098
+fname_ ;$L9098
 	.screen "ALTSERCH.R"
 	
-L90a2
+fname_ ;$L90a2
 	.screen "INITC064.R"
 	
-L90ac
+fname_ ;$L90ac
 	.screen "FASTCPRM.R"
 	
-L90b6
+fname_ ;$L90b6
 	.screen "FASTCPQD.R"
 	
-L90c0
+fname_ ;$L90c0
 	.screen "FASTFD81.R"
 	
-L90ca
+fname_ ;$L90ca
 	.screen "FASTCPDD.R"
 	
-L90d4
+fname_ ;$L90d4
 	.screen "DISCBITMAP"
 	
-L90de
+fname_ ;$L90de
 	.screen "SYSTEMTRACK"
 	
-L90e9
+fname_ ;$L90e9
 	.screen "SYSTEMINDEX"
 	
-L90f4
+fname_ ;$L90f4
 	.screen "SYSTEMCONFIGFILE"
 	
-L9104
+fname_ ;$L9104
 	.screen "FASTCOPY.MODULES"
 	
 L9114
