@@ -820,73 +820,73 @@ L87c2
 	jsr sg_LoadFile
 	
 	lda #$13
-	ldx #$c8
-	ldy #$8d
+	ldx #<fname_ErrorHan 
+	ldy #>fname_ErrorHan ;$8dc8
 	jsr sg_LoadFile
 	
 	lda #$14
-	ldx #$d2
-	ldy #$8d
+	ldx #<fname_LoadCntg 
+	ldy #>fname_LoadCntg ;$8dd2
 	jsr sg_LoadFile
 	
 	lda #$15
-	ldx #$dc
-	ldy #$8d
+	ldx #<fname_AlocAtRn 
+	ldy #>fname_AlocAtRn ;$8ddc
 	jsr sg_LoadFile
 	
 	lda #$16
-	ldx #$e6
-	ldy #$8d
+	ldx #<fname_AlocAtCn 
+	ldy #>fname_AlocAtCn ;$8de6
 	jsr sg_LoadFile
 	
 	lda #$17
-	ldx #$f0
-	ldy #$8d
+	ldx #<fname_AppendRn
+	ldy #>fname_AppendRn ;$8df0
 	jsr sg_LoadFile
 	
 	lda #$18
-	ldx #$fa
-	ldy #$8d
+	ldx #<fname_DealocRn
+	ldy #>fname_DealocRn ;$8dfa
 	jsr sg_LoadFile
 	
 	lda #$19
-	ldx #$4a
-	ldy #$8e
+	ldx #<fname_DealocCn
+	ldy #>fname_DealocCn ;$8e4a
 	jsr sg_LoadFile
 	
 	lda #$1a
-	ldx #$54
-	ldy #$8e
+	ldx #<fname_LuChange 
+	ldy #>fname_LuChange ;$8e54
 	jsr sg_LoadFile
 	
 	lda #$1b
-	ldx #$72
-	ldy #$8e
+	ldx #<fname_AlocExRn 
+	ldy #>fname_AlocExRn ;$8e72
 	jsr sg_LoadFile
 	
 	lda #$1c
-	ldx #$7c
-	ldy #$8e
+	ldx #<fname_ExpnRand
+	ldy #>fname_ExpnRand ;$8e7c
 	jsr sg_LoadFile
 	
 	lda #$1d
-	ldx #$86
-	ldy #$8e
+	ldx #<fname_ApndExRn
+	ldy #>fname_ApndExRn ;$8e86
 	jsr sg_LoadFile
 	
 	lda #$1e
-	ldx #$90
-	ldy #$8e
+	ldx #<fname_DealExRn
+	ldy #>fname_DealExRn ;$8e90
 	jsr sg_LoadFile
 	
 	lda #$21
-	ldx #$d6
-	ldy #$8e
+	ldx #<fname_CreditsB
+	ldy #>fname_CreditsB ;$8ed6
 	jsr sg_LoadFile
 	
 	lda #$22
-	ldx #$e0
-	ldy #$8e
+	ldx #<fname_ScraMidn
+	ldy #>fname_ScraMidn ;$8ee0
 	jsr sg_LoadFile
 	
 	lda #$23
@@ -1591,22 +1591,22 @@ fname_Findfile ;$8db4
 fname_LoadRand ;$8dbe
 	.screen "LOADRAND.R"
 	
-L8dc8
+fname_ErrorHan ;$8dc8
 	.screen "ERRORHAN.R"
 	
-L8dd2
+fname_LoadCntg ;$8dd2
 	.screen "LOADCNTG.R"
 	
-L8ddc
+fname_AlocAtRn ;$8ddc
 	.screen "ALOCATRN.R"
 	
-L8de6
+fname_AlocAtCn ;$8de6
 	.screen "ALOCATCN.R"
 	
-L8df0
+fname_AppendRn ;$8df0
 	.screen "APPENDRN.R"
 	
-L8dfa
+fname_DealocRn ;$8dfa
 	.screen "DEALOCRN.R"
 	
 L8e04
@@ -1630,10 +1630,10 @@ L8e36
 L8e40
 	.screen "LTKERNAL.R"
 	
-L8e4a
+fname_DealocCn ;$8e4a
 	.screen "DEALOCCN.R"
 	
-L8e54
+fname_LuChange ;$8e54
 	.screen "LUCHANGE.R"
 	
 L8e5e
@@ -1642,16 +1642,16 @@ L8e5e
 L8e68
 	.screen "RELAEXPN.R"
 	
-L8e72
+fname_AlocExRn ;$8e72
 	.screen "ALOCEXRN.R"
 	
-L8e7c
+fname_ExpnRand ;$8e7c
 	.screen "EXPNRAND.R"
 	
-L8e86
+fname_ApndExRn ;$8e86
 	.screen "APNDEXRN.R"
 	
-L8e90
+fname_DealExRn ;$8e90
 	.screen "DEALEXRN.R"
 	
 L8e9a
@@ -1672,10 +1672,10 @@ L8ec2
 fname_FindFil2 ;$8ecc
 	.screen "FINDFIL2.R"
 	
-L8ed6
+fname_CreditsB ;$8ed6
 	.screen "CREDITSB.R"
 	
-L8ee0
+fname_ScraMidn ;$8ee0
 	.screen "SCRAMIDN.R"
 	
 L8eea
