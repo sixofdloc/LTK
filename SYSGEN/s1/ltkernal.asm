@@ -3,7 +3,7 @@
 ;February 2018
 
 	.include "../../include/ltk_equates.asm"
-	*=$8000 	;rewrite start address to $4000 for sysgen disk
+	*=$8000 ;rewrite start address to $4000 for sysgen disk
 	
 ;=============================================================================
 ;   LTK_Var_ActiveLU-$8038 VARIABLE STORAGE SPACE

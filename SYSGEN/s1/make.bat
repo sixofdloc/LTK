@@ -8,6 +8,7 @@ call build d
 call build dir
 call build fastcpqd
 call build fileprot
+call build initc064
 call build l
 call build ltkernal
 call build lu

@@ -8,6 +8,7 @@ call test_file d d.r
 call test_file dir dir.r
 call test_file fastcpqd fastcpqd.r
 call test_file fileprot fileprot.r
+call test_file initc064 initc064.r
 call test_file l l.r
 call test_file ltkernal ltkernal.r
 call test_file lu lu.r
