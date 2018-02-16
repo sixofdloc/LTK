@@ -1,6 +1,7 @@
 
 	.include "../../include/kernal.asm"
 	.include "../../include/zeropage.asm"
+	.include "../../include/ltk_equates.asm"
 	*=$8000
 ;setup.prg
  
@@ -1213,12 +1214,12 @@ L87c2
 	sta ReadTable + 1
 	lda #>fname_ptr_table_2 ;$9937
 	sta ReadTable + 2
-	jsr S8ad0
+	jsr LoadFromTable
 	jmp L8b40
                     
-S8ad0   ; load files from table?
+LoadFromTable ; Loads files from a table using ReadTable to get file information
 	jsr ReadTable     ; get file name length
-	beq S8ad0_return  ;  zero? We're done.
+	beq S8ad0_return  ;  zero means end of table.
 	sta len_fname     ;  set kernal variable
 	jsr ReadTable     ; get name low byte
 	sta ptr_fname     ;  set kernal variable
@@ -1231,7 +1232,7 @@ S8ad0   ; load files from table?
 	jsr Zero_801_86f  ; clear some memory
 	cli
 	lda #$00          ; .A=0 -> LOAD
-	jsr LOAD
+	jsr LOAD          ; load "fname",8,1
 	bcc L8af7	  ; continue if no error
 	jmp Break2
                     
@@ -1253,13 +1254,13 @@ L8b01
 	sta $c000,y       ; zero-terminate c000 copy
 	lda #$0a
 	sta $9c1d
-	jsr ReadTable	;4
+	jsr ReadTable	; Load address low
 	sta $9c1b
-	jsr ReadTable	;5
+	jsr ReadTable	; Load address high
 	sta $9c1a
-	jsr ReadTable	;6
+	jsr ReadTable	; field #6: unknown
 	sta $9c11
-	jsr ReadTable	;7
+	jsr ReadTable	; field #7: unknown
 	sta $9c18
 	cmp #$03
 	bne L8b38
@@ -1267,7 +1268,7 @@ L8b01
 	sta $9c12
 L8b38
 	jsr S9179
-	beq S8ad0
+	beq LoadFromTable
 Break
 	brk
                     
@@ -1329,11 +1330,11 @@ L8b48   jsr GETIN
 	jsr sg_Load_8bf8
 
 L8ba5
-	lda #$1f
+	lda #<fname_ptr_table_3
 	sta ReadTable + 1
-	lda #$9a
+	lda #>fname_ptr_table_3 ;$9a1f
 	sta ReadTable + 2
-	jsr S8ad0
+	jsr LoadFromTable
 	ldx #$00
 	stx $9799
 	inx
@@ -1349,11 +1350,11 @@ L8ba5
 	sta $8cf5
 	lda $9e95
 	sta $8cf6
-	lda #$43
+	lda #<fname_ptr_table_4
 	sta ReadTable + 1
-	lda #$9a
+	lda #>fname_ptr_table_4 ;$9a43
 	sta ReadTable + 2
-	jsr S8ad0
+	jsr LoadFromTable
 	rts
                     
 S8be7
@@ -2703,59 +2704,66 @@ S9929
         ;9330
         .byte $00,$00,$00,$00,$00,$00,$00 
 	; 00 00 00 00 00 00 00 
-	;     00 - String length
-	;         00 - Lo-Byte of string address
-	;                        00 - Hi-Byte of string address
-	;                                         00 - copied to $9c1b
-	;                                             00 - copied to $9c1a
-	;                                                 00 - copied to $9c11
-	;                                                     00 - copied to $9c18
-fname_ptr_table_2 ;9937
-	.byte $05,<fname_Dir     ,>fname_Dir     ,$e0,$95,$08,$03 
-	.byte $03,<fname_S       ,>fname_S       ,$e0,$95,$05,$02 ;993e
-	.byte $05,<fname_Era     ,>fname_Era     ,$e0,$95,$03,$02 
-	.byte $06,<fname_Ship    ,>fname_Ship    ,$e0,$95,$02,$02 ; 9a6d
-	.byte $03,$73            ,$9a            ,$e0,$95,$03,$02 
-	.byte $03,$76            ,$9a            ,$e0,$95,$02,$02 
-	.byte $08,$79            ,$9a            ,$e0,$95,$04,$02 
-	.byte $06,$81            ,$9a            ,$e0,$95,$04,$02 
-	.byte $0a,$87            ,$9a            ,$e0,$95,$03,$02 
-	.byte $05,$91            ,$9a            ,$e0,$95,$02,$02 
-	.byte $06,$96            ,$9a            ,$e0,$95,$03,$02 
-	.byte $07,$9c            ,$9a            ,$e0,$95,$09,$03 
-	.byte $06,$a3            ,$9a            ,$e0,$95,$07,$03 
-	.byte $06,$a9            ,$9a            ,$e0,$95,$05,$03 
-	.byte $05,$af            ,$9a            ,$e0,$95,$03,$03 
-	.byte $07,$b4            ,$9a            ,$e0,$95,$04,$03 
-	.byte $07,$bb            ,$9a            ,$e0,$95,$03,$03 
-	.byte $04,$c2            ,$9a            ,$e0,$95,$02,$02 
-	.byte $07,$c6            ,$9a            ,$e0,$95,$05,$02 
-	.byte $08,$cd            ,$9a            ,$e0,$95,$05,$02 
-	.byte $07,$d5            ,$9a            ,$e0,$95,$05,$03 
-	.byte $0a,$dc            ,$9a            ,$e0,$95,$06,$03 
-	.byte $0a,$e6            ,$9a            ,$e0,$95,$09,$03 
-	.byte $09,$f0            ,$9a            ,$e0,$95,$07,$03 
-	.byte $06,$f9            ,$9a            ,$e0,$95,$02,$02 
-	.byte $07,$ff            ,$9a            ,$e0,$95,$03,$02 
-	.byte $04,$06            ,$9b            ,$e0,$95,$05,$02 
-	.byte $06,$0a            ,$9b            ,$e0,$95,$04,$02 
-	.byte $0c,$10            ,$9b            ,$e0,$95,$05,$02 
-	.byte $0a,$1c            ,$9b            ,$e0,$95,$03,$02 
-	.byte $0a,$26            ,$9b            ,$e0,$95,$08,$03 
-	.byte $09,$30            ,$9b            ,$e0,$95,$05,$02 
-	.byte $0a,$39            ,$9b            ,$e0,$95,$09,$03 
-        .byte $00 
-	.byte $0a,$43            ,$9b            ,$e0,$95,$07,$03 
-	.byte $07,$4d            ,$9b            ,$e0,$95,$02,$02 
-	.byte $06,$54            ,$9b            ,$e0,$95,$07,$03 
-	.byte $07,$5a            ,$9b            ,$e0,$95,$02,$02 
-	.byte $06,$61            ,$9b            ,$e0,$95,$04,$02 
-	.byte $00
-	.byte $0e,$67            ,$9b            ,$01,$08,$12,$0b 
-	.byte $07,$75            ,$9b            ,$01,$08,$17,$0b 
-	.byte $0e,$7c            ,$9b            ,$01,$08,$08,$0b 
-	.byte $00,$8a            ,$9b            ,$01,$08,$08,$0b 
-	.byte $00 
+	; 00 - File Name length
+	;    00 - Lo-Byte of File Name address
+	;       00 - Hi-Byte of File Name address
+	;          00 - Lo-byte of load address: copied to $9c1b
+	;             00 - Hi-byte of load address: copied to $9c1a
+	;                00 - copied to $9c11
+	;                   00 - copied to $9c18
+
+; FIXME: temporarily defining basic load address here.
+;  The assembler will eventually error out when we decide where it should go.
+BASIC_LoadAddr	=$0801
+
+fname_ptr_table_2
+	.byte $05 ,<fname_Dir        ,>fname_Dir            ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$08 ,$03
+	.byte $03 ,<fname_S          ,>fname_S              ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$05 ,$02
+	.byte $05 ,<fname_Era        ,>fname_Era            ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$03 ,$02
+	.byte $06 ,<fname_Ship       ,>fname_Ship           ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$02 ,$02
+	.byte $03 ,<fname_L          ,>fname_L              ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$03 ,$02
+	.byte $03 ,<fname_D          ,>fname_D              ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$02 ,$02
+	.byte $08 ,<fname_Change     ,>fname_Change         ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$04 ,$02
+	.byte $06 ,<fname_Copy       ,>fname_Copy           ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$04 ,$02
+	.byte $0a ,<fname_FastCopy   ,>fname_FastCopy       ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$03 ,$02
+	.byte $05 ,<fname_New        ,>fname_New            ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$02 ,$02
+	.byte $06 ,<fname_Oops       ,>fname_Oops           ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$03 ,$02
+	.byte $07 ,<fname_Renum      ,>fname_Renum          ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$09 ,$03
+	.byte $06 ,<fname_Type       ,>fname_Type           ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$07 ,$03
+	.byte $06 ,<fname_Dump       ,>fname_Dump           ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$05 ,$03
+	.byte $05 ,<fname_Del        ,>fname_Del            ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$03 ,$03
+	.byte $07 ,<fname_Fetch      ,>fname_Fetch          ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$04 ,$03
+	.byte $07 ,<fname_Merge      ,>fname_Merge          ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$03 ,$03
+	.byte $04 ,<fname_LU         ,>fname_LU             ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$02 ,$02
+	.byte $07 ,<fname_Query      ,>fname_Query          ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$05 ,$02
+	.byte $08 ,<fname_Config     ,>fname_Config         ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$05 ,$02
+	.byte $07 ,<fname_Build      ,>fname_Build          ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$05 ,$03
+	.byte $0a ,<fname_Activate   ,>fname_Activate       ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$06 ,$03
+	.byte $0a ,<fname_Autocopy   ,>fname_Autocopy       ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$09 ,$03
+	.byte $09 ,<fname_Autodel    ,>fname_Autodel        ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$07 ,$03
+	.byte $06 ,<fname_User       ,>fname_User           ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$02 ,$02
+	.byte $07 ,<fname_Clear      ,>fname_Clear          ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$03 ,$02
+	.byte $04 ,<fname_DI         ,>fname_DI             ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$05 ,$02
+	.byte $06 ,<fname_Diag       ,>fname_Diag           ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$04 ,$02
+	.byte $0c ,<fname_BuildIndex ,>fname_BuildIndex     ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$05 ,$02
+	.byte $0a ,<fname_Checksum   ,>fname_Checksum       ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$03 ,$02
+	.byte $0a ,<fname_Automove   ,>fname_Automove       ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$08 ,$03
+	.byte $09 ,<fname_Recover    ,>fname_Recover        ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$05 ,$02
+	.byte $0a ,<fname_Validate   ,>fname_Validate       ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$09 ,$03
+        .byte $00                                                         ; end of table
+fname_ptr_table_3 ; $9a1f = $9937+($21*7)+1; referenced by L8ba5
+	.byte $0a ,<fname_BuildCPM   ,>fname_BuildCPM       ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$07 ,$03
+	.byte $07 ,<fname_LKRev      ,>fname_LKRev          ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$02 ,$02
+	.byte $06 ,<fname_Find       ,>fname_Find           ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$07 ,$03
+	.byte $07 ,<fname_LKOff      ,>fname_LKOff          ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$02 ,$02
+	.byte $06 ,<fname_Exec       ,>fname_Exec           ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$04 ,$02
+	.byte $00                                                         ; end of table
+fname_ptr_table_4 ; $9a43 = 91af+(5*7)+1; referenced by L8ba5
+	.byte $0e ,<fname_InstallCheck ,>fname_InstallCheck ,<BASIC_LoadAddr ,>BASIC_LoadAddr ,$12 ,$0b
+	.byte $07 ,<fname_ICQUB        ,>fname_ICQUB        ,<BASIC_LoadAddr ,>BASIC_LoadAddr ,$17 ,$0b
+	.byte $0e ,<fname_Copy-All_64  ,>fname_Copy-All_64  ,<BASIC_LoadAddr ,>BASIC_LoadAddr ,$08 ,$0b
+	.byte $00 ,<txt_LTKRev         ,>txt_LTKRev         ,<BASIC_LoadAddr ,>BASIC_LoadAddr ,$08 ,$0b
+	.byte $00                                                         ; end of table
 fname_Dir
 	.screen "DIR.R"	;9a60
 fname_S
@@ -2764,45 +2772,84 @@ fname_Era
 	.screen "ERA.R" ;$9a68               
 fname_Ship
 	.screen "SHIP.R" ;$9a6d               
+fname_L
 	.screen "L.R" ;$9a73               
+fname_D
 	.screen "D.R" ;$9a76               
+fname_Change
 	.screen "CHANGE.R" ;$9a79               
+fname_Copy
 	.screen "COPY.R" ;$9a81               
+fname_FastCopy
 	.screen "FASTCOPY.R" ;$9a87               
+fname_New
 	.screen "NEW.R" ;$9a91               
+fname_Oops
 	.screen "OOPS.R" ;$9a96               
+fname_Renum
 	.screen "RENUM.R" ;$9a9c               
+fname_Type
 	.screen "TYPE.R" ;$9aa3               
+fname_Dump
 	.screen "DUMP.R" ;$9aa9               
+fname_Del
 	.screen "DEL.R" ;$9aaf               
+fname_Fetch
 	.screen "FETCH.R" ;$9ab4               
+fname_Merge
 	.screen "MERGE.R" ;$9abb               
+fname_LU
 	.screen "LU.R" ;$9ac2               
+fname_Query
 	.screen "QUERY.R" ;$9ac6               
+fname_Config
 	.screen "CONFIG.R" ;$9acd               
+fname_Build
 	.screen "BUILD.R" ;$9ad5               
+fname_Activate
 	.screen "ACTIVATE.R" ;$9adc               
+fname_Autocopy
 	.screen "AUTOCOPY.R" ;$9ae6               
+fname_Autodel
 	.screen "AUTODEL.R" ;$9af0               
+fname_User
 	.screen "USER.R" ;$9af9               
-	.screen "CLEAR.RDI.R" ;$9aff               
+fname_Clear
+	.screen "CLEAR.R" ;9aff
+fname_DI
+	.screen "DI.R"    ;$9b06
+fname_Diag
 	.screen "DIAG.R" ;$9b0a               
+fname_BuildIndex
 	.screen "BUILDINDEX.R" ;$9b10               
+fname_Checksum
 	.screen "CHECKSUM.R" ;$9b1c               
+fname_Automove
 	.screen "AUTOMOVE.R" ;$9b26               
+fname_Recover
 	.screen "RECOVER.R" ;$9b30               
+fname_Validate
 	.screen "VALIDATE.R" ;$9b39               
+fname_BuildCPM
 	.screen "BUILDCPM.R" ;$9b43               
+fname_LKRev
 	.screen "LKREV.R" ;$9b4d               
+fname_Find
 	.screen "FIND.R" ;$9b54               
+fname_LKOff
 	.screen "LKOFF.R" ;$9b5a               
+fname_Exec
 	.screen "EXEC.R" ;$9b61               
+fname_InstallCheck
 	.screen "INSTALLCHECK.R" ;$9b67               
+fname_ICQUB
 	.screen "ICQUB.R" ;$9b75               
+fname_Copy-All_64
 	.screen "COPY-ALL.64L.R" ;$9b7c               
 txt_LTKRev
 	.screen "LT. KERNAL REV. 7.2 (12/18/90)" ;$9b8a               
-	
+
+;$9ba8
 	.byte $00,$00,$00,$00,$00,$00,$00,$00
 	.byte $00,$00,$00,$00,$00,$00,$00,$00 
 	.byte $00,$00,$00,$00,$00,$00,$00 
