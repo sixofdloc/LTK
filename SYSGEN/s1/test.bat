@@ -16,6 +16,7 @@ call test_file lu lu.r
 call test_file luchange luchange.r
 call test_file messfile messfile.r
 call test_file new new.r
+call test_file openrand openrand.r
 call test_file sb2 sb2
 call test_file scramidn scramidn.r
 call test_file setup setup
