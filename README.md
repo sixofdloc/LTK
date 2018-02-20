@@ -1,11 +1,11 @@
-## What's an LTK? ##
-    <http://www.floodgap.com/retrobits/ckb/ltk/>
+# What's an LTK? #
+    [LTK Information Page](http://www.floodgap.com/retrobits/ckb/ltk)
 
-## What's this project? ##
+# What's this project? #
     A re-sourcing of the ROM and SYSGEN files for the LTK HD controller.
 
-## What's your goal? ##
-    ### Primary goal ###
+# What's your goal? #
+    *Primary goal*
         Complete removal of serial/drive geometry/dos checksum checks (COMPLETE)
     ### Secondary goal ### 
         Complete re-sourcing of the ROM and SYSGEN, documentation of the DOS (IN PROGRESS)
@@ -14,7 +14,7 @@
     ### Other goals ###
         Expansion of the DOS to use larger drives, more compatible fastloaders
 
-## Many thanks to: ##
+# Many thanks to: #
     _Roy E. Southwick_ and _Lloyd E. Sponenburgh_ for creating the LTK
     _Peter Bergeron_ for his work on LTKEdit that appears in this repo
     _ebay94bravo_, without his work, research, and documentation this project would never have been possible
