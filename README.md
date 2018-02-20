@@ -13,8 +13,8 @@ A re-sourcing of the ROM and SYSGEN files for the LTK HD controller.
 # Many thanks to: 
 * _Roy E. Southwick_ and _Lloyd E. Sponenburgh_ for creating the LTK
 * _Peter Bergeron_ for his work on LTKEdit that appears in this repo
-* _ebay94bravo_, without his work, research, and documentation this project would never have been possible
-* _Cameron Kaiser_ for continuing to host ebay94bravo's work after his passing
+* _David A. Gardner_ (AKA ebay94bravo), without his work, research, and documentation this project would never have been possible
+* _Cameron Kaiser_ for continuing to host David A. Gardner's work after his passing
 * _Jeff Jarian_ for working to keep the LTK scene alive and provide hardware and software tools for enthusiasts
 
 
