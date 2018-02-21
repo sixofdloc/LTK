@@ -7,7 +7,7 @@
 	; FIXME: Should we make an ltk_hwequates or add these to the ltk_equates file?
 HA_data     =$df00	; SCSI data port: port or ddr
 HA_data_cr  =$df01	; SCSI data port control reg
-HA_ctrlp    =$df02	; SCSI control port [TODO: Map these bits]
+HA_ctrl     =$df02	; SCSI control port [TODO: Map these bits]
 HA_ctrl_cr  =$df03	; SCSI control port control reg
 	; setup.prg
 	; Responsible for installing the LtK DOS to the disk.
@@ -2827,7 +2827,7 @@ fname_ptr_table_3 ; $9a1f = $9937+($21*7)+1; referenced by L8ba5
 fname_ptr_table_4 ; $9a43 = 91af+(5*7)+1; referenced by L8ba5
 	.byte $0e ,<fname_InstallCheck ,>fname_InstallCheck ,<BASIC_LoadAddr ,>BASIC_LoadAddr ,$12 ,$0b
 	.byte $07 ,<fname_ICQUB        ,>fname_ICQUB        ,<BASIC_LoadAddr ,>BASIC_LoadAddr ,$17 ,$0b
-	.byte $0e ,<fname_Copy-All_64  ,>fname_Copy-All_64  ,<BASIC_LoadAddr ,>BASIC_LoadAddr ,$08 ,$0b
+	.byte $0e ,<fname_CopyAll_64  ,>fname_CopyAll_64  ,<BASIC_LoadAddr ,>BASIC_LoadAddr ,$08 ,$0b
 	.byte $00 ,<txt_LTKRev         ,>txt_LTKRev         ,<BASIC_LoadAddr ,>BASIC_LoadAddr ,$08 ,$0b
 	.byte $00		; end of table
 fname_Dir
@@ -2910,7 +2910,7 @@ fname_InstallCheck
 	.screen "INSTALLCHECK.R" ;$9b67
 fname_ICQUB
 	.screen "ICQUB.R" ;$9b75
-fname_Copy-All_64
+fname_CopyAll_64
 	.screen "COPY-ALL.64L.R" ;$9b7c
 txt_LTKRev
 	.screen "LT. KERNAL REV. 7.2 (12/18/90)" ;$9b8a

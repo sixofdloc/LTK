@@ -1,3 +1,4 @@
+call test_file activate activate.r
 call test_file adjindex adjindex.r
 call test_file b b
 call test_file catalogr catalogr.r
