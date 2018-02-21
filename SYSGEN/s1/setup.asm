@@ -16,13 +16,25 @@ SETUP_Start
 	jmp START
 
 L8003
+	; 8003, 8004 are used by sb2 to determine where to load sector 18,18!
 	.byte $a9,$9b,$00,$00,$00,$00,$00,$00 
+
+; Notes to assist disassembly:
+; * This is the third program in a chain of programs to sysgen a new drive.
+;    First, 'b' gets loaded, which loads 'sb2'.  Some interesting stuff in sb2:
+; *  sb2 loads setup to $8000, and copies the pointer above at L8003 to itself.
+;    Then track 18 sector 18 is loaded to that location ($9ba9 originally)
+;    After that work is done, setup is started via jmp $8000
+
+; 9ba9 will contain the contents of sector18-18.asm.
+
+
 START
 	jsr DetectAndRewrite 	; find HA and rewrite if necessary
 				; Returns $DF in .A if HA is at DF00
-	bit L9bb7
+	bit L9bb7		; $c0 = %1100 0000; s=1, v=1
 	bvc L802d
-	jsr S9719
+	jsr S9719		
 	lda #$7f
 	sta HA_data
 	lda #$60
@@ -37,19 +49,19 @@ L8025
 	lda #$40
 	sta HA_ctrl
 L802d
-	bit L9bb7
-	bmi L8035
+	bit L9bb7		; $c0, S gets set
+	bmi L8035		; branch taken with our sample t/s 18,18
 	jsr S9656
 L8035
 	ldx #$00
-	stx $9799
-	stx $979a
+	stx LBA_mms
+	stx LBA_ms
 	inx
-	stx $979d
+	stx LBA_ls
 	lda #$00
-	sta $979c
+	sta BufPtrL
 	lda #$9c
-	sta $979b
+	sta BufPtrH
 	jsr S8c96
 	lda $9c1e
 	beq L805e
@@ -109,11 +121,11 @@ L809a
 
 L80a3
 	lda #$00
-	sta $979c
+	sta BufPtrL
 	lda #$9e
-	sta $979b
+	sta BufPtrH
 	lda #$1a
-	sta $979a
+	sta LBA_ms
 	jsr S8c96
 	ldx #$00
 	lda $9cad
@@ -148,9 +160,9 @@ L80db
 	bne L80db
 L80eb
 	lda #$9d
-	sta $979a
+	sta LBA_ms
 	lda #$02
-	sta $9799
+	sta LBA_mms
 	jsr S8c96
 	ldy #$0f
 L80fa
@@ -169,14 +181,14 @@ L810a
 	jsr printZTString
 	jsr S8452
 	ldx #$00
-	stx $9799
-	stx $979a
+	stx LBA_mms
+	stx LBA_ms
 	inx
-	stx $979d
+	stx LBA_ls
 	lda #$00
-	sta $979c
+	sta BufPtrL
 	lda #$9c
-	sta $979b
+	sta BufPtrH
 	jsr S8c96
 	ldy #$37
 L812f
@@ -209,13 +221,13 @@ L815b
 	bne L815b
 L8166
 	lda #$00
-	sta $979c
+	sta BufPtrL
 	lda #$9c
-	sta $979b
+	sta BufPtrH
 	lda #$00
 	sta $9c1e
-	sta $9799
-	sta $979a
+	sta LBA_mms
+	sta LBA_ms
 	jsr S8c9e
 	;print message that Initialization is complete...
 	ldx #<str_InitComplete
@@ -350,15 +362,15 @@ LDA_fb_Yinc
  	.byte $00,$00,$00
 S822b
 	lda #$00
-	sta $979c
+	sta BufPtrL
 	lda #$9e
-	sta $979b
+	sta BufPtrH
 	ldx #$01
-	stx $979d
+	stx LBA_ls
 	ldy #$00
 L823c
-	stx $979a
-	sty $9799
+	stx LBA_ms
+	sty LBA_mms
 	jsr S8c96
 	lda #$00
 	sta $fb
@@ -393,8 +405,8 @@ L827a
 	inc $fc
 	dex
 	bne L8251
-	ldx $979a
-	ldy $9799
+	ldx LBA_ms
+	ldy LBA_mms
 	inx
 	bne L828f
 	iny
@@ -508,7 +520,7 @@ L84aa
 	lda $8cf4
 	sta $9c17
 	lda #$01
-	sta $979d
+	sta LBA_ls
 	lda #$01
 	sta $9c18
 	lda $8ce4
@@ -527,14 +539,14 @@ L84ec
  	lda #$ee
  	sta $95a2
  	sta $9c21
- 	sta $979a
+ 	sta LBA_ms
  	lda #$9c
- 	sta $979b
+ 	sta BufPtrH
  	lda #$00
- 	sta $979c
+ 	sta BufPtrL
  	lda #$00
  	sta $95a0
- 	sta $9799
+ 	sta LBA_mms
  	lda #$ff
  	sta $9c96
  	sta $9c97
@@ -631,12 +643,12 @@ L85e6
 	lda #$00
 	sta $95a0
 	sta $95a2
-	sta $979a
-	sta $9799
+	sta LBA_ms
+	sta LBA_mms
 	lda #$00
-	sta $979c
+	sta BufPtrL
 	lda #$9c
-	sta $979b
+	sta BufPtrH
 	dec $9c2a
 	dec $9c1e
 	lda $9bb9
@@ -646,8 +658,8 @@ L85e6
 	jsr S8c9e
 	jsr Zero_9c00_9dff
 L8622
-	inc $979a
-	lda $979a
+	inc LBA_ms
+	lda LBA_ms
 	cmp #$1a
 	beq L8622
 	cmp #$ee
@@ -657,18 +669,18 @@ L8622
 
 L8636
 	lda #$01
-	sta $9799
+	sta LBA_mms
 	lda #$ef
-	sta $979a
+	sta LBA_ms
 	lda #$02
 	sta $8c40
 	lda #$9d
 	sta $8c39
 	jsr S8c28
 	lda #$02
-	sta $9799
+	sta LBA_mms
 	lda #$ae
-	sta $979a
+	sta LBA_ms
 	lda #$05
 	sta $8c40
 	lda #$00
@@ -677,7 +689,7 @@ L8636
 	lda #$00
 	sta $8cf1
 	lda #$07
-	sta $979d
+	sta LBA_ls
 	lda #$01
 	ldx #<fname_LtKernal
 	ldy #>fname_LtKernal ;$8e40
@@ -689,13 +701,13 @@ L8636
 	lda #$ff
 	sta $8cf1
 	lda #$01
-	sta $979d
+	sta LBA_ls
 	lda #$9c
-	sta $979b
+	sta BufPtrH
 	lda #$00
-	sta $979c
+	sta BufPtrL
 	lda #$ee
-	sta $979a
+	sta LBA_ms
 	jsr S8c96
 	jsr S979e
 	jsr Zero_9c00_9dff
@@ -712,15 +724,15 @@ L86a4
 	stx $9c18
 	jsr S979e
 	lda #$f0
-	sta $979a
+	sta LBA_ms
 	sta $95a2
 	lda #$00
-	sta $9799
+	sta LBA_mms
 	sta $95a0
 	lda #$00
-	sta $979c
+	sta BufPtrL
 	lda #$9c
-	sta $979b
+	sta BufPtrH
 	lda #$0a
 	sta $9c1d
 	jsr S8c9e
@@ -771,15 +783,15 @@ L872b
 	sta $9c18
 	jsr S979e
 	lda $9c20
-	sta $9799
+	sta LBA_mms
 	sta $8cf2
 	lda $9c21
-	sta $979a
+	sta LBA_ms
 	sta $8cf3
 	lda #$00
-	sta $979c
+	sta BufPtrL
 	lda #$9c
-	sta $979b
+	sta BufPtrH
 	lda #$0a
 	sta $9c1d
 	jsr S8c9e
@@ -797,13 +809,13 @@ L876d
 	sta $9c18
 	jsr S979e
 	lda $9c20
-	sta $9799
+	sta LBA_mms
 	lda $9c21
-	sta $979a
+	sta LBA_ms
 	lda #$00
-	sta $979c
+	sta BufPtrL
 	lda #$9c
-	sta $979b
+	sta BufPtrH
 	lda #$0a
 	sta $9c1d
 	jsr S8c9e
@@ -829,7 +841,7 @@ L87c2
 	lda #$00
 	sta $8cf0
 	lda #$01
-	sta $979d
+	sta LBA_ls
 	
 	lda #$11
 	ldx #<fname_Findfile
@@ -969,7 +981,7 @@ L87c2
 	lda #$00
 	sta $8cf1
 	lda #$04
-	sta $979d
+	sta LBA_ls
 	
 	lda #$44
 	ldx #<fname_RelaExpn
@@ -1032,7 +1044,7 @@ L87c2
 	jsr sg_LoadFile
 	
 	lda #$08
-	sta $979d
+	sta LBA_ls
 
 	lda #$3b
 	ldx #<fname_ConfigLU
@@ -1040,7 +1052,7 @@ L87c2
 	jsr sg_LoadFile
 
 	lda #$08
-	sta $979d
+	sta LBA_ls
 	
 	lda #$e6
 	ldx #<fname_MessFile
@@ -1048,7 +1060,7 @@ L87c2
 	jsr sg_LoadFile
 	
 	lda #$04
-	sta $979d
+	sta LBA_ls
 	
 	lda #$6a
 	ldx #<fname_CommLoad
@@ -1136,7 +1148,7 @@ L87c2
 	jsr sg_LoadFile
 	
 	lda #$02
-	sta $979d
+	sta LBA_ls
 	
 	lda #$0f
 	ldx #<fname_SysBootR
@@ -1149,7 +1161,7 @@ L87c2
 	jsr sg_LoadFile
 	
 	lda #$04
-	sta $979d
+	sta LBA_ls
 	
 	lda #$c6
 	ldx #<fname_InitC128
@@ -1162,7 +1174,7 @@ L87c2
 	jsr sg_LoadFile
 	
 	lda #$02
-	sta $979d
+	sta LBA_ls
 	
 	lda #$2d
 	ldx #<fname_Go64Boot
@@ -1175,7 +1187,7 @@ L87c2
 	jsr sg_LoadFile
 	
 	lda #$01
-	sta $979d
+	sta LBA_ls
 	
 	lda #$c2
 	ldx #<fname_AutoUpdt
@@ -1329,25 +1341,25 @@ L8b48	jsr GETIN
 	jsr printZTString
 
 	lda #$10
-	sta $979d
+	sta LBA_ls
 	lda #$d6
 	ldx #<fname_CP_MBoot
 	ldy #>fname_CP_MBoot ;$908e
 	jsr sg_LoadFile
 
 	lda #$2e
-	sta $979a
+	sta LBA_ms
 	lda #$03
-	sta $9799
+	sta LBA_mms
 	lda #$37
 	ldx #<fname_MasterCF
 	ldy #>fname_MasterCF ;$8ec2
 	jsr sg_Load_8bf8
 
 	lda #$33
-	sta $979a
+	sta LBA_ms
 	lda #$00
-	sta $9799
+	sta LBA_mms
 	lda #$08
 	ldx #<fname_ConfigCl
 	ldy #>fname_ConfigCl ;$907a
@@ -1356,9 +1368,9 @@ L8b48	jsr GETIN
 	lda $822a
 	beq L8ba5
 	lda #$9e
-	sta $979a
+	sta LBA_ms
 	lda #$02
-	sta $9799
+	sta LBA_mms
 	lda #$10
 	ldx #<fname_Defaults
 	ldy #>fname_Defaults ;$9070
@@ -1371,15 +1383,15 @@ L8ba5
 	sta ReadTable + 2
 	jsr LoadFromTable
 	ldx #$00
-	stx $9799
+	stx LBA_mms
 	inx
-	stx $979d
+	stx LBA_ls
 	lda #$ee
-	sta $979a
+	sta LBA_ms
 	lda #$00
-	sta $979c
+	sta BufPtrL
 	lda #$9e
-	sta $979b
+	sta BufPtrH
 	jsr S8c96
 	lda $9e94
 	sta $8cf5
@@ -1399,12 +1411,12 @@ S8be7
 	bcc L8bf1
 	inx
 L8bf1
-	stx $9799
-	sta $979a
+	stx LBA_mms
+	sta LBA_ms
 	rts
 
 sg_Load_8bf8 ;$8bf8 ;Obviously needs a better name
-	sta $979d
+	sta LBA_ls
 	stx ptr_fname
 	sty ptr_fname+1
 	jsr S8cc0
@@ -1422,37 +1434,37 @@ sg_Load_8bf8 ;$8bf8 ;Obviously needs a better name
 L8c18
 	bcs L8c18
 	lda #$10
-	sta $979b
+	sta BufPtrH
 	lda #$00
-	sta $979c
-	jsr S969b
+	sta BufPtrL
+	jsr SCSI_WRITE
 	rts
 
 S8c28
-	jsr S969b
+	jsr SCSI_WRITE
 L8c2b
 	bcs L8c2b
-	inc $979a
+	inc LBA_ms
 	bne L8c35
-	inc $9799
+	inc LBA_mms
 L8c35
-	lda $979a
+	lda LBA_ms
 	cmp #$00
 	bne S8c28
-	lda $9799
+	lda LBA_mms
 	cmp #$00
 	bne S8c28
 	rts
 
-S8c44	sta $979a
+S8c44	sta LBA_ms
 	lda #$00
-	sta $9799
+	sta LBA_mms
 S8c4c	lda #$00
-	sta $979c
+	sta BufPtrL
 	lda #$9c
-	sta $979b
+	sta BufPtrH
 	lda #$01
-	sta $979d
+	sta LBA_ls
 	jsr S8c96
 	ldy #$10
 L8c60	lda $9c00,y
@@ -1490,11 +1502,11 @@ said_done
 	rts
 
 	
-S8c96	jsr S969f
+S8c96	jsr SCSI_READ
 	bcc L8ca6
 	bcs S8c96
 	.byte $c0 ; This never gets executed
-S8c9e	jsr S969b
+S8c9e	jsr SCSI_WRITE
 	bcc L8ca6
 	jsr $c000
 L8ca6	lda $8cef
@@ -1503,9 +1515,9 @@ L8ca6	lda $8cef
 	bne L8cb3
 	inc $95a0
 L8cb3	lda $95a2
-	sta $979a
+	sta LBA_ms
 	lda $95a0
-	sta $9799
+	sta LBA_mms
 L8cbf	rts
 
 S8cc0	asl a
@@ -1558,10 +1570,10 @@ L8d12	cmp #$00		; set zero flag
 	rts			; return
 
 sg_LoadFile ;$8d15
-	sta $979a
+	sta LBA_ms
 	stx ptr_fname		;stash addr of filename to $bb as if SETNAM was called
 	sty ptr_fname+1
-	lda $979d
+	lda LBA_ls
 	jsr S8cc0
 	lda #$0a
 	sta len_fname		;filename length is 10 for all of the files this routine handles
@@ -1579,12 +1591,12 @@ sg_LoadFile ;$8d15
 
 sg_LoadFileSuccess
 	lda #$10
-	sta $979b
+	sta BufPtrH
 	sta $f8
 	ldx #$00
-	stx $979c
+	stx BufPtrL
 	stx $f7
-	stx $9799
+	stx LBA_mms
 	lda $8cf1
 	beq L8d56
 
@@ -1593,7 +1605,7 @@ L8d56
 	sei
 	lda $8cf1
 	beq L8dab
-	lda $979a
+	lda LBA_ms
 	cmp #$1a
 	bne L8d75
 	lda $8228
@@ -1633,11 +1645,11 @@ L8d93
 	bne L8d93
 	sta $11ff
 	sec
-	lda $979a
+	lda LBA_ms
 	sbc $11ff
 	sta $11ff
 L8dab
-	jsr S969b
+	jsr SCSI_WRITE
 	bcc L8db3
 	jsr $c000
 L8db3
@@ -1919,18 +1931,18 @@ L9181	sta $9493
 	bcc L9191
 	jsr $c000
 L9191	lda #$00
-	sta $979c
+	sta BufPtrL
 	sta $9446
 	lda #$9e
-	sta $979b
+	sta BufPtrH
 	sta $9445
 	lda $95a2
-	sta $979a
+	sta LBA_ms
 	lda $95a1
-	sta $9799
+	sta LBA_mms
 	ldx #$01
-	stx $979d
-	jsr S969f
+	stx LBA_ls
+	jsr SCSI_READ
 	bcc L91ba
 	jsr $c000
 L91ba	lda #$10
@@ -1980,9 +1992,9 @@ L9209	lda $9442
 	bne L921e
 	cpx $9441
 	beq L922d
-L921e	sta $9799
+L921e	sta LBA_mms
 	sta $95a1
-	stx $979a
+	stx LBA_ms
 	stx $95a2
 	jsr S8c96
 L922d	lda $943e
@@ -2061,9 +2073,9 @@ S92e4	sta S92e4,y
 
 S92e9	sta $9306
 	lda #$f0
-	sta $979a
+	sta LBA_ms
 	lda #$00
-	sta $9799
+	sta LBA_mms
 	jsr S8c96
 	ldy $95a3
 	lda $9306
@@ -2091,19 +2103,19 @@ L932f	lda $944a
 	asl a
 	tax
 	lda $9c20,x
-	sta $9799
+	sta LBA_mms
 	sta $95a1
 	lda $9c21,x
-	sta $979a
+	sta LBA_ms
 	sta $95a2
 	lda $9443
 	bne L9385
 	lda #$00
-	sta $979c
+	sta BufPtrL
 	lda #$9c
-	sta $979b
+	sta BufPtrH
 	lda #$01
-	sta $979d
+	sta LBA_ls
 	jsr S8c9e
 	lda $9c1a
 	ldx $9c1b
@@ -2122,13 +2134,13 @@ L936b	sta $944b
 	jmp L93a6
 
 L9385	lda $95a2
-	sta $979a
+	sta LBA_ms
 	lda $95a1
-	sta $9799
+	sta LBA_mms
 	lda $944b
-	sta $979b
+	sta BufPtrH
 	lda $944c
-	sta $979c
+	sta BufPtrL
 	jsr S8c9e
 	inc $944b
 	inc $944b
@@ -2187,9 +2199,9 @@ L9411	inc $95a2
 	bne L9419
 	inc $95a1
 L9419	lda $95a2
-	sta $979a
+	sta LBA_ms
 	lda $95a1
-	sta $9799
+	sta LBA_mms
 	jsr S8c96
 	lda #$10
 	sta $9492
@@ -2389,7 +2401,7 @@ L964a	lda L964a       ; get a byte
 L9655	rts		; return with the byte
 
 S9656	lda #$c2
-	sta $9789
+	sta CDBBuffer
 	ldx $9bba
 	dex
 	stx $9792
@@ -2411,57 +2423,61 @@ S9656	lda #$c2
 	bne L9699
 	ldx #$10
 	ldy #$00
-	jsr S9735
+	jsr SCSI_Send
 	jsr S9772
 	rts
 
 L9699	sec
 	rts
 
-S969b	lda #$0a
+SCSI_WRITE ; $969b
+	lda #$0a	; SCSI WRITE(6)
 	bne L96a1
-S969f	lda #$08
-L96a1	sta $9789
-	lda $9799
-	sta $978b
-	lda $979a
-	sta $978c
-	lda $979d
-	sta $978d
-	lda $979b
-	sta $f8
-	lda $979c
+SCSI_READ ; $969f
+	lda #$08	; SCSI READ(6)
+L96a1	sta CDBBuffer	; set scsi command
+	lda LBA_mms
+	sta CDBBuffer+1	; set lba mmsb
+	lda LBA_ms
+	sta CDBBuffer+2	; set lba msb
+	lda LBA_ls
+	sta CDBBuffer+3	; set lba lsb
+	lda BufPtrH
+	sta $f8		; set buffer address
+	lda BufPtrL
 	sta $f7
 	jsr S9719
 	bne L9699
-	ldx #$06
+	ldx #$06	; CDB is 6 bytes long
+	ldy #$00	; and starts at buff offset 0
+	jsr SCSI_Send
 	ldy #$00
-	jsr S9735
-	ldy #$00
-	lda $9789
-	cmp #$08
-	beq L96f3
+	lda CDBBuffer
+	cmp #$08	; did we READ(6)?
+	beq L96f3	;  yes, perform read
 	lda #$2c
 	;0010 1100
 	;00     ; irq off
 	;101    ; ca2 pulse out low on read
 	;1      ; port register on
 	;00; ca1 high
-	sta HA_data_cr
+	sta HA_data_cr	; FIXME: pulse ca2 for ???
 L96da
-	lda HA_ctrl
+	lda HA_ctrl	; must be hanshaking
 	bmi L96da
 	and #$04
-	beq L9711
-	lda ($f7),y
-	sta HA_data
-	lda HA_data
-	iny
-	bne L96da
-	inc $f8
-	jmp L96da
+	beq L9711	; exit on error (done reading)
+	lda ($f7),y	; get byte from buffer
+	sta HA_data	; send byte to target
+	lda HA_data	; handshake pulse out
+	iny		; increment pointer
+	bne L96da	; until 256 bytes
+	inc $f8		; increase buff high address
+	jmp L96da	; and read until target says done
 	
-L96f3	jsr S974b
+	; this behaves like SCSI_READ in ROM/lktbootstub.asm, but
+	;  it's not a subroutine and doesn't send a CDB.
+L96f3	jsr HA_SetDataInput
 	lda #$2c
 	;0010 1100
 	;00     ; irq off
@@ -2469,25 +2485,26 @@ L96f3	jsr S974b
 	;1      ; port register on
 	;00; ca1 high
 	sta HA_data_cr
-L96fb	lda HA_ctrl
+L96fb	lda HA_ctrl	; handshake
 	bmi L96fb
 	and #$04
-	beq L9711
-	lda HA_data
-	sta ($f7),y
+	beq L9711	; exit when error (done)
+	lda HA_data	; get byte from target
+	sta ($f7),y	; deposit in buffer
 	iny
-	bne L96fb
-	inc $f8
-	jmp L96fb
+	bne L96fb	; for 256 bytes
+	inc $f8		; increase buff high address
+	jmp L96fb	; repeat until target says done
 
-L9711	jsr S9772
+L9711	jsr S9772	; done read/writing, cleanup (what does 9772 do?)
 	txa
 	bne L9699
 	clc
 	rts
 
-S9719	jsr S974e
-	lda #$fe
+	; FIXME: scsi select?
+S9719	jsr HA_SetDataOutput
+	lda #$fe	; FIXME: targeting scsi ID 0?
 	sta HA_data
 	lda #$50
 	sta HA_ctrl
@@ -2499,90 +2516,106 @@ L9726	lda HA_ctrl
 	lda #$00
 	rts
 
-S9735	jsr S975e
-	lda $9789,y
-	eor #$ff
-	sta HA_data
+SCSI_Send ; $9735
+	jsr CTSWait
+	lda CDBBuffer,y	; get byte from buffer
+	eor #$ff	; invert for SCSI
+	sta HA_data	; send data to bus
 	jsr S9764
-	iny
-	dex
-	bne S9735
-	jsr S975e
+	iny		; increment pointer
+	dex		; decrement count
+	bne SCSI_Send	; repeat until done
+	jsr CTSWait
 	rts
 
-S974b	ldx #$00
-	.byte $2c ;again using a bit operation to allow two entry vectors to the same routine
-S974e	ldx #$ff
+HA_SetDataInput ; $974b
+	ldx #$00	; set data port as input
+	.byte $2c 	;  BIT opcode causes cpu to skip ldx #$ff
+HA_SetDataOutput ; $974e
+	ldx #$ff	; set data port as output or skip
 	lda #$38
 	;0011 1000
 	;00     ; irq off
-	;111    ; ca2 low
+	;111    ; ca2 high
 	;0      ; ddr on
 	;00; ca1 high
-	sta HA_data_cr
-	stx HA_data
+	sta HA_data_cr	;  turn port A DDR on
+	stx HA_data	; set data port for input or output
 	lda #$3c
 	;0011 1100
 	;00     ; irq off
-	;111    ; ca2 low
+	;111    ; ca2 high
 	;1      ; port register on
 	;00; ca1 high
-	sta HA_data_cr
+	sta HA_data_cr	;  turn port A DDR off
 	rts
 	
-S975e	lda HA_ctrl
-	bmi S975e
+CTSWait	; 957e - name borrowed from ROM/ltkbootstub.asm
+	lda HA_ctrl
+	bmi CTSWait
 	rts
 
-S9764
+S9764	; FIXME: This likely pulses SCSI ACK or something.
 	lda #$2c
 	;0010 1100
 	;00     ; irq off
 	;101    ; ca2 pulse out low on read
 	;1      ; port register on
 	;00; ca1 high
-	sta HA_data_cr
-	lda HA_data
+	sta HA_data_cr	; set port A to pulse ca2 on read
+	lda HA_data	; pulse ca2
 	lda #$3c
 	;0011 1100
 	;00     ; irq off
-	;111    ; ca2 low
+	;111    ; ca2 high
 	;1      ; port register on
 	;00; ca1 high
-	sta HA_data_cr
+	sta HA_data_cr	; set ca2 to high
 	rts
 
 S9772
-	jsr S974b
+	jsr HA_SetDataInput
 	jsr S977b
 	and #$9f
 	tax
 S977b
-	jsr S975e
-	lda HA_data
-	eor #$ff
-	tay
-	jsr S9764
-	tya
-	rts
+	jsr CTSWait	;
+	lda HA_data	;
+	eor #$ff	;
+	tay		;
+	jsr S9764	;
+	tya		;
+	rts		;
 
-	.byte $00,$00,$00,$00,$00,$00,$04,$00 
-	.byte $00,$00,$00,$00,$00,$00,$00,$00 
-	.byte $00,$00,$00,$00,$00 
+		; FIXME:  This is likely not only
+		;  used by SCSI_WRITE and SCSI_READ
+		; add duplicate labels later to
+		;  improve code readability.
+
+CDBBuffer	; $9789
+	.byte $00,$00,$00,$00,$00,$00
+	.byte $04,$00 	; $978f
+	.byte $00,$00,$00,$00,$00,$00,$00,$00 ; 9791
+LBA_mms	.byte $00
+LBA_ms	.byte $00
+BufPtrH	.byte $00
+BufPtrL	.byte $00
+LBA_ls	.byte $00 
+
 S979e
 	ldx #$00
 	stx $9936
 	inx
-	stx $979d
+	stx LBA_ls
 	lda #$00
-	sta $9799
+	sta LBA_mms
 	lda #$ee
-	sta $979a
+	sta LBA_ms
 	lda #$9e
-	sta $979b
+	sta BufPtrH 
 	lda #$00
-	sta $979c
-	jsr S969f
+	sta BufPtrL
+	jsr SCSI_READ
 	bcc L97c3
 	jsr $c000
 L97c3
@@ -2597,13 +2630,13 @@ L97c3
 	lda $9e19
 	sta $9932
 L97e1
-	inc $979a
+	inc LBA_ms
 	bne L97e9
-	inc $9799
+	inc LBA_mms
 L97e9
 	lda #$00
 	sta $992f
-	jsr S969f
+	jsr SCSI_READ
 	bcc L97f6
 	jsr $c000
 L97f6
@@ -2674,7 +2707,7 @@ L9877
 	bne L980c
 	lda $992f
 	beq L9889
-	jsr S969b
+	jsr SCSI_WRITE
 	bcc L9889
 	jsr $c000
 L9889
@@ -2718,15 +2751,15 @@ L98ba
 	jmp L9835
 	
 L98d0
-	jsr S969b
+	jsr SCSI_WRITE
 	bcc L98d8
 	jsr $c000
 L98d8
 	lda #$ee
-	sta $979a
+	sta LBA_ms
 	lda #$00
-	sta $9799
-	jsr S969f
+	sta LBA_mms
+	jsr SCSI_READ
 	bcc L98ea
 	jsr $c000
 L98ea
@@ -2753,7 +2786,7 @@ L9917
 	lda #$ff
 	sta $9e96
 	sta $9e97
-	jsr S969b
+	jsr SCSI_WRITE
 	bcc L9927
 	jsr $c000
 L9927
