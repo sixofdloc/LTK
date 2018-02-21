@@ -1,3 +1,4 @@
+call build activate
 call build adjindex
 call build b
 call build catalogr
