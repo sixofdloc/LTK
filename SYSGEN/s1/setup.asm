@@ -16,6 +16,7 @@ SETUP_Start
 	jmp START
 
 L8003
+	; 8003, 8004 are used by sb2 to determine where to load sector 18,18!
 	.byte $a9,$9b,$00,$00,$00,$00,$00,$00 
 START
 	jsr DetectAndRewrite 	; find HA and rewrite if necessary
@@ -2516,7 +2517,7 @@ S974e	ldx #$ff
 	lda #$38
 	;0011 1000
 	;00     ; irq off
-	;111    ; ca2 low
+	;111    ; ca2 high
 	;0      ; ddr on
 	;00; ca1 high
 	sta HA_data_cr
@@ -2524,7 +2525,7 @@ S974e	ldx #$ff
 	lda #$3c
 	;0011 1100
 	;00     ; irq off
-	;111    ; ca2 low
+	;111    ; ca2 high
 	;1      ; port register on
 	;00; ca1 high
 	sta HA_data_cr
@@ -2546,7 +2547,7 @@ S9764
 	lda #$3c
 	;0011 1100
 	;00     ; irq off
-	;111    ; ca2 low
+	;111    ; ca2 high
 	;1      ; port register on
 	;00; ca1 high
 	sta HA_data_cr
