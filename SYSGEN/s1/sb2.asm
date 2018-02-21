@@ -45,11 +45,11 @@ done	jsr CLRCHN	; ready to read ts 18,18 from file 8
 	ldx #$08
 	jsr $ffc6	;CHKIN file 8
 	ldy #$00
-	jsr CHRIN
+rdloop	jsr CHRIN
 store	sta $087d,y	; read sector to setup [selfmodded earlier]
 	iny 
 	lda $90		; Check ST
-	beq $087a	; repeat until not ok
+	beq rdloop	; repeat until not ok
 	lda #$08
 	jsr CLOSE
 	lda #$0f
