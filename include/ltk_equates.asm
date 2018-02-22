@@ -210,7 +210,7 @@ secadr=$1f ;file's secondary address
 LTK_Krn_BankOut		=	$fc4e ;address of the kernal bank-out routine in shadow ram         
 bnkswt=$fc5f ;kertrap bank control switch                                  
 keyenb=$fc60 ;numeric keypad enable flag ($ff=enabled 0=disabled)          
-bankin=$fc71 ;kertrap bank in routine                                      
+LTK_Krn_BankIn		=	$fc71 ;bankin=$fc71 ;kertrap bank in routine                                      
 basext=$fc74 ;basic extensions trap vector (ex. key file routines)         
 go64md=$fc7a ;go 64 mode entry point (used by c128 mode)    
 
