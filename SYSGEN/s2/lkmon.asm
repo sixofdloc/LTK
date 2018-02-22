@@ -1,7 +1,12 @@
 ;lkmon.prg
- 
-L1c20               jsr S29cd
-                    jsr $fc4e
+	.include "../../include/ltk_dos_addresses.asm"
+	.include "../../include/ltk_equates.asm"
+	.include "../../include/kernal.asm"
+
+	*=$1c20 
+L1c20               
+	jsr S29cd
+                    jsr LTK_Krn_BankOut
                     lda #$10
                     sta $3518
                     ldx #$00
@@ -17,12 +22,13 @@ L1c20               jsr S29cd
                     tay
                     lda #$0a
                     clc
-                    jsr $8045
-                    e0 91 01 
+                    jsr LTK_HDDiscDriver
+                    .byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ;LTK_FileHeaderBlock
+                    
 L1c48               ldx $91f0
                     ldy $91f2
-                    lda $8008
-                    sta $2ecf
+                    lda LTK_Var_CPUMode
+                    sta L2ecf
                     bpl L1c61
                     lda #$00
                     sta $ff00
@@ -31,17 +37,17 @@ L1c48               ldx $91f0
 L1c61               cld
                     stx $2ed2
                     sty $2ed3
-                    jsr $fc71
+                    jsr LTK_Krn_BankIn
                     cli
                     lda #$c0
-                    jsr kSETMSF
-                    ldx #$4c
-                    ldy #$30
-                    jsr S1d6a
-                    ldx #$13
-                    ldy #$2f
-                    jsr S1d6a
-                    lda $2ecf
+                    jsr SETMSG
+                    ldx #<str_Startup
+                    ldy #>str_Startup ;$304c
+                    jsr Print_Message
+                    ldx #<str_NormalMem
+                    ldy #>str_NormalMem ;$2f13
+                    jsr Print_Message
+                    lda L2ecf
                     bmi L1c86
                     sta $9d
 L1c86               bit $2ed0
@@ -56,8 +62,8 @@ L1c86               bit $2ed0
 L1c9d               jsr S27f9
                     ldx #$00
                     stx $7a
-L1ca4               jsr kCHRIN
-                    sta $0200,x
+L1ca4               jsr CHRIN
+                    sta LTK_Command_Buffer,x
                     inx
                     cpx #$58
                     bcs L1ccb
@@ -75,9 +81,9 @@ L1cc3               cmp $316b,x
                     dex
                     bpl L1cc3
 L1ccb               lda #$1d
-                    jsr kCHROUT
+                    jsr CHROUT
                     lda #$3f
-                    jsr kCHROUT
+                    jsr CHROUT
                     jmp L1c86
                     
 L1cd8               cpx #$1b
@@ -112,7 +118,7 @@ L1cfa               txa
                     rts
                     
 L1d09               lda #$00
-                    bit $2ecf
+                    bit L2ecf
                     bmi L1d18
                     sta $c8
                     ldx #$80
@@ -120,12 +126,12 @@ L1d09               lda #$00
                     bne L1d1c
 L1d18               sta $ea
                     sta $7f
-L1d1c               sta $0200
-                    ldx #$d7
-                    ldy #$2f
-                    jsr S1d6a
+L1d1c               sta LTK_Command_Buffer
+                    ldx #<str_Aborted  
+                    ldy #>str_Aborted  ;$2fd7 
+                    jsr Print_Message
                     jsr L2a57
-                    bit $2ecf
+                    bit L2ecf
                     bmi L1d2f
                     rts
                     
@@ -137,8 +143,8 @@ L1d34               bcs L1d67
                     lda $62
                     cmp #$02
                     bne L1d3f
-                    jsr $fc4e
-L1d3f               bit $2ecf
+                    jsr LTK_Krn_BankOut
+L1d3f               bit L2ecf
                     bmi L1d54
                     lda $60
                     sta S1d4e + 1
@@ -153,24 +159,27 @@ L1d54               sta $02
                     lda $61
                     sta $03
                     jsr $ff6e
-L1d61               jsr $fc71
+L1d61               jsr LTK_Krn_BankIn
                     jmp L1c86
                     
 L1d67               jmp L1ccb
 
-S1d6a               pha
-                    stx L1d73 + 1
-                    sty L1d73 + 2
-                    ldy #$00
-L1d73               lda L1d73,y
-                    beq L1d83
-                    jsr kCHROUT
-                    iny
-                    bne L1d73
-                    inc L1d73 + 2
-                    bne L1d73
-L1d83               pla
-                    rts
+Print_Message
+	pha
+	stx pm_loop + 1
+	sty pm_loop + 2
+	ldy #$00
+pm_loop
+	lda pm_loop,y
+	beq pm_done
+	jsr CHROUT
+	iny
+	bne pm_loop
+	inc pm_loop + 2
+	bne pm_loop
+pm_done               
+	pla
+	rts
                     
 S1d85               bit $2ed4
                     bmi L1dc3
@@ -180,14 +189,14 @@ S1d85               bit $2ed4
                     tya
                     pha
                     sec
-                    jsr kPLOT
+                    jsr PLOT
                     txa
                     pha
                     tya
                     pha
 L1d97               sec
-                    jsr kPLOT
-                    bit $2ecf
+                    jsr PLOT
+                    bit L2ecf
                     bpl L1daa
                     lda $d7
                     beq L1daa
@@ -197,7 +206,7 @@ L1d97               sec
 L1daa               cpy #$27
                     beq L1db6
 L1dae               lda #$20
-                    jsr kCHROUT
+                    jsr CHROUT
                     jmp L1d97
                     
 L1db6               pla
@@ -205,7 +214,7 @@ L1db6               pla
                     pla
                     tax
                     clc
-                    jsr kPLOT
+                    jsr PLOT
                     pla
                     tay
                     pla
@@ -226,12 +235,12 @@ S1dc4               sei
 L1dd9               ldx $68
                     cpx #$02
                     bne L1de4
-                    jsr $fc4e
+                    jsr LTK_Krn_BankOut
                     ldx #$0f
 L1de4               bit $2ed0
                     bpl L1dec
                     jsr S1fd0
-L1dec               bit $2ecf
+L1dec               bit L2ecf
                     bmi L1df6
                     lda ($66),y
                     jmp L1dfd
@@ -244,7 +253,7 @@ L1dfd               bit $2ed0
                     ldx $68
                     cpx #$02
                     bne L1e0b
-                    jsr $fc71
+                    jsr LTK_Krn_BankIn
 L1e0b               bit $2ed0
                     clc
                     bpl L1e16
@@ -259,9 +268,9 @@ L1e1b               pha
                     tya
                     pha
                     cli
-                    ldx #$b1
-                    ldy #$2f
-                    jsr S1d6a
+                    ldx #<str_NonExistAddr
+                    ldy #>str_NonExistAddr ;$2fb1
+                    jsr Print_Message
                     jsr S355c
                     pla
                     tay
@@ -285,14 +294,14 @@ L1e43               ldx #$66
                     ldx $68
                     cpx #$02
                     bne L1e58
-                    jsr $fc4e
+                    jsr LTK_Krn_BankOut
                     ldx #$0f
 L1e58               bit $2ed0
                     bpl L1e65
                     jsr S1fd2
                     ldx #$01
                     stx $1fcd
-L1e65               bit $2ecf
+L1e65               bit L2ecf
                     bmi L1e6e
                     sta ($66),y
                     bpl L1e73
@@ -303,7 +312,7 @@ L1e73               bit $2ed0
                     ldx $68
                     cpx #$02
                     bne L1e81
-                    jsr $fc71
+                    jsr LTK_Krn_BankIn
 L1e81               bit $2ed0
                     clc
                     bpl L1e8c
@@ -320,15 +329,15 @@ S1e91               pha
                     bcs L1ed8
                     lda $66
                     sec
-                    sbc $2e89
+                    sbc L2e89
                     tax
                     lda $67
-                    sbc $2e8a
+                    sbc L2e8a
                     tay
                     bit $2ed0
                     bpl L1eaf
                     lda $68
-                    sbc $2e8b
+                    sbc L2e8b
                     sta $68
 L1eaf               txa
                     clc
@@ -367,15 +376,15 @@ L1ed8               lda $66
                     sta $68
 L1eee               txa
                     clc
-                    adc $2e89
+                    adc L2e89
                     tax
                     tya
-                    adc $2e8a
+                    adc L2e8a
                     tay
                     bit $2ed0
                     bpl L1f05
                     lda $68
-                    adc $2e8b
+                    adc L2e8b
                     sta $68
 L1f05               tya
                     clc
@@ -411,38 +420,38 @@ S1f1f               pha
 L1f37               bit $2ed0
                     bpl L1f45
                     ldx $68
-                    cpx $2e8b
+                    cpx L2e8b
                     bcc L1fb8
                     bne L1f55
 L1f45               ldx $67
-                    cpx $2e8a
+                    cpx L2e8a
                     bcc L1fb8
                     bne L1f55
                     ldx $66
-                    cpx $2e89
+                    cpx L2e89
                     bcc L1fb8
 L1f55               bit $2ed0
                     bpl L1f63
-                    ldx $2e8e
+                    ldx L2e8e
                     cpx $68
                     bcc L1fb8
                     bne L1f73
-L1f63               ldx $2e8d
+L1f63               ldx L2e8d
                     cpx $67
                     bcc L1fb8
                     bne L1f73
-                    ldx $2e8c
+                    ldx L2e8c
                     cpx $66
                     bcc L1fb8
 L1f73               lda $66
                     sec
-                    sbc $2e89
+                    sbc L2e89
                     sta $1fc6
                     lda $67
-                    sbc $2e8a
+                    sbc L2e8a
                     sta $1fc5
                     lda $68
-                    sbc $2e8b
+                    sbc L2e8b
                     sta $1fc4
                     ldx #$09
 L1f8e               lsr $1fc4
@@ -523,7 +532,7 @@ S201e               php
                     sta $1fc9
                     sta $1fc7
                     stx $1fc8
-                    jsr $fc4e
+                    jsr LTK_Krn_BankOut
                     ldx $2bb1
                     ldy $2bb3
                     bit $2ed6
@@ -569,7 +578,7 @@ L2074               lda ($31),y
                     cmp #$ff
                     beq L20ce
                     clc
-                    jsr $8045
+                    jsr LTK_HDDiscDriver
                     a6 37 01 
 L208b               lda #$a6
                     sta $31
@@ -593,14 +602,14 @@ L20a5               lda $1fca
                     clc
                     jsr S20d3
                     plp
-                    jsr $8045
+                    jsr LTK_HDDiscDriver
                     d8 35 01 
 L20b7               b2 
 L20b8               c2 
 L20b9               d2 
 L20ba               sec
                     jsr S20d3
-L20be               jsr $fc71
+L20be               jsr LTK_Krn_BankIn
 L20c1               lda $1fc6
                     sta $1fcb
                     lda $1fc5
@@ -608,7 +617,7 @@ L20c1               lda $1fc6
                     rts
                     
 L20ce               plp
-                    jsr $fc71
+                    jsr LTK_Krn_BankIn
                     rts
                     
 S20d3               pha
@@ -662,7 +671,7 @@ L2123               lda #$0b
 L2129               jsr S285a
                     bcc L2162
                     ldx #$03
-                    bit $2ecf
+                    bit L2ecf
                     bpl L213a
                     bit $d7
                     bpl L213a
@@ -672,11 +681,11 @@ L213a               lsr $62
                     ror $60
                     dex
                     bne L213a
-L2143               jsr kSTOP
+L2143               jsr STOP
                     beq L215f
                     jsr S21a0
                     lda #$08
-                    bit $2ecf
+                    bit L2ecf
                     bpl L2157
                     bit $d7
                     bpl L2157
@@ -696,7 +705,7 @@ L216c               jsr L26f1
                     lda $60
                     jsr S1e31
                     iny
-                    bit $2ecf
+                    bit L2ecf
                     bpl L2184
                     bit $d7
                     bpl L2184
@@ -706,10 +715,10 @@ L2184               cpy #$08
                     bcc L216c
 L2188               pha
                     lda #$8d
-                    jsr kCHROUT
+                    jsr CHROUT
                     lda #$91
-                    jsr kCHROUT
-                    jsr kCHROUT
+                    jsr CHROUT
+                    jsr CHROUT
                     pla
                     jsr S21a0
                     jmp L1c86
@@ -718,7 +727,7 @@ L219d               jmp L1c86
                     
 S21a0               jsr S27f9
                     lda #$3e
-                    jsr kCHROUT
+                    jsr CHROUT
                     jsr S27d4
                     ldy #$00
                     beq L21b2
@@ -733,7 +742,7 @@ L21b2               jsr S1dc4
 L21c1               jsr S280e
                     iny
                     cpy #$08
-                    bit $2ecf
+                    bit L2ecf
                     bpl L21d2
                     bit $d7
                     bpl L21d2
@@ -742,9 +751,9 @@ L21d2               bcc L21af
                     bit $2ed5
                     bmi L2207
                     lda #$3a
-                    jsr kCHROUT
+                    jsr CHROUT
                     lda #$12
-                    jsr kCHROUT
+                    jsr CHROUT
                     ldy #$00
 L21e5               jsr S1dc4
                     pha
@@ -753,9 +762,9 @@ L21e5               jsr S1dc4
                     pla
                     bcs L21f2
                     lda #$2e
-L21f2               jsr kCHROUT
+L21f2               jsr CHROUT
                     iny
-                    bit $2ecf
+                    bit L2ecf
                     bpl L2203
                     bit $d7
                     bpl L2203
@@ -802,7 +811,7 @@ L2244               lda $3203,x
                     sta $31ff
 L2251               jsr S27f9
                     ldy #$00
-L2256               jsr kSTOP
+L2256               jsr STOP
                     beq L22c7
                     jsr S1dc4
                     ldx #$60
@@ -811,12 +820,12 @@ L2256               jsr kSTOP
                     ldx $62
                     cpx #$02
                     bne L2271
-                    jsr $fc4e
+                    jsr LTK_Krn_BankOut
                     ldx #$0f
 L2271               sei
                     bit $93
                     bpl L2282
-                    bit $2ecf
+                    bit L2ecf
                     bmi L227f
                     sta ($60),y
                     bpl L2282
@@ -825,13 +834,13 @@ L2282               ldx $62
                     cpx #$02
                     bne L228a
                     ldx #$0f
-L228a               bit $2ecf
+L228a               bit L2ecf
                     bmi L2294
                     cmp ($60),y
                     jmp L2297
                     
 L2294               jsr $ff7a
-L2297               jsr $fc71
+L2297               jsr LTK_Krn_BankIn
                     cli
                     beq L22a6
                     jsr S27d4
@@ -892,7 +901,7 @@ L230a               jsr S1dc4
                     jsr S27d4
                     jsr S27ea
                     jsr S27ea
-L2322               jsr kSTOP
+L2322               jsr STOP
                     beq L232f
                     jsr S289c
                     jsr S2888
@@ -905,7 +914,7 @@ L2335               ldy #$08
                     sty $ba
                     sty $b9
                     ldy #$00
-                    bit $2ecf
+                    bit L2ecf
                     bpl L2346
                     sty $c6
                     sty $c7
@@ -922,7 +931,7 @@ L2352               jsr S2835
                     cmp #$22
                     bne L2374
                     ldx $7a
-L2361               lda $0200,x
+L2361               lda LTK_Command_Buffer,x
                     beq L23b4
                     inx
                     cmp #$22
@@ -944,7 +953,7 @@ L2377               stx $7a
                     jsr L26f1
                     bcs L23b4
                     jsr S284d
-                    bit $2ecf
+                    bit L2ecf
                     bpl L2396
                     sta $c6
 L2396               jsr L26f1
@@ -991,7 +1000,7 @@ L23d0               ldx $66
 L23ed               lda $60
                     jsr S1e31
                     bcs L2401
-                    jsr kSTOP
+                    jsr STOP
                     beq L2401
                     jsr S289c
                     jsr S2888
@@ -1145,9 +1154,9 @@ L252e               lda $31fd
                     jsr S27ef
                     pha
                     lda #$41
-                    jsr kCHROUT
+                    jsr CHROUT
                     lda #$20
-                    jsr kCHROUT
+                    jsr CHROUT
                     jsr S1d85
                     pla
                     jsr S25fe
@@ -1172,7 +1181,7 @@ L252e               lda $31fd
                     stx $0350
                     lda #$08
                     sta $d0
-                    bit $2ecf
+                    bit L2ecf
                     bmi L2595
                     ldx #$07
 L2588               lda $034a,x
@@ -1211,10 +1220,10 @@ L25c8               jsr S285a
                     bcc L25f3
 L25cd               pha
                     lda #$0d
-                    jsr kCHROUT
+                    jsr CHROUT
                     jsr S1d85
                     pla
-                    jsr kSTOP
+                    jsr STOP
                     beq L25f0
                     jsr S25f6
                     inc $31f7
@@ -1228,7 +1237,7 @@ L25f0               jmp L1c86
 L25f3               jmp L1ccb
                     
 S25f6               lda #$2e
-                    jsr kCHROUT
+                    jsr CHROUT
                     jsr S27ea
 S25fe               jsr S27d4
                     jsr S27ea
@@ -1245,9 +1254,9 @@ L260f               jsr S2685
 L2617               dex
                     bpl L2628
                     lda #$20
-                    jsr kCHROUT
-                    jsr kCHROUT
-                    jsr kCHROUT
+                    jsr CHROUT
+                    jsr CHROUT
+                    jsr CHROUT
                     jmp L262e
                     
 L2628               jsr S1dc4
@@ -1275,10 +1284,10 @@ L2644               lda $31f6
 L2656               asl $31f6
                     bcc L2669
                     lda $30d2,x
-                    jsr kCHROUT
+                    jsr CHROUT
                     lda $30d8,x
                     beq L2669
-                    jsr kCHROUT
+                    jsr CHROUT
 L2669               dex
                     bne L263b
                     rts
@@ -1357,7 +1366,7 @@ L26dc               asl $64
                     dey
                     bne L26dc
                     adc #$3f
-                    jsr kCHROUT
+                    jsr CHROUT
                     dex
                     bne L26d8
                     jmp S27ea
@@ -1483,7 +1492,7 @@ L27c8               clc
 S27d4               lda $68
                     jsr S281e
                     txa
-                    jsr kCHROUT
+                    jsr CHROUT
                     lda $66
                     ldx $67
 S27e1               pha
@@ -1492,31 +1501,31 @@ S27e1               pha
                     pla
 S27e7               jsr S280e
 S27ea               lda #$20
-                    jmp kCHROUT
+                    jmp CHROUT
                     
 S27ef               lda #$0d
-                    jsr kCHROUT
+                    jsr CHROUT
                     lda #$91
-                    jmp kCHROUT
+                    jmp CHROUT
                     
 S27f9               lda #$0d
-                    jmp kCHROUT
+                    jmp CHROUT
                     
 S27fe               pha
                     lda #$0d
-                    jsr kCHROUT
+                    jsr CHROUT
                     jsr S1d85
                     lda #$20
-                    jsr kCHROUT
+                    jsr CHROUT
                     pla
                     rts
                     
 S280e               stx $31fb
                     jsr S281e
-                    jsr kCHROUT
+                    jsr CHROUT
                     txa
                     ldx $31fb
-                    jmp kCHROUT
+                    jmp CHROUT
                     
 S281e               pha
                     jsr S2828
@@ -1536,7 +1545,7 @@ L2830               adc #$30
 S2833               dec $7a
 S2835               stx $31fb
                     ldx $7a
-                    lda $0200,x
+                    lda LTK_Command_Buffer,x
                     beq L2845
                     cmp #$3a
                     beq L2845
@@ -1634,25 +1643,25 @@ S28c0               bcs L28ec
                     sta $65
                     bcc L28ec
                     clc
-                    24 
+                    .byte $24 
 L28ec               sec
                     rts
                     
 L28ee               jsr S26ef
                     jsr S27fe
                     lda #$24
-                    jsr kCHROUT
+                    jsr CHROUT
                     lda $62
                     beq L2904
                     jsr S281e
                     txa
-                    jsr kCHROUT
+                    jsr CHROUT
 L2904               lda $60
                     ldx $61
                     jsr S27e1
                     jsr S27fe
                     lda #$2b
-                    jsr kCHROUT
+                    jsr CHROUT
                     jsr S2944
                     lda #$00
                     ldx #$08
@@ -1660,14 +1669,14 @@ L2904               lda $60
                     jsr S299a
                     jsr S27fe
                     lda #$26
-                    jsr kCHROUT
+                    jsr CHROUT
                     lda #$00
                     ldx #$08
                     ldy #$02
                     jsr S2984
                     jsr S27fe
                     lda #$25
-                    jsr kCHROUT
+                    jsr CHROUT
                     lda #$00
                     ldx #$18
                     ldy #$00
@@ -1737,7 +1746,7 @@ L29a5               asl $31ef
                     beq L29c9
 L29c1               inc $3200
                     ora #$30
-                    jsr kCHROUT
+                    jsr CHROUT
 L29c9               dex
                     bne L29a0
                     rts
@@ -1865,30 +1874,30 @@ S2adc               lda $35a6,x
 L2ae1               00 
 L2ae2               clc
                     ldy $7a
-                    lda $0200,y
+                    lda LTK_Command_Buffer,y
                     bne L2b1c
 L2aea               ldx #$00
                     stx $2ed0
                     stx $2ed6
-                    stx $2e89
-                    stx $2e8a
-                    stx $2e8b
+                    stx L2e89
+                    stx L2e8a
+                    stx L2e8b
                     stx $1fc6
                     dex
-                    stx $2e8c
-                    stx $2e8d
-                    stx $2e8e
+                    stx L2e8c
+                    stx L2e8d
+                    stx L2e8e
                     stx $1fcb
                     stx $1fcc
                     stx $1fca
-                    ldx #$13
-                    ldy #$2f
-                    jsr S1d6a
+                    ldx #<str_NormalMem
+                    ldy #>str_NormalMem ;$2f13
+                    jsr Print_Message
                     jmp L1c86
                     
                     38 
 L2b1c               sei
-                    jsr $fc4e
+                    jsr LTK_Krn_BankOut
                     lda $8000
                     pha
                     php
@@ -1897,15 +1906,15 @@ L2b1c               sei
                     ldx #$02
                     jsr S34de
                     bcc L2b3d
-L2b30               ldx #$4a
-                    ldy #$2f
-                    jsr S1d6a
+L2b30               ldx #<str_InvalidBlock
+                    ldy #>str_InvalidBlock ;$2f4a
+                    jsr Print_Message
                     jsr S355c
                     jmp L2c14
                     
 L2b3d               sta $2bb3
                     sty $2ed1
-                    lda $0200,y
+                    lda LTK_Command_Buffer,y
                     cmp #$3a
                     bne L2b75
                     lda $2bb3
@@ -1913,9 +1922,9 @@ L2b3d               sta $2bb3
                     txa
                     jsr $8099
                     bcc L2b62
-L2b55               ldx #$62
-                    ldy #$2f
-                    jsr S1d6a
+L2b55               ldx #<str_InvalidLU
+                    ldy #>str_InvalidLU ;$2f62
+                    jsr Print_Message
                     jsr S355c
                     jmp L2c14
                     
@@ -1928,7 +1937,7 @@ L2b62               ldy $2ed1
                     sty $2ed1
                     sta $2bb3
 L2b75               stx $2bb1
-                    lda $0200,y
+                    lda LTK_Command_Buffer,y
                     cmp #$2c
                     php
                     ldx #$d8
@@ -1942,9 +1951,9 @@ L2b75               stx $2bb1
                     ldx #$02
                     jsr S34de
                     bcc L2ba1
-L2b94               ldx #$71
-                    ldy #$2f
-                    jsr S1d6a
+L2b94               ldx #<str_InvalidMemAddr
+                    ldy #>str_InvalidMemAddr ;$2f71
+                    jsr Print_Message
                     jsr S355c
                     jmp L2c14
                     
@@ -1966,7 +1975,7 @@ L2ba7               stx $2bcc
                     clc
                     jsr S20d3
                     plp
-                    jsr $8045
+                    jsr LTK_HDDiscDriver
                     d8 35 01 
 L2bcf                                                            b2 
                     c2 d2 
@@ -1974,42 +1983,42 @@ L2bd2               sec
                     jsr S20d3
                     pla
                     sta $8000
-                    jsr $fc71
+                    jsr LTK_Krn_BankIn
                     ldx #$ff
-                    stx $2e8c
+                    stx L2e8c
                     inx
-                    stx $2e89
-                    stx $2e8a
-                    stx $2e8b
-                    stx $2e8e
+                    stx L2e89
+                    stx L2e8a
+                    stx L2e8b
+                    stx L2e8e
                     stx $1fcb
                     stx $1fcc
                     stx $66
                     stx $67
                     stx $68
                     inx
-                    stx $2e8d
+                    stx L2e8d
                     cli
-                    ldx #$2d
-                    ldy #$2f
+                    ldx #<str_BlockRead
+                    ldy #>str_BlockRead ;$2f2d
                     lda #$00
                     pha
                     plp
                     bcc L2c0e
-                    ldx #$3a
-                    ldy #$2f
-L2c0e               jsr S1d6a
+                    ldx #<str_BlockWritten
+                    ldy #>str_BlockWritten ;$2f3a
+L2c0e               jsr Print_Message
                     jmp L1c86
                     
 L2c14               pla
                     pla
                     sta $8000
-                    jsr $fc71
+                    jsr LTK_Krn_BankIn
                     cli
                     jmp L1ccb
                     
 L2c20               sei
-                    jsr $fc4e
+                    jsr LTK_Krn_BankOut
                     lda $8000
                     pha
                     lda $8001
@@ -2020,14 +2029,14 @@ L2c20               sei
                     jsr S34de
                     pha
                     bcs L2c59
-                    lda $0200,y
+                    lda LTK_Command_Buffer,y
                     cmp #$3a
                     bne L2c59
                     pla
                     beq L2c4f
-L2c42               ldx #$62
-                    ldy #$2f
-                    jsr S1d6a
+L2c42               ldx #<str_InvalidLU
+                    ldy #>str_InvalidLU ;$2f62
+                    jsr Print_Message
                     jsr S355c
                     jmp L2cdd
                     
@@ -2044,14 +2053,14 @@ L2c59               pla
                     jsr S34de
                     pha
                     bcs L2c88
-                    lda $0200,y
+                    lda LTK_Command_Buffer,y
                     cmp #$3a
                     bne L2c88
                     pla
                     beq L2c7d
-L2c70               ldx #$8a
-                    ldy #$2f
-                    jsr S1d6a
+L2c70               ldx #<str_InvalidUser
+                    ldy #>str_InvalidUser ;$2f8a
+                    jsr Print_Message
                     jsr S355c
                     jmp L2cdd
                     
@@ -2065,8 +2074,8 @@ L2c88               pla
                     jsr $806c
                     ldy $7a
                     ldx #$00
-L2c90               lda $0200,y
-                    sta $91e0,x
+L2c90               lda LTK_Command_Buffer,y
+                    sta LTK_FileHeaderBlock,x
                     beq L2c9e
                     iny
                     inx
@@ -2074,9 +2083,9 @@ L2c90               lda $0200,y
                     bne L2c90
 L2c9e               jsr $804b
                     bcc L2cb0
-                    ldx #$9b
-                    ldy #$2f
-                    jsr S1d6a
+                    ldx #<str_FileNotFound
+                    ldy #>str_FileNotFound ;$2f9b
+                    jsr Print_Message
                     jsr S355c
                     jmp L2cdd
                     
@@ -2092,26 +2101,26 @@ L2cb0               lda #$ff
                     sta $8001
                     pla
                     sta $8000
-                    jsr $fc71
+                    jsr LTK_Krn_BankIn
                     cli
-                    ldx #$c7
-                    ldy #$2f
-                    jsr S1d6a
+                    ldx #<str_FileSelected
+                    ldy #>str_FileSelected ;$2fc7
+                    jsr Print_Message
                     jmp L1c86
                     
 L2cdd               pla
                     sta $8001
                     pla
                     sta $8000
-                    jsr $fc71
+                    jsr LTK_Krn_BankIn
                     cli
                     jmp L1ccb
                     
 L2cec               bit $2ed6
                     bmi L2cff
-L2cf1               ldx #$e9
-                    ldy #$2f
-                    jsr S1d6a
+L2cf1               ldx #<str_NoFileSelected
+                    ldy #>str_NoFileSelected ;$2fe9
+                    jsr Print_Message
                     jsr S355c
                     cli
                     jmp L2aea
@@ -2120,36 +2129,36 @@ L2cff               lda $1fca
                     cmp #$ff
                     beq L2cf1
                     sei
-                    jsr $fc4e
+                    jsr LTK_Krn_BankOut
                     ldx $9201
                     ldy $9200
                     stx $2bb1
                     sty $2bb3
                     clc
-                    jsr $8045
-                    cld
-                    and $01,x
-                    jsr $fc71
+                    jsr LTK_HDDiscDriver
+                    .byte $d8,$35,$01
+                    
+                    jsr LTK_Krn_BankIn
                     ldx #$ff
                     stx $2ed0
-                    stx $2e8c
+                    stx L2e8c
                     inx
                     stx $2ed6
-                    stx $2e89
-                    stx $2e8a
-                    stx $2e8b
-                    stx $2e8e
+                    stx L2e89
+                    stx L2e8a
+                    stx L2e8b
+                    stx L2e8e
                     stx $1fcb
                     stx $1fcc
                     stx $66
                     stx $67
                     stx $68
                     inx
-                    stx $2e8d
-                    lda #$0d
-                    jsr kCHROUT
+                    stx L2e8d
+                    lda #$0d ;carriage return
+                    jsr CHROUT
                     lda #$12
-                    jsr kCHROUT
+                    jsr CHROUT
                     lda $1fca
                     pha
                     and #$0f
@@ -2162,10 +2171,10 @@ L2cff               lda $1fca
                     jsr S2d75
                     ldx #$d8
                     ldy #$35
-                    jsr S1d6a
-                    ldx #$fd
-                    ldy #$2f
-                    jsr S1d6a
+                    jsr Print_Message
+                    ldx #<str_HeaderSelected
+                    ldy #>str_HeaderSelected ;$2ffd
+                    jsr Print_Message
                     cli
                     jmp L1c86
                     
@@ -2175,15 +2184,15 @@ S2d75               clc
                     bcc L2d7f
                     clc
                     adc #$07
-L2d7f               jsr kCHROUT
+L2d7f               jsr CHROUT
                     lda #$3a
-                    jsr kCHROUT
+                    jsr CHROUT
                     rts
                     
 S2d88               ldx #$00
-                    stx $2e86
-                    stx $2e87
-                    stx $2e88
+                    stx L2e86
+                    stx L2e87
+                    stx L2e88
                     ldy #$02
                     lda $91f8
                     cmp #$0b
@@ -2219,15 +2228,15 @@ L2dcc               sty $2ddd
                     beq L2df6
 L2ddb               sec
                     sbc #$00
-                    sta $2e88
+                    sta L2e88
                     bcs L2de4
                     dey
 L2de4               tya
-                    sta $2e87
+                    sta L2e87
                     ldy #$09
-L2dea               asl $2e88
-                    rol $2e87
-                    rol $2e86
+L2dea               asl L2e88
+                    rol L2e87
+                    rol L2e86
                     dey
                     bne L2dea
 L2df6               ldy $91fc
@@ -2240,23 +2249,23 @@ L2df6               ldy $91fc
 L2e06               pha
                     tya
                     clc
-                    adc $2e88
-                    sta $2e88
+                    adc L2e88
+                    sta L2e88
                     pla
-                    adc $2e87
-                    sta $2e87
+                    adc L2e87
+                    sta L2e87
                     bcc L2e1b
-                    inc $2e86
-L2e1b               lda $2e88
+                    inc L2e86
+L2e1b               lda L2e88
                     sec
                     sbc #$01
-                    sta $2e88
-                    lda $2e87
+                    sta L2e88
+                    lda L2e87
                     sbc #$00
-                    sta $2e87
-                    lda $2e86
+                    sta L2e87
+                    lda L2e86
                     sbc #$00
-                    sta $2e86
+                    sta L2e86
                     lda $91fb
                     ldx $91fa
                     ldy $91f8
@@ -2272,39 +2281,57 @@ L2e1b               lda $2e88
                     beq L2e56
                     lda #$00
                     tax
-L2e56               sta $2e89
-                    stx $2e8a
+L2e56               sta L2e89
+                    stx L2e8a
                     sta $66
                     stx $67
                     lda #$00
-                    sta $2e8b
+                    sta L2e8b
                     sta $68
-                    lda $2e88
+                    lda L2e88
                     clc
-                    adc $2e89
+                    adc L2e89
                     tax
-                    lda $2e87
-                    adc $2e8a
+                    lda L2e87
+                    adc L2e8a
                     tay
-                    lda $2e86
-                    adc $2e8b
-                    stx $2e8c
-                    sty $2e8d
-                    sta $2e8e
+                    lda L2e86
+                    adc L2e8b
+                    stx L2e8c
+                    sty L2e8d
+                    sta L2e8e
                     rts
                     
-                    00 00 00 00 00 00 ff ff ff 
-L2e8f               lda $2ed4
+L2e86
+	.byte $00
+L2e87	
+	.byte $00 
+L2e88
+	.byte $00 
+L2e89	
+	.byte $00 
+L2e8a
+	.byte $00 
+L2e8b
+	.byte $00 
+L2e8c	
+	.byte $ff 
+L2e8d	
+	.byte $ff 
+L2e8e
+	.byte $ff 
+L2e8f               
+	lda $2ed4
                     bne L2eb5
-                    ldx #$12
-                    ldy #$30
-                    jsr S1d6a
+                    ldx #<str_PrinterOn
+                    ldy #>str_PrinterOn ;$3012
+                    jsr Print_Message
                     jsr S2ed7
                     bit $90
                     bpl L2eaf
-                    ldx #$34
-                    ldy #$30
-                    jsr S1d6a
+                    ldx #<str_DeviceNotPresent
+                    ldy #>str_DeviceNotPresent ;$3034
+                    jsr Print_Message
                     jsr S355c
                     jmp L1c86
                     
@@ -2313,38 +2340,40 @@ L2eaf               dec $2ed4
                     
 L2eb5               jsr S2ef5
                     inc $2ed4
-                    ldx #$23
-                    ldy #$30
-                    jsr S1d6a
+                    ldx #<str_PrinterOff
+                    ldy #>str_PrinterOff ;$3023
+                    jsr Print_Message
                     jmp L1c86
                     
-L2ec5               ldx #$06
-                    ldy #$32
-                    jsr S1d6a
+L2ec5               ldx #<str_Help
+                    ldy #>str_Help ;$3206
+                    jsr Print_Message
                     jmp L1c86
                     
-                    00 00 00 00 00 00 00 00 
+L2ecf
+	.byte $00,$00,$00,$00,$00,$00,$00,$00 
+	
 S2ed7               lda #$00
-                    jsr kSETNAM
+                    jsr SETNAM
                     lda #$01
                     ldx $2ed2
                     ldy $2ed3
-                    jsr kSETLFS
-                    jsr kOPEN
+                    jsr SETLFS
+                    jsr OPEN
 S2eea               ldx #$01
-                    jsr kCHKOUT
+                    jsr CHKOUT
                     lda #$0d
-                    jsr kCHROUT
+                    jsr CHROUT
                     rts
                     
 S2ef5               jsr S2eea
                     lda #$20
-                    jsr kCHROUT
+                    jsr CHROUT
                     lda #$0d
-                    jsr kCHROUT
+                    jsr CHROUT
                     lda #$01
                     clc
-                    jsr kCLOSE
+                    jsr CLOSE
                     lda #$03
                     sta $9a
                     lda #$00
@@ -2352,57 +2381,82 @@ S2ef5               jsr S2eea
                     sta $90
                     rts
                     
-                    "{Return}{Rvs On}NORMAL MEMORY SELECTED{Return}"
-                    00 
-                    "{Return}{Rvs On}BLOCK READ"
-                    00 
-                    "{Return}{Rvs On}BLOCK WRITTEN"
-                    00 
-                    "{Return}{Rvs On}INVALID BLOCK ADDRESS"
-                    00 
-                    "{Return}{Rvs On}INVALID LU #"
-                    00 
-                    "{Return}{Rvs On}INVALID MEMORY ADDRESS"
-                    00 
-                    "{Return}{Rvs On}INVALID USER #"
-                    00 
-                    "{Return}{Rvs On}FILE DOES NOT EXIST"
-                    00 
-                    "{Return}{Rvs On}NONEXISTANT ADDRESS"
-                    00 
-                    "{Return}{Rvs On}FILE SELECTED"
-                    00 
-                    "{Return}{Rvs On}LKMON ABORTED{Return}{Return}"
-                    00 
-                    "{Return}{Rvs On}NO FILE SELECTED{Return}"
-                    00 
-                    "{Rvs Off}   HEADER SELECTED{Return}"
-                    00 
-                    "{Return}{Return}PRINTER  {Rvs On}ON{Return}{Return}"
-                    00 
-                    "{Return}{Return}PRINTER  {Rvs On}OFF{Return}"
-                    00 
-                    "{Return}{Return}DEVICE NOT PRESENT !{Return}"
-                    00 
-                    "{Return}{Return}{Rvs On}LT. KERNAL MONITOR (V3.1){Return}{Return}ENTER A  "
-                    5c 
-                    "  FOR HELP{Return}{Return}"
-                    00 40 02 45 03 d0 08 40 09 30 22 45 33 d0 08 40 
+str_NormalMem ;$2f13               
+	.text "{return}{rvs on}normal memory selected{return}"
+	.byte $00 
+str_BlockRead ;$2f2d
+	.text "{return}{rvs on}block read"
+	.byte $00 
+str_BlockWritten ;$2f3a               
+	.text "{return}{rvs on}block written"
+	.byte $00 
+str_InvalidBlock ;$2f4a               
+	.text "{return}{rvs on}invalid block address"
+	.byte $00 
+str_InvalidLU ;$2f62               
+	.text "{return}{rvs on}invalid lu #"
+	.byte $00 
+str_InvalidMemAddr ;$2f71               
+	.text "{return}{rvs on}invalid memory address"
+	.byte $00 
+str_InvalidUser ;$2f8a               
+	.text "{return}{rvs on}invalid user #"
+	.byte $00 
+str_FileNotFound ;$2f9b               
+	.text "{return}{rvs on}file does not exist"
+	.byte $00 
+str_NonExistAddr ;$2fb1               
+	.text "{return}{rvs on}nonexistant address"
+	.byte $00 
+str_FileSelected ;$2fc7               
+	.text "{return}{rvs on}file selected"
+	.byte $00 
+str_Aborted  ;$2fd7             
+	.text "{return}{rvs on}lkmon aborted{return}{return}"
+	.byte $00 
+str_NoFileSelected ;$2fe9               
+	.text "{return}{rvs on}no file selected{return}"
+	.byte $00 
+str_HeaderSelected ;$2ffd               
+	.text "{rvs off}   header selected{return}"
+	.byte $00 
+str_PrinterOn ;$3012               
+	.text "{return}{return}printer  {rvs on}on{return}{return}"
+	.byte $00 
+str_PrinterOff ;$3023               
+	.text "{return}{return}printer  {rvs on}off{return}"
+	.byte $00 
+str_DeviceNotPresent ;$3034               
+	.text "{return}{return}device not present !{return}"
+	.byte $00 
+str_Startup ;$304c               
+	.text "{return}{return}{rvs on}lt. kernal monitor (v3.1){return}{return}enter a  "
+	.byte $5c ;british pound sign 
+	.text "  for help{return}{return}"
+	.byte $00
+                    
+L3081                  40 02 45 03 d0 08 40 09 30 22 45 33 d0 08 40 
                     09 40 02 45 33 d0 08 40 09 40 02 45 b3 d0 08 40 
                     09 00 22 44 33 d0 8c 44 00 11 22 44 33 d0 8c 44 
                     9a 10 22 44 33 d0 08 40 09 10 22 44 33 d0 08 40 
-                    09 62 13 78 a9 00 21 81 82 00 00 59 4d 91 92 86 
-                    4a 85 9d 2c 29 2c 23 28 24 59 00 58 24 24 00 1c 
+                    09 62 13 78 a9 
+L30c5                              00 21 81 82 00 00 59 4d 91 92 86 
+                    4a 85 9d 2c 29 2c 23 28 24 59 00 58 24 24 00 
+L30df                                                            1c 
                     8a 1c 23 5d 8b 1b a1 9d 8a 1d 23 9d 8b 1d a1 00 
                     29 19 ae 69 a8 19 23 24 53 1b 23 24 53 19 a1 00 
                     1a 5b 5b a5 69 24 24 ae ae a8 ad 29 00 7c 00 15 
-                    9c 6d 9c a5 69 29 53 84 13 34 11 a5 69 23 a0 d8 
+                    9c 6d 9c a5 69 29 53 84 13 34 11 a5 69 23 a0 
+L311f                                                            d8 
                     62 5a 48 26 62 94 88 54 44 c8 54 68 44 e8 94 00 
                     b4 08 84 74 b4 28 6e 74 f4 cc 4a 72 f2 a4 8a 00 
                     aa a2 a2 74 74 74 72 44 68 b2 32 b2 00 22 00 1a 
                     1a 26 26 72 72 88 c8 c4 ca 26 48 44 44 a2 c8 0d 
-                    20 20 20 10 0a 08 02 04 03 03 01 41 43 44 46 21 
-                    48 4a 4d 4e 54 58 21 2e 3e 3b 21 21 21 21 21 24 
+                    20 20 20 
+L3163               10 0a 08 02 
+L3167                                    04 03 03 01 41 43 44 46 21 
+                    48 4a 4d 4e 54 58 21 2e 3e 3b 21 21 21 21 21 
+L317f                                                            24 
                     2b 26 25 4c 53 21 52 57 50 47 5c 5f 21 21 21 21 
                     06 24 07 22 b7 25 d9 23 9c 21 c9 22 33 1d 13 21 
                     10 21 0a 22 08 1d 9c 21 06 24 64 21 9c 21 9c 21 
@@ -2411,9 +2465,31 @@ S2ef5               jsr S2eea
                     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
                     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
                     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
-                    00 00 00 00 00 00 
-                    "{Return}A=ASSEMBLE    [<BSSSS> - COMMAND]{Return}C=COMPARE MEM [ BSSSS  BEEEE  BWWWW ]{Return}D=DISASSEMBLE [<BSSSS><BEEEE>]{Return}F=FILL MEMORY [ BSSSS  BEEEE  DATA ]{Return}G=GET A FILE  [<LU:><USER:>FILENAME]{Return}H=HUNT MEMORY [ BSSSS  BEEEE  TARGET ]{Return}L=LOAD FILE   [<,DV. #><,MEM. ADR>],{Return}M=MEMORY DUMP [<BSSSS><BEEEE>]{Return}P=PRINTER     [TOGGLE ON/OFF]{Return}R=READ BLOCK  [<LU:><USER:>BLK. ADR.] *{Return}S=SAVE FILE   [ DV#  STR ADR  END ADR]{Return}T=XFER MEMORY [ BSSSS  BEEEE  BDDDD ]{Return}W=WRITE BLOCK [<LU:><USER:>BLK. ADR.]{Return}X=EXIT LKMON{Return}{Return}WHERE:{Return}  (B)=BANK NUMBER <2=HOST ADAPTER>{Return}  (SSSS)=STARTING MEMORY ADDRESS{Return}  (EEEE)=ENDING MEMORY ADDRESS{Return}  (WWWW)=WITH MEMORY ADDRESS{Return}  (DDDD)=DESTINATION MEMORY ADDRESS{Return}* AN R BY ITSELF DESELECTS ANY FILE OR{Return}  BLOCK AND DEFAULTS BACK TO RAM."
-                    00 
+                    00 00 00 
+L3203               00 00 00
+str_Help ;$3206                    
+                    .text "{return}a=assemble    [<bssss> - command]{return}"
+                    .text "c=compare mem [ bssss  beeee  bwwww ]{return}"
+                    .text "d=disassemble [<bssss><beeee>]{return}"
+                    .text "f=fill memory [ bssss  beeee  data ]{return}"
+                    .text "g=get a file  [<lu:><user:>filename]{return}"
+                    .text "h=hunt memory [ bssss  beeee  target ]{return}"
+                    .text "l=load file   [<,dv. #><,mem. adr>],{return}"
+                    .text "m=memory dump [<bssss><beeee>]{return}"
+                    .text "p=printer     [toggle on/off]{return}"
+                    .text "r=read block  [<lu:><user:>blk. adr.] *{return}"
+                    .text "s=save file   [ dv#  str adr  end adr]{return}"
+                    .text "t=xfer memory [ bssss  beeee  bdddd ]{return}"
+                    .text "w=write block [<lu:><user:>blk. adr.]{return}"
+                    .text "x=exit lkmon{return}{return}where:{return}  "
+                    .text "(b)=bank number <2=host adapter>{return}  "
+                    .text "(ssss)=starting memory address{return}  "
+                    .text "(eeee)=ending memory address{return}  "
+                    .text "(wwww)=with memory address{return}  "
+                    .text "(dddd)=destination memory address{return}"
+                    .text "* an r by itself deselects any file or{return}  "
+                    .text "block and defaults back to ram."
+                    .byte $00 
 S34de               sta L34ef + 1
                     stx L34ef + 2
                     lda #$00
