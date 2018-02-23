@@ -50,17 +50,20 @@
 ;	5	low byte,  number of cylinders
 ;	6	write precomp in cylinders
 ;	7	unknown, always zero
-
-serial	.text "87000999"
-	.byte $00,$a7,$87,$6b,$00,$68
-d1parm	.byte $c0,$00,$11,$04,$02,$64,$00,$00 ; SCSI ID 0
-d2parm	.byte $80,$00,$00,$00,$00,$00,$00,$00 ; SCSI ID 1
-d3parm	.byte $80,$00,$00,$00,$00,$00,$00,$00 ; SCSI ID 2
-d4parm	.byte $80,$00,$00,$00,$00,$00,$00,$00 ; SCSI ID 3
-d5parm	.byte $80,$00,$00,$00,$00,$00,$00,$00 ; SCSI ID 4
-d6parm	.byte $80,$00,$00,$00,$00,$00,$00,$00 ; SCSI ID 5
-d7parm	.byte $80,$00,$00,$00,$00,$00,$00,$00 ; SCSI ID 6
-d8parm	.byte $80,$00,$00,$00,$00,$00,$00,$00 ; SCSI ID 7
+               99999999
+               bbbbbbbb
+               aaaaaaab
+	       9abcdef0 
+serial	.text "87000999"					; 9ba9
+	.byte $00,$a7,$87,$6b,$00,$68				; 9bb1
+d1parm	.byte $c0,$00,$11,$04,$02,$64,$00,$00 ; SCSI ID 0	; 9bb7
+d2parm	.byte $80,$00,$00,$00,$00,$00,$00,$00 ; SCSI ID 1	; 9bbf
+d3parm	.byte $80,$00,$00,$00,$00,$00,$00,$00 ; SCSI ID 2	; 9bc7
+d4parm	.byte $80,$00,$00,$00,$00,$00,$00,$00 ; SCSI ID 3	; 9bcf
+d5parm	.byte $80,$00,$00,$00,$00,$00,$00,$00 ; SCSI ID 4	; 9bd7
+d6parm	.byte $80,$00,$00,$00,$00,$00,$00,$00 ; SCSI ID 5	; 9bdf
+d7parm	.byte $80,$00,$00,$00,$00,$00,$00,$00 ; SCSI ID 6	; 9be7
+d8parm	.byte $80,$00,$00,$00,$00,$00,$00,$00 ; SCSI ID 7	; 9bef
 	.byte $00,$00,$00,$00,$00,$00,$00,$00
 	.byte $00,$00
 	.byte $00,$00,$00,$00,$00,$00,$00,$00
@@ -69,7 +72,7 @@ d8parm	.byte $80,$00,$00,$00,$00,$00,$00,$00 ; SCSI ID 7
 	.byte $00,$00,$00,$00,$00,$00,$00,$00
 	.byte $00,$00,$00,$00,$00,$00,$00,$00
 	;$80
-	.byte $5b
+	.byte $5b						; 9c20
 	cpy #$5a
 	jmp $fffe
 	.byte $00,$00,$00,$00,$00,$00,$03,$10

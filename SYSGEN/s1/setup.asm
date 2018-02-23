@@ -473,7 +473,7 @@ S8452
 	lda #$ff
 	sta $8cef
 	sta $8cf0
-	sta $8cf1
+	sta L8cf1
 	ldy $9bba
 	ldx #$00
 	stx $95fd
@@ -687,7 +687,7 @@ L8636
 	sta $8c39
 	jsr S8c28
 	lda #$00
-	sta $8cf1
+	sta L8cf1
 	lda #$07
 	sta LBA_ls
 	lda #$01
@@ -699,7 +699,7 @@ L8636
 	ldy #>fname_LtKrn128 ;$8f4e
 	jsr sg_LoadFile
 	lda #$ff
-	sta $8cf1
+	sta L8cf1
 	lda #$01
 	sta LBA_ls
 	lda #$9c
@@ -979,7 +979,7 @@ L87c2
 	jsr sg_LoadFile
 	
 	lda #$00
-	sta $8cf1
+	sta L8cf1
 	lda #$04
 	sta LBA_ls
 	
@@ -1276,7 +1276,7 @@ LoadFromTable ; Loads files from a table using ReadTable to get file information
 	sta $ba		; device 8
 	lda #$01
 	sta $b9		; secondary address 1
-	jsr Zero_801_86f; clear some memory
+	jsr Zero_801_7601; clear some memory
 	cli
 	lda #$00	; .A=0 -> LOAD
 	jsr LOAD	; load "fname",8,1
@@ -1419,7 +1419,7 @@ sg_Load_8bf8 ;$8bf8 ;Obviously needs a better name
 	sta LBA_ls
 	stx ptr_fname
 	sty ptr_fname+1
-	jsr S8cc0
+	jsr Zero_1000_2xA
 	lda #$0a
 	sta len_fname
 	lda #$08
@@ -1520,32 +1520,38 @@ L8cb3	lda $95a2
 	sta LBA_mms
 L8cbf	rts
 
-S8cc0	asl a
-	tax
+Zero_1000_2xA ; $8cc0
+	; clear from $1000 to 2x .A and return
+	;  Presets some alternates and jumps into
+	;  Zero_801_7601 below
+	asl a		; multiply .A*2 pages
+	tax		; save for byte count
 	lda #$00
 	sta $fb
 	lda #$10
-	sta $fc
-	bne L8cd6
+	sta $fc		;start at $1000
+	bne L8cd6	; always taken (lda #$10)
 
-Zero_801_86f; $8ccc
-	lda #<$0801 ; clear memory?
+Zero_801_7601; $8ccc	; $0801+$6e00=$7601
+	lda #<$0801	; clear memory?
 	sta $fb
 	lda #>$0801
-	sta $fc	; destination
-	ldx #$6e	; count 110 bytes
-L8cd6	ldy #$00
-	tya
-L8cd9	sta ($fb),y ; zero memory
-	iny
-	bne L8cd9
-	inc $fc
-	dex
-	bne L8cd9
-	rts		; set 0801 to 86F=0
+	sta $fc		; start at $0801
+	ldx #$6e	; count 110 pages
+L8cd6	ldy #$00	;  clear index
+	tya		;  clear .A
+L8cd9	sta ($fb),y	;   zero memory
+	iny		;   increment index
+	bne L8cd9	;   256 bytes
+	inc $fc		;  increment high byte
+	dex		;  decrement page count
+	bne L8cd9	; repeat until none left to do
+	rts
 
 	.byte $00,$00,$00,$00,$00,$00,$00,$00
-	.byte $00,$00,$00,$00,$00,$00,$00,$00 
+	.byte $00,$00,$00,$00,$00
+L8cf1	.byte $00	; used as a flag (either set $ff or $00)
+	.byte $00,$00 
 	.byte $00,$00,$00 
 
 Zero_9c00_9dff ; $8cf7
@@ -1574,20 +1580,20 @@ sg_LoadFile ;$8d15
 	stx ptr_fname		;stash addr of filename to $bb as if SETNAM was called
 	sty ptr_fname+1
 	lda LBA_ls
-	jsr S8cc0
+	jsr Zero_1000_2xA	;zero from $1000 to 2x .A
 	lda #$0a
 	sta len_fname		;filename length is 10 for all of the files this routine handles
-	lda #$08 ; drive 8
+	lda #$08		; drive 8
 	sta $ba
-	lda #$00
-	sta $b9
+	lda #$00		
+	sta $b9			; SA 0 (load to specified address)
 	ldx #$00
 	ldy #$10		;load address is $1000
 	cli
 	lda #$00
-	jsr LOAD
-	bcc sg_LoadFileSuccess
-	jmp Break2
+	jsr LOAD		; LOAD "fname",8 to $1000
+	bcc sg_LoadFileSuccess	; all good, continue
+	jmp Break2		; something broke.  Instead of telling the user lets just drop out.
 
 sg_LoadFileSuccess
 	lda #$10
@@ -1597,13 +1603,13 @@ sg_LoadFileSuccess
 	stx BufPtrL
 	stx $f7
 	stx LBA_mms
-	lda $8cf1
-	beq L8d56
+	lda L8cf1		; check flag (FIXME whats this)
+	beq L8d56		; flag clear? Skip store 0 to 11ff
 
 	stx $11ff
 L8d56
 	sei
-	lda $8cf1
+	lda L8cf1
 	beq L8dab
 	lda LBA_ms
 	cmp #$1a
@@ -2018,30 +2024,30 @@ L924a	lda $9c00,y
 	lda $9c21
 	jsr S947a
 	lda $9445
-	sta S92e4 + 2
+	sta Store-y-and-inc + 2
 	lda $9446
-	sta S92e4 + 1
-	ldy #$10
+	sta Store-y-and-inc + 1	;set address
+	ldy #$10	;and offset
 	lda $9c10
-	jsr S92e4
+	jsr Store-y-and-inc
 	lda $9c11
-	jsr S92e4
+	jsr Store-y-and-inc
 	lda $9c14
-	jsr S92e4
+	jsr Store-y-and-inc
 	lda $9c15
-	jsr S92e4
+	jsr Store-y-and-inc
 	lda $9c16
-	jsr S92e4
+	jsr Store-y-and-inc
 	lda $9c17
-	jsr S92e4
+	jsr Store-y-and-inc
 	lda $9c18
-	jsr S92e4
+	jsr Store-y-and-inc
 	lda $9c1a
-	jsr S92e4
+	jsr Store-y-and-inc
 	lda $9c1b
-	jsr S92e4
+	jsr Store-y-and-inc
 	lda #$0a
-	jsr S92e4
+	jsr Store-y-and-inc
 	inc $9e1c
 	jsr S8c9e
 	lda $9e1c
@@ -2067,7 +2073,8 @@ L92cc	ldx #<str_CR
 	ldx #$00
 	rts
 
-S92e4	sta S92e4,y
+Store-y-and-inc
+	sta Store-y-and-inc,y ;operand modified before call
 	iny
 	rts
 
