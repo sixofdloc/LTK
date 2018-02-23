@@ -10,6 +10,7 @@ call build dir
 call build errorhan
 call build fastcpqd
 call build fileprot
+call build findfil2
 call build initc064
 call build l
 call build ltkernal

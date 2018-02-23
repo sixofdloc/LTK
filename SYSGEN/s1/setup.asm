@@ -2024,30 +2024,30 @@ L924a	lda $9c00,y
 	lda $9c21
 	jsr S947a
 	lda $9445
-	sta Store-y-and-inc + 2
+	sta Sty_and_inc + 2
 	lda $9446
-	sta Store-y-and-inc + 1	;set address
+	sta Sty_and_inc + 1	;set address
 	ldy #$10	;and offset
 	lda $9c10
-	jsr Store-y-and-inc
+	jsr Sty_and_inc
 	lda $9c11
-	jsr Store-y-and-inc
+	jsr Sty_and_inc
 	lda $9c14
-	jsr Store-y-and-inc
+	jsr Sty_and_inc
 	lda $9c15
-	jsr Store-y-and-inc
+	jsr Sty_and_inc
 	lda $9c16
-	jsr Store-y-and-inc
+	jsr Sty_and_inc
 	lda $9c17
-	jsr Store-y-and-inc
+	jsr Sty_and_inc
 	lda $9c18
-	jsr Store-y-and-inc
+	jsr Sty_and_inc
 	lda $9c1a
-	jsr Store-y-and-inc
+	jsr Sty_and_inc
 	lda $9c1b
-	jsr Store-y-and-inc
+	jsr Sty_and_inc
 	lda #$0a
-	jsr Store-y-and-inc
+	jsr Sty_and_inc
 	inc $9e1c
 	jsr S8c9e
 	lda $9e1c
@@ -2073,8 +2073,8 @@ L92cc	ldx #<str_CR
 	ldx #$00
 	rts
 
-Store-y-and-inc
-	sta Store-y-and-inc,y ;operand modified before call
+Sty_and_inc
+	sta Sty_and_inc,y ;operand modified before call
 	iny
 	rts
 
@@ -2444,11 +2444,11 @@ SCSI_READ ; $969f
 	lda #$08	; SCSI READ(6)
 L96a1	sta CDBBuffer	; set scsi command
 	lda LBA_mms
-	sta CDBBuffer+1	; set lba mmsb
+	sta CDBBuffer+2	; set lba mmsb
 	lda LBA_ms
-	sta CDBBuffer+2	; set lba msb
+	sta CDBBuffer+3	; set lba msb
 	lda LBA_ls
-	sta CDBBuffer+3	; set lba lsb
+	sta CDBBuffer+4	; set lba lsb
 	lda BufPtrH
 	sta $f8		; set buffer address
 	lda BufPtrL

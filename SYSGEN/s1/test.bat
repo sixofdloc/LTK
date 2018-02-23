@@ -10,6 +10,7 @@ call test_file dir dir.r
 call test_file errorhan errorhan.r
 call test_file fastcpqd fastcpqd.r
 call test_file fileprot fileprot.r
+call test_file findfil2 findfil2.r
 call test_file initc064 initc064.r
 call test_file l l.r
 call test_file ltkernal ltkernal.r
