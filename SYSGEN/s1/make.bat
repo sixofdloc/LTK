@@ -11,6 +11,8 @@ call build errorhan
 call build fastcpqd
 call build fileprot
 call build findfil2
+call build go64boot_cd00
+call build go64boot
 call build initc064
 call build l
 call build ltkernal

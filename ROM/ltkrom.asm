@@ -1,7 +1,7 @@
 	;LTK rom re-source
 	;Six/DLoC 2018
 
-	.include "equates.asm"
+	.include "../include/misc_equates.asm"
 	
 	
 	*= $8000

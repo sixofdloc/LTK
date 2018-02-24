@@ -1,4 +1,4 @@
-
+	RESET  =$FCE2
 	CINT   =$FF81 ;(65371, $FF5B) initialize screen editor and video chip
 	IOINIT =$FF84 ;(64931, $FDA3) initialize I/O devices
 	RAMTAS =$FF87 ;(64848, $FD50) initialize RAM, tape buffer, screen
@@ -45,3 +45,7 @@
 	COLDSTART_HI	= 	$FFFD
 	IRQ_LO		=	$FFFE
 	IRQ_HI		=	$FFFF
+	
+	NMI_VEC = NMI_LO
+	COLDSTART_VEC = COLDSTART_LO
+	IRQ_VEC = IRQ_LO
