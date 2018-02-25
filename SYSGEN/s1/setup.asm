@@ -34,7 +34,7 @@ START
 				; Returns $DF in .A if HA is at DF00
 	bit L9bb7		; $c0 = %1100 0000; s=1, v=1
 	bvc L802d
-	jsr S9719		
+	jsr SCSI_Select		
 	lda #$7f
 	sta HA_data
 	lda #$60
@@ -2407,42 +2407,43 @@ L964a	lda L964a       ; get a byte
 	inc L964a + 2
 L9655	rts		; return with the byte
 
-S9656	lda #$c2
-	sta CDBBuffer
+S9656	lda #$c2	; not a scsi command (http://www.t10.org/lists/op-num.htm)
+	sta CDBBuffer	; 9789
 	ldx $9bba
 	dex
-	stx $9792
+	stx $9792	; +9
 	lda $9bbb
-	sta $9793
+	sta $9793	; +10
 	ldx $9bbc
 	dex
-	stx $9794
+	stx $9794	; +11
 	lda L9bb7
 	and #$3f
-	sta $978f
+	sta $978f	; +6
 	lda $9bb8
-	sta $9790
+	sta $9790	; +1
 	lda $9bbd
-	sta $9795
+	sta $9795	; +15
 	lda $9bbe
-	sta $9796
-	jsr S9719
-	bne L9699
-	ldx #$10
-	ldy #$00
-	jsr SCSI_Send
+	sta $9796	; +13
+	jsr SCSI_Select	; FIXME: according to interpretation of scsi_select, bne will never branch.
+	bne SetCarryRTS ;  Never happens.
+	ldx #$10	; $10 bytes to send
+	ldy #$00	; from beginning of buffer
+	jsr SCSI_Send	
 	jsr S9772
 	rts
 
-L9699	sec
+SetCarryRTS ; $9699
+	sec
 	rts
 
 SCSI_WRITE ; $969b
 	lda #$0a	; SCSI WRITE(6)
-	bne L96a1
+	bne L96a1	; Multiple programmer mark:  Some areas use .byte $2c [BIT] for this
 SCSI_READ ; $969f
 	lda #$08	; SCSI READ(6)
-L96a1	sta CDBBuffer	; set scsi command
+L96a1	sta CDBBuffer	; set scsi command	; 9789
 	lda LBA_mms
 	sta CDBBuffer+2	; set lba mmsb
 	lda LBA_ms
@@ -2453,13 +2454,13 @@ L96a1	sta CDBBuffer	; set scsi command
 	sta $f8		; set buffer address
 	lda BufPtrL
 	sta $f7
-	jsr S9719
-	bne L9699
+	jsr SCSI_Select
+	bne SetCarryRTS ;  Never happens.
 	ldx #$06	; CDB is 6 bytes long
 	ldy #$00	; and starts at buff offset 0
 	jsr SCSI_Send
 	ldy #$00
-	lda CDBBuffer
+	lda CDBBuffer	; 9789
 	cmp #$08	; did we READ(6)?
 	beq L96f3	;  yes, perform read
 	lda #$2c
@@ -2505,27 +2506,43 @@ L96fb	lda HA_ctrl	; handshake
 
 L9711	jsr S9772	; done read/writing, cleanup (what does 9772 do?)
 	txa
-	bne L9699
+	bne SetCarryRTS ;  Never happens.
 	clc
 	rts
 
-	; FIXME: scsi select?
-S9719	jsr HA_SetDataOutput
-	lda #$fe	; FIXME: targeting scsi ID 0?
+SCSI_Select ; $9719
+	; Select a SCSI target FIXME: id 0?
+	; FIXME: scsi bits apparently:
+	; 7 
+	; 6 ATN
+	; 5 
+	; 4 SEL
+	; 3 BSY
+	; 2 
+	; 1 
+	; 0 
+	
+	; Judging by how this is called, it's expected
+	;  to return nonzero status if selection failed.
+	; However it's hard-coded to return zero (lda #0:rts)
+
+	jsr HA_SetDataOutput
+	lda #$fe	; % 1111 1110 FIXME: targeting scsi ID 0?
 	sta HA_data
-	lda #$50
+	lda #$50	; %0101 0000	Assert ATN and SEL (http://www.staff.uni-mainz.de/tacke/scsi/SCSI2-06.html sect 6.1.3)
 	sta HA_ctrl
 L9726	lda HA_ctrl
-	and #$08
+	and #$08	; %0000 1000	Wait for BSY from target
 	bne L9726
-	lda #$40
+	lda #$40	; %0100 0000	Release SEL
 	sta HA_ctrl
-	lda #$00
+	lda #$00	; always returns z=1
 	rts
 
 SCSI_Send ; $9735
+	; send .X bytes starting at CDBBuffer+.Y to bus
 	jsr CTSWait
-	lda CDBBuffer,y	; get byte from buffer
+	lda CDBBuffer,y	; get byte from buffer	; 9789
 	eor #$ff	; invert for SCSI
 	sta HA_data	; send data to bus
 	jsr S9764
@@ -2539,7 +2556,7 @@ HA_SetDataInput ; $974b
 	ldx #$00	; set data port as input
 	.byte $2c 	;  BIT opcode causes cpu to skip ldx #$ff
 HA_SetDataOutput ; $974e
-	ldx #$ff	; set data port as output or skip
+	ldx #$ff	; set data port as output
 	lda #$38
 	;0011 1000
 	;00     ; irq off
@@ -2559,7 +2576,7 @@ HA_SetDataOutput ; $974e
 	
 CTSWait	; 957e - name borrowed from ROM/ltkbootstub.asm
 	lda HA_ctrl
-	bmi CTSWait
+	bmi CTSWait	; check bit 7
 	rts
 
 S9764	; FIXME: This likely pulses SCSI ACK or something.
@@ -2580,19 +2597,21 @@ S9764	; FIXME: This likely pulses SCSI ACK or something.
 	sta HA_data_cr	; set ca2 to high
 	rts
 
-S9772
+S9772	; gets two bytes.
+	;  First is anded 9f and returned in .X
+	;  Second is returned in .A
 	jsr HA_SetDataInput
-	jsr S977b
-	and #$9f
-	tax
+	jsr S977b	; get a data byte
+	and #$9f	; mask %1001 1111
+	tax		; return in .X
 S977b
-	jsr CTSWait	;
-	lda HA_data	;
-	eor #$ff	;
-	tay		;
-	jsr S9764	;
-	tya		;
-	rts		;
+	jsr CTSWait	; 
+	lda HA_data	; Read scsi bus
+	eor #$ff	;  correct for bus inversion
+	tay		; keep safe (S9764 destroys .A)
+	jsr S9764	; 
+	tya		; restore .A
+	rts		; and return it
 
 		; FIXME:  This is likely not only
 		;  used by SCSI_WRITE and SCSI_READ
