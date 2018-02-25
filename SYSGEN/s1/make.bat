@@ -8,6 +8,7 @@ call build convrtio
 call build d
 call build diag
 call build dir
+call build dosoverly
 call build errorhan
 call build fastcpqd
 call build fileprot

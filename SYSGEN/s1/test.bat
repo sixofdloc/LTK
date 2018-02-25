@@ -8,6 +8,7 @@ call test_file convrtio convrtio.r
 call test_file d d.r
 call test_file diag diag.r
 call test_file dir dir.r
+call test_file dosoverly dosovrly.r
 call test_file errorhan errorhan.r
 call test_file fastcpqd fastcpqd.r
 call test_file fileprot fileprot.r
