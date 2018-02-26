@@ -69,11 +69,11 @@ L8035
 	beq L805e
 	cmp #$af
 	beq L805e
-	dec $822a
+	dec lab_822a
 L805e
 	lda #$ff
 	sta $9c1e
-	jsr S8c9e
+	jsr SCSI_WRITE_8c9e
 	ldy #$07
 	ldx #$00
 L806a
@@ -115,8 +115,8 @@ L8097
 	jmp $033c	; never to be seen again [offline and reset]
 
 L809a
-	dec $8229
-	dec $822a
+	dec lab_8229
+	dec lab_822a
 	jmp L810a
 
 L80a3
@@ -136,13 +136,13 @@ L80a3
 	bne L80c6
 	dex
 L80c6
-	stx $8228
+	stx lab_8228
 	txa
 	beq L80eb
 	ldy #$31
 L80ce
 	lda $9e04,y
-	sta $841a,y
+	sta tab_841a,y
 	dey
 	bpl L80ce
 	ldx #$0a
@@ -173,7 +173,7 @@ L80fa
 	bpl L80fa
 	bmi L810a
 L8107
-	dec $822a
+	dec lab_822a
 	;print message "Please Wait, SYSGEN in progress"
 L810a
 	ldx #<str_SYSGENInProgress
@@ -228,7 +228,7 @@ L8166
 	sta $9c1e
 	sta LBA_mms
 	sta LBA_ms
-	jsr S8c9e
+	jsr SCSI_WRITE_8c9e
 	;print message that Initialization is complete...
 	ldx #<str_InitComplete
 	ldy #>str_InitComplete
@@ -359,7 +359,12 @@ LDA_fb_Yinc
  	iny
  	rts
 
- 	.byte $00,$00,$00
+lab_8228
+ 	.byte $00
+lab_8229
+	.byte $00
+lab_822a
+	.byte $00
 S822b
 	lda #$00
 	sta BufPtrL
@@ -472,7 +477,7 @@ tab_841a
 S8452
 	lda #$ff
 	sta $8cef
-	sta $8cf0
+	sta L8cf0
 	sta L8cf1
 	ldy $9bba
 	ldx #$00
@@ -552,7 +557,7 @@ L84ec
  	sta $9c97
  	lda #$0a
  	sta $9c1d
- 	jsr S8c9e
+ 	jsr SCSI_WRITE_8c9e
  	lda $8cf4
  	sta $8ce9
 L8522
@@ -592,7 +597,7 @@ L8570
  	beq L8580
  	dec $8cec
  	bne L8535
- 	jsr S8c9e
+ 	jsr SCSI_WRITE_8c9e
  	jmp L8522
 
 L8580
@@ -604,7 +609,7 @@ L8580
  	jsr staAndIncDest
  	jsr staAndIncDest
  	jsr staAndIncDest
- 	jsr S8c9e
+ 	jsr SCSI_WRITE_8c9e
  	jsr Zero_9c00_9dff
  	ldx #$0a
 L859f
@@ -655,7 +660,7 @@ L85e6
 	sta $9c14
 	lda $8cf4
 	sta $9c36
-	jsr S8c9e
+	jsr SCSI_WRITE_8c9e
 	jsr Zero_9c00_9dff
 L8622
 	inc LBA_ms
@@ -664,7 +669,7 @@ L8622
 	beq L8622
 	cmp #$ee
 	beq L8636
-	jsr S8c9e
+	jsr SCSI_WRITE_8c9e
 	jmp L8622
 
 L8636
@@ -735,7 +740,7 @@ L86a4
 	sta BufPtrH
 	lda #$0a
 	sta $9c1d
-	jsr S8c9e
+	jsr SCSI_WRITE_8c9e
 	dec $8ced
 	lda #$10
 	sta $8cee
@@ -765,7 +770,7 @@ L8714
 	dec $8cee
 	bne L86f4
 L8719
-	jsr S8c9e
+	jsr SCSI_WRITE_8c9e
 	dec $8ced
 	bne L8719
 	lda #$00
@@ -794,7 +799,7 @@ L872b
 	sta BufPtrH
 	lda #$0a
 	sta $9c1d
-	jsr S8c9e
+	jsr SCSI_WRITE_8c9e
 	jsr S8c4c
 	jsr Zero_9c00_9dff
 	ldy #$0f
@@ -818,7 +823,7 @@ L876d
 	sta BufPtrH
 	lda #$0a
 	sta $9c1d
-	jsr S8c9e
+	jsr SCSI_WRITE_8c9e
 	jsr S8c4c
 	lda #$00
 	jsr S8c44
@@ -839,9 +844,9 @@ L87b8
 
 L87c2
 	lda #$00
-	sta $8cf0
+	sta L8cf0
 	lda #$01
-	sta LBA_ls
+	sta LBA_ls		; Number of pages to clear before loading (2x .A=200 bytes)
 	
 	lda #$11
 	ldx #<fname_Findfile
@@ -1365,7 +1370,7 @@ L8b48	jsr GETIN
 	ldy #>fname_ConfigCl ;$907a
 	jsr sg_Load_8bf8
 
-	lda $822a
+	lda lab_822a
 	beq L8ba5
 	lda #$9e
 	sta LBA_ms
@@ -1506,6 +1511,7 @@ S8c96	jsr SCSI_READ
 	bcc L8ca6
 	bcs S8c96
 	.byte $c0 ; This never gets executed
+SCSI_WRITE_8c9e ; $8c9e- label added to improve code readability
 S8c9e	jsr SCSI_WRITE
 	bcc L8ca6
 	jsr $c000
@@ -1549,7 +1555,8 @@ L8cd9	sta ($fb),y	;   zero memory
 	rts
 
 	.byte $00,$00,$00,$00,$00,$00,$00,$00
-	.byte $00,$00,$00,$00,$00
+	.byte $00,$00,$00,$00
+L8cf0	.byte $00
 L8cf1	.byte $00	; used as a flag (either set $ff or $00)
 	.byte $00,$00 
 	.byte $00,$00,$00 
@@ -1576,7 +1583,7 @@ L8d12	cmp #$00		; set zero flag
 	rts			; return
 
 sg_LoadFile ;$8d15
-	sta LBA_ms
+	sta LBA_ms		;Save .A for later (restored in sg_LoadFileSuccess)
 	stx ptr_fname		;stash addr of filename to $bb as if SETNAM was called
 	sty ptr_fname+1
 	lda LBA_ls
@@ -1601,7 +1608,7 @@ sg_LoadFileSuccess
 	sta $f8
 	ldx #$00
 	stx BufPtrL
-	stx $f7
+	stx $f7			; start at $1000
 	stx LBA_mms
 	lda L8cf1		; check flag (FIXME whats this)
 	beq L8d56		; flag clear? Skip store 0 to 11ff
@@ -1611,52 +1618,53 @@ L8d56
 	sei
 	lda L8cf1
 	beq L8dab
-	lda LBA_ms
-	cmp #$1a
+	lda LBA_ms		; restore .A (saved in sg_LoadFile)
+	cmp #$1a		; check .A tag ($1a = fnam_LuChange)
 	bne L8d75
-	lda $8228
+	lda lab_8228
 	beq L8d8e
-	ldy #$31
+	ldy #$31		; start at $844b
 L8d6a
-	lda $841a,y
+	lda tab_841a,y		; copy from 841a
 	sta $1004,y
-	dey
+	dey			; to $1004
 	bpl L8d6a
-	bmi L8d8e
+	bmi L8d8e		; and continue.
 L8d75
-	cmp #$22
+	cmp #$22		;check .A ($22 = fname_ScraMidn)
 	bne L8d8e
-	jsr $1000
+	jsr $1000		; call it.
+
 	ldy #$00
 L8d7e
-	lda $1000,y
+	lda $1000,y		; Get original byte from loaded file
 	tax
-	lda #$ea
-	sta $1000,y
+	lda #$ea		; NOP opcode
+	sta $1000,y		; overwrite beginning of scramidn.r
 	iny
 	inx
 	bne L8d7e
-	stx $11ff
+	stx $11ff		; x is zero now
 L8d8e
-	lda #$00
+	lda #$00		; not $1a or $22 so go right here.
 	tay
-	ldx #$02
-L8d93
+	ldx #$02A		; 2a pages to do math on
+L8d93				; CALCULATE CHECKSUM?! 
 	clc
-	adc ($f7),y
+	adc ($f7),y		; Add up
 	iny
 	bne L8d93
 	inc $f8
-	dex
-	bne L8d93
-	sta $11ff
-	sec
-	lda LBA_ms
-	sbc $11ff
-	sta $11ff
+	dex			; pages done?
+	bne L8d93		; no, loop
+	sta $11ff		; store result
+	sec			; prep for subtract
+	lda LBA_ms		; Restore original .A from caller
+	sbc $11ff		; subtract
+	sta $11ff		; and save
 L8dab
-	jsr SCSI_WRITE
-	bcc L8db3
+	jsr SCSI_WRITE		; write scsi sector
+	bcc L8db3		; ok? return.
 	jsr $c000
 L8db3
 	rts
@@ -1931,7 +1939,7 @@ S9179
 	rts
 
 L9181	sta $9493
-	lda $8cf0
+	lda L8cf0
 	bne L9191
 	jsr S979e
 	bcc L9191
@@ -2058,7 +2066,7 @@ L924a	lda $9c00,y
 	beq L92c4
 	jmp $c000
 
-L92c4	lda $8cf0
+L92c4	lda L8cf0
 	bne L92cc
 	jsr S9327
 L92cc	ldx #<str_CR
@@ -2476,6 +2484,13 @@ L96da
 	and #$04
 	beq L9711	; exit on error (done reading)
 	lda ($f7),y	; get byte from buffer
+			; BIG FAT NOTE:  The SCSI interface is logically
+			;  inverted.  This means the data is also inverted
+			;  as it heads to the target.  If this is imaged
+			; This doesn't affect the DOS as the data gets re-
+			;  inverted on the way back in.  Note how
+			;  SCSI_Send inverts data to ensure the targets
+			;  understand the commands being sent.
 	sta HA_data	; send byte to target
 	lda HA_data	; handshake pulse out
 	iny		; increment pointer
@@ -2499,6 +2514,13 @@ L96fb	lda HA_ctrl	; handshake
 	beq L9711	; exit when error (done)
 	lda HA_data	; get byte from target
 	sta ($f7),y	; deposit in buffer
+			; BIG FAT NOTE:  The SCSI interface is logically
+			;  inverted.  This means the data is also inverted
+			;  as it heads to the target.  If this is imaged
+			; This doesn't affect the DOS as the data gets re-
+			;  inverted on the way back in.  Note how
+			;  SCSI_Send inverts data to ensure the targets
+			;  understand the commands being sent.
 	iny
 	bne L96fb	; for 256 bytes
 	inc $f8		; increase buff high address
