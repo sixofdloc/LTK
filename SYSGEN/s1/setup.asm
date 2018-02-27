@@ -1673,7 +1673,7 @@ L8d7e
 L8d8e
 	lda #$00		; not $1a or $22 so go right here.
 	tay
-	ldx #$02A		; 2a pages to do math on
+	ldx #$02		; 2a pages to do math on
 L8d93				; CALCULATE CHECKSUM?! 
 	clc
 	adc ($f7),y		; Add up
