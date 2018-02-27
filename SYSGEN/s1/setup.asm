@@ -17,7 +17,13 @@ SETUP_Start
 
 L8003
 	; 8003, 8004 are used by sb2 to determine where to load sector 18,18!
-	.byte $a9,$9b,$00,$00,$00,$00,$00,$00 
+	.byte $a9,$9b
+L8005	.byte $00
+L8006	.byte $00
+L8007	.byte $00
+L8008	.byte $00
+L8009	.byte $00
+L800a	.byte $00 
 
 ; Notes to assist disassembly:
 ; * This is the third program in a chain of programs to sysgen a new drive.
@@ -62,7 +68,7 @@ L8035
 	sta BufPtrL
 	lda #$9c
 	sta BufPtrH
-	jsr S8c96
+	jsr SCSI_READ_8c96
 	lda $9c1e
 	beq L805e
 	cmp #$ac
@@ -126,7 +132,7 @@ L80a3
 	sta BufPtrH
 	lda #$1a
 	sta LBA_ms
-	jsr S8c96
+	jsr SCSI_READ_8c96
 	ldx #$00
 	lda $9cad
 	cmp #$37
@@ -148,9 +154,9 @@ L80ce
 	ldx #$0a
 	ldy #$00
 L80db
-	lda $841c,y
+	lda L841c,y
 	and #$f7
-	sta $841c,y
+	sta L841c,y
 	iny
 	iny
 	iny
@@ -163,7 +169,7 @@ L80eb
 	sta LBA_ms
 	lda #$02
 	sta LBA_mms
-	jsr S8c96
+	jsr SCSI_READ_8c96
 	ldy #$0f
 L80fa
 	lda $9e00,y
@@ -189,16 +195,16 @@ L810a
 	sta BufPtrL
 	lda #$9c
 	sta BufPtrH
-	jsr S8c96
+	jsr SCSI_READ_8c96
 	ldy #$37
 L812f
 	lda $9bbf,y
 	sta $9d00,y
 	dey
 	bpl L812f
-	lda $8cf5
+	lda L8cf5
 	sta $9c94
-	lda $8cf6
+	lda L8cf6
 	sta $9c95
 	;print "checksumming" message
 	ldx #<str_Checksumming
@@ -376,7 +382,7 @@ S822b
 L823c
 	stx LBA_ms
 	sty LBA_mms
-	jsr S8c96
+	jsr SCSI_READ_8c96
 	lda #$00
 	sta $fb
 	lda #$9e
@@ -387,24 +393,24 @@ L8251
 	lda ($fb),y
 	pha
 	clc
-	adc $8005
-	sta $8005
+	adc L8005
+	sta L8005
 	lda #$00
-	adc $8006
-	sta $8006
+	adc L8006
+	sta L8006
 	pla
 	clc
-	adc $8009
+	adc L8009
 	asl a
-	sta $8009
-	lda $800a
+	sta L8009
+	lda L800a
 	rol a
 	bcc L827a
-	inc $8007
+	inc L8007
 	bne L827a
-	inc $8008
+	inc L8008
 L827a
-	sta $800a
+	sta L800a
 	iny
 	bne L8251
 	inc $fc
@@ -446,7 +452,7 @@ L82b5
 	ldy #$05
 L82bc
 	lda $9bb1,y
-	cmp $8005,y
+	cmp L8005,y
 	bne L82c8
 	dey
 	bpl L82bc
@@ -467,26 +473,29 @@ str_CSMismatch ;$83c6
 	.text "{clr}{return}sorry, the dos checksums did {rvs on}not{rvs off} verify.{return}{return}you must do the entire sysgen again.{return}"
 	.byte $00
 tab_841a
-	.byte $00,$00,$d0,$d0,$00,$c0,$50,$60 
-	.byte $50,$06,$06,$00,$00,$30,$00,$f0 
-	.byte $00,$00,$00,$00,$06,$66,$06,$00 
-	.byte $60,$00,$06,$00,$00,$60,$00,$06 
-	.byte $66,$c6,$06,$06,$00,$00,$00,$00 
-	.byte $00,$06,$06,$60,$00,$f0,$60,$00 
-	.byte $00,$06,$06,$00,$06,$00,$60,$00 
+	.byte $00
+L841b	.byte $00
+L841c	.byte $d0,$d0,$00,$c0
+	.byte $50,$60,$50,$06,$06,$00,$00,$30,$00
+	.byte $f0,$00,$00,$00,$00,$06,$66,$06,$00
+	.byte $60,$00,$06,$00,$00,$60,$00,$06,$66
+	.byte $c6,$06,$06,$00,$00,$00,$00,$00,$06
+	.byte $06,$60,$00,$f0,$60,$00,$00,$06,$06
+	.byte $00,$06,$00,$60,$00
+
 S8452
 	lda #$ff
-	sta $8cef
+	sta L8cef
 	sta L8cf0
 	sta L8cf1
 	ldy $9bba
 	ldx #$00
-	stx $95fd
+	stx L95fd
 	lda $9bb9
 	jsr S95ad
-	sta $8ce4
+	sta L8ce4
 	ldy #$00
-	sty $963e
+	sty L963e
 	ldy #$08
 	jsr S9603
 	cpy #$00
@@ -495,20 +504,20 @@ S8452
 	sec
 L847e
 	adc #$03
-	sta $8ce5
+	sta L8ce5
 	lda #$00
-	sta $963e
+	sta L963e
 	lda #$f8
 	ldx #$07
-	ldy $8ce4
+	ldy L8ce4
 	jsr S9603
-	sta $8cf4
-	ldy $8ce5
+	sta L8cf4
+	ldy L8ce5
 	ldx #$02
 	lda #$00
-	sta $963e
+	sta L963e
 	jsr S9603
-	sta $8ce6
+	sta L8ce6
 	jsr Zero_9c00_9dff
 	ldx #$09
 L84aa
@@ -516,23 +525,23 @@ L84aa
 	sta $9c00,x
 	dex
 	bpl L84aa
-	lda $8ce6
+	lda L8ce6
 	sta $9c13
-	lda $8ce5
+	lda L8ce5
 	sta $9c15
 	lda #$02
 	sta $9c11
-	lda $8cf4
+	lda L8cf4
 	sta $9c17
 	lda #$01
 	sta LBA_ls
 	lda #$01
 	sta $9c18
-	lda $8ce4
+	lda L8ce4
 	sta $9c19
-	ldy $8cf4
+	ldy L8cf4
 L84dd
-	lda $8ce4
+	lda L8ce4
 	clc
 	adc $9c92
 	sta $9c92
@@ -542,7 +551,7 @@ L84ec
 	dey
  	bne L84dd
  	lda #$ee
- 	sta $95a2
+ 	sta L95a2
  	sta $9c21
  	sta LBA_ms
  	lda #$9c
@@ -550,7 +559,7 @@ L84ec
  	lda #$00
  	sta BufPtrL
  	lda #$00
- 	sta $95a0
+ 	sta L95a0
  	sta LBA_mms
  	lda #$ff
  	sta $9c96
@@ -558,52 +567,52 @@ L84ec
  	lda #$0a
  	sta $9c1d
  	jsr SCSI_WRITE_8c9e
- 	lda $8cf4
- 	sta $8ce9
+ 	lda L8cf4
+ 	sta L8ce9
 L8522
 	lda #$00
-	sta $8cea
+	sta L8cea
 	lda #$9c
-	sta $8ceb
-	lda $8ce6
-	sta $8cec
+	sta L8ceb
+	lda L8ce6
+	sta L8cec
 	jsr Zero_9c00_9dff
 L8535
-	lda $8cea
+	lda L8cea
  	sta staAndIncDest + 1
- 	lda $8ceb
+ 	lda L8ceb
  	sta staAndIncDest + 2
  	lda #$00
  	jsr staAndIncDest
- 	lda $8ce7
+ 	lda L8ce7
  	jsr staAndIncDest
- 	lda $8ce8
+ 	lda L8ce8
  	jsr staAndIncDest
  	clc
- 	lda $8cea
- 	adc $8ce5
- 	sta $8cea
+ 	lda L8cea
+ 	adc L8ce5
+ 	sta L8cea
  	bcc L8561
- 	inc $8ceb
+ 	inc L8ceb
 L8561
-	lda $8ce8
+	lda L8ce8
 	clc
-	adc $8ce4
-	sta $8ce8
+	adc L8ce4
+	sta L8ce8
 	bcc L8570
-	inc $8ce7
+	inc L8ce7
 L8570
-	dec $8ce9
+	dec L8ce9
  	beq L8580
- 	dec $8cec
+ 	dec L8cec
  	bne L8535
  	jsr SCSI_WRITE_8c9e
  	jmp L8522
 
 L8580
-	lda $8ceb
+	lda L8ceb
  	sta staAndIncDest + 2
- 	lda $8cea
+ 	lda L8cea
  	sta staAndIncDest + 1
  	lda #$ff
  	jsr staAndIncDest
@@ -646,8 +655,8 @@ L85e6
 	bpl L85e6
 	jsr S979e
 	lda #$00
-	sta $95a0
-	sta $95a2
+	sta L95a0
+	sta L95a2
 	sta LBA_ms
 	sta LBA_mms
 	lda #$00
@@ -658,7 +667,7 @@ L85e6
 	dec $9c1e
 	lda $9bb9
 	sta $9c14
-	lda $8cf4
+	lda L8cf4
 	sta $9c36
 	jsr SCSI_WRITE_8c9e
 	jsr Zero_9c00_9dff
@@ -678,18 +687,18 @@ L8636
 	lda #$ef
 	sta LBA_ms
 	lda #$02
-	sta $8c40
+	sta L8c40
 	lda #$9d
-	sta $8c39
+	sta L8c39
 	jsr S8c28
 	lda #$02
 	sta LBA_mms
 	lda #$ae
 	sta LBA_ms
 	lda #$05
-	sta $8c40
+	sta L8c40
 	lda #$00
-	sta $8c39
+	sta L8c39
 	jsr S8c28
 	lda #$00
 	sta L8cf1
@@ -713,7 +722,7 @@ L8636
 	sta BufPtrL
 	lda #$ee
 	sta LBA_ms
-	jsr S8c96
+	jsr SCSI_READ_8c96
 	jsr S979e
 	jsr Zero_9c00_9dff
 	ldx #$0a
@@ -723,17 +732,17 @@ L86a4
 	dex
 	bpl L86a4
 	lda #$ff
-	sta $8ced
+	sta L8ced
 	sta $9c11
 	ldx #$01
 	stx $9c18
 	jsr S979e
 	lda #$f0
 	sta LBA_ms
-	sta $95a2
+	sta L95a2
 	lda #$00
 	sta LBA_mms
-	sta $95a0
+	sta L95a0
 	lda #$00
 	sta BufPtrL
 	lda #$9c
@@ -741,9 +750,9 @@ L86a4
 	lda #$0a
 	sta $9c1d
 	jsr SCSI_WRITE_8c9e
-	dec $8ced
+	dec L8ced
 	lda #$10
-	sta $8cee
+	sta L8cee
 	jsr Zero_9c00_9dff
 	lda #$1d
 	sta L86f8 + 1
@@ -767,14 +776,14 @@ L8703
 	bcc L8714
 	inc L86f8 + 2
 L8714
-	dec $8cee
+	dec L8cee
 	bne L86f4
 L8719
 	jsr SCSI_WRITE_8c9e
-	dec $8ced
+	dec L8ced
 	bne L8719
 	lda #$00
-	sta $8cef
+	sta L8cef
 	jsr Zero_9c00_9dff
 	ldy #$0f
 L872b
@@ -789,10 +798,10 @@ L872b
 	jsr S979e
 	lda $9c20
 	sta LBA_mms
-	sta $8cf2
+	sta L8cf2
 	lda $9c21
 	sta LBA_ms
-	sta $8cf3
+	sta L8cf3
 	lda #$00
 	sta BufPtrL
 	lda #$9c
@@ -1397,11 +1406,11 @@ L8ba5
 	sta BufPtrL
 	lda #$9e
 	sta BufPtrH
-	jsr S8c96
+	jsr SCSI_READ_8c96
 	lda $9e94
-	sta $8cf5
+	sta L8cf5
 	lda $9e95
-	sta $8cf6
+	sta L8cf6
 	lda #<fname_ptr_table_4
 	sta ReadTable + 1
 	lda #>fname_ptr_table_4 ;$9a43
@@ -1410,9 +1419,9 @@ L8ba5
 	rts
 
 S8be7
-	ldx $8cf2
+	ldx L8cf2
 	clc
-	adc $8cf3
+	adc L8cf3
 	bcc L8bf1
 	inx
 L8bf1
@@ -1454,9 +1463,11 @@ L8c2b
 	inc LBA_mms
 L8c35
 	lda LBA_ms
+L8c39	=*+1		; operand is the target
 	cmp #$00
 	bne S8c28
 	lda LBA_mms
+L8c40	=*+1		; operand is the target
 	cmp #$00
 	bne S8c28
 	rts
@@ -1470,7 +1481,7 @@ S8c4c	lda #$00
 	sta BufPtrH
 	lda #$01
 	sta LBA_ls
-	jsr S8c96
+	jsr SCSI_READ_8c96
 	ldy #$10
 L8c60	lda $9c00,y
 	sta $c000,y
@@ -1507,22 +1518,23 @@ said_done
 	rts
 
 	
-S8c96	jsr SCSI_READ
+SCSI_READ_8c96 ;$8c96 - label added to improve readability
+	jsr SCSI_READ
 	bcc L8ca6
-	bcs S8c96
+	bcs SCSI_READ_8c96
 	.byte $c0 ; This never gets executed
 SCSI_WRITE_8c9e ; $8c9e- label added to improve code readability
 S8c9e	jsr SCSI_WRITE
 	bcc L8ca6
 	jsr $c000
-L8ca6	lda $8cef
+L8ca6	lda L8cef
 	beq L8cbf
-	inc $95a2
+	inc L95a2
 	bne L8cb3
-	inc $95a0
-L8cb3	lda $95a2
+	inc L95a0
+L8cb3	lda L95a2
 	sta LBA_ms
-	lda $95a0
+	lda L95a0
 	sta LBA_mms
 L8cbf	rts
 
@@ -1554,12 +1566,25 @@ L8cd9	sta ($fb),y	;   zero memory
 	bne L8cd9	; repeat until none left to do
 	rts
 
-	.byte $00,$00,$00,$00,$00,$00,$00,$00
-	.byte $00,$00,$00,$00
+L8ce4	.byte $00
+L8ce5	.byte $00
+L8ce6	.byte $00
+L8ce7	.byte $00
+L8ce8	.byte $00
+L8ce9	.byte $00
+L8cea	.byte $00
+L8ceb	.byte $00
+L8cec	.byte $00
+L8ced	.byte $00
+L8cee	.byte $00
+L8cef	.byte $00
 L8cf0	.byte $00
 L8cf1	.byte $00	; used as a flag (either set $ff or $00)
-	.byte $00,$00 
-	.byte $00,$00,$00 
+L8cf2	.byte $00
+L8cf3	.byte $00
+L8cf4	.byte $00
+L8cf5	.byte $00
+L8cf6	.byte $00 
 
 Zero_9c00_9dff ; $8cf7
 	lda #$00
@@ -1711,7 +1736,7 @@ fname_CmndChn1 ;$8e2c
 fname_Directry ;$8e36
 	.screen "DIRECTRY.R"
 	
-fname_LtKernal ;$L8e40
+fname_LtKernal ;$8e40
 	.screen "LTKERNAL.R"
 	
 fname_DealocCn ;$8e4a
@@ -1938,7 +1963,7 @@ S9179
 	ldx #$ff
 	rts
 
-L9181	sta $9493
+L9181	sta L9493
 	lda L8cf0
 	bne L9191
 	jsr S979e
@@ -1946,13 +1971,13 @@ L9181	sta $9493
 	jsr $c000
 L9191	lda #$00
 	sta BufPtrL
-	sta $9446
+	sta L9446
 	lda #$9e
 	sta BufPtrH
-	sta $9445
-	lda $95a2
+	sta L9445
+	lda L95a2
 	sta LBA_ms
-	lda $95a1
+	lda L95a1
 	sta LBA_mms
 	ldx #$01
 	stx LBA_ls
@@ -1960,10 +1985,10 @@ L9191	lda #$00
 	bcc L91ba
 	jsr $c000
 L91ba	lda #$10
-	sta $9492
+	sta L9492
 	lda #$00
-	sta $9442
-	sta $9443
+	sta L9442
+	sta L9443
 L91c7	jsr S944d
 	jsr S9486
 	tay
@@ -1998,44 +2023,45 @@ L91ff	jsr S9486
 	beq L9209
 	jmp L9307
 
-L9209	lda $9442
+L9209	lda L9442
 	beq L923c
-	lda $95a1
-	ldx $95a2
-	cmp $9440
+	lda L95a1
+	ldx L95a2
+	cmp L9440
 	bne L921e
-	cpx $9441
+	cpx L9441
 	beq L922d
 L921e	sta LBA_mms
-	sta $95a1
+	sta L95a1
 	stx LBA_ms
-	stx $95a2
-	jsr S8c96
-L922d	lda $943e
-	sta $9445
-	lda $943f
-	sta $9446
+	stx L95a2
+	jsr SCSI_READ_8c96
+L922d	lda L943e
+	sta L9445
+	lda L943f
+	sta L9446
 	jsr S944d
-L923c	lda $9446
-	sta $924e
-	lda $9445
-	sta $924f
+L923c	lda L9446
+	sta L924e
+	lda L9445
+	sta L924e+1
 	ldy #$0f
 L924a	lda $9c00,y
-	sta $924d,y
-	dey
-	bpl L924a
-	lda #$00
-	jsr S947a
-	lda $9c20
-	jsr S947a
-	lda $9c21
-	jsr S947a
-	lda $9445
+L924e	=*+1		; operand is the target
+L924d	sta L924d,y	; This likely never overwrites itself.  It's done to satisfy the assembler.
+	dey		
+	bpl L924a	
+	lda #$00	
+	jsr S947a	
+	lda $9c20	
+	jsr S947a	
+	lda $9c21	
+	jsr S947a	
+	lda L9445	
 	sta Sty_and_inc + 2
-	lda $9446
+	lda L9446
 	sta Sty_and_inc + 1	;set address
-	ldy #$10	;and offset
+	ldy #$10		;and offset
 	lda $9c10
 	jsr Sty_and_inc
 	lda $9c11
@@ -2086,44 +2112,44 @@ Sty_and_inc
 	iny
 	rts
 
-S92e9	sta $9306
+S92e9	sta L9306
 	lda #$f0
 	sta LBA_ms
 	lda #$00
 	sta LBA_mms
-	jsr S8c96
-	ldy $95a3
-	lda $9306
+	jsr SCSI_READ_8c96
+	ldy L95a3
+	lda L9306
 	sta $9e22,y
 	jsr S8c9e
 	rts
 
-	.byte $00 
-L9307	lda $9445
-	sta $943e
-	lda $9446
-	sta $943f
-	lda $95a1
-	sta $9440
-	lda $95a2
-	sta $9441
+L9306	.byte $00 
+L9307	lda L9445
+	sta L943e
+	lda L9446
+	sta L943f
+	lda L95a1
+	sta L9440
+	lda L95a2
+	sta L9441
 	lda #$ff
-	sta $9442
+	sta L9442
 	jmp L91e8
 
 S9327	lda #$00
-	sta $9449
-	sta $944a
-L932f	lda $944a
+	sta L9449
+	sta L944a
+L932f	lda L944a
 	asl a
 	tax
 	lda $9c20,x
 	sta LBA_mms
-	sta $95a1
+	sta L95a1
 	lda $9c21,x
 	sta LBA_ms
-	sta $95a2
-	lda $9443
+	sta L95a2
+	lda L9443
 	bne L9385
 	lda #$00
 	sta BufPtrL
@@ -2138,40 +2164,40 @@ L932f	lda $944a
 	bne L936b
 	lda #$40
 	ldx #$00
-L936b	sta $944b
-	stx $944c
+L936b	sta L944b
+	stx L944c
 	lda $9c10
-	sta $9447
+	sta L9447
 	lda $9c11
-	sta $9448
+	sta L9448
 	lda #$ff
-	sta $9443
+	sta L9443
 	jmp L93a6
 
-L9385	lda $95a2
+L9385	lda L95a2
 	sta LBA_ms
-	lda $95a1
+	lda L95a1
 	sta LBA_mms
-	lda $944b
+	lda L944b
 	sta BufPtrH
-	lda $944c
+	lda L944c
 	sta BufPtrL
 	jsr S8c9e
-	inc $944b
-	inc $944b
-L93a6	inc $944a
+	inc L944b
+	inc L944b
+L93a6	inc L944a
 	bne L93ae
-	inc $9449
-L93ae	inc $95a2
+	inc L9449
+L93ae	inc L95a2
 	bne L93bb
-	inc $95a1
+	inc L95a1
 	bne L93bb
-	inc $95a0
-L93bb	lda $944a
-	cmp $9448
+	inc L95a0
+L93bb	lda L944a
+	cmp L9448
 	bne L93ce
-	lda $9449
-	cmp $9447
+	lda L9449
+	cmp L9447
 	bne L93ce
 	ldx #$00
 	rts
@@ -2183,56 +2209,71 @@ L93ce	lda $9c18
 
 S93d8	ldx #$10
 	lda #$00
-	sta $93e8
+	sta L93e8
 	lda #$9c
-	sta $93e9
+	sta L93e8+1
 L93e4	jsr S946e
-	cmp $93e7
+L93e8	=*+1		; operand is the target
+L93e7	cmp L93e7	; label is to satisfy assembly
 	beq L93ef
-	ldx #$ff
-	rts
+	ldx #$ff	
+	rts		
 
-L93ef	inc $93e8
+L93ef	inc L93e8
 	bne L93f7
-	inc $93e9
+	inc L93e8+1
 L93f7	dex
 	bne L93e4
 	ldx #$00
 	rts
 
-S93fd	lda $9446
+S93fd	lda L9446
 	clc
 	adc #$20
-	sta $9446
+	sta L9446
 	bcc L940b
-	inc $9445
-L940b	dec $9492
+	inc L9445
+L940b	dec L9492
 	beq L9411
 	rts
 
-L9411	inc $95a2
+L9411	inc L95a2
 	bne L9419
-	inc $95a1
-L9419	lda $95a2
+	inc L95a1
+L9419	lda L95a2
 	sta LBA_ms
-	lda $95a1
+	lda L95a1
 	sta LBA_mms
-	jsr S8c96
+	jsr SCSI_READ_8c96
 	lda #$10
-	sta $9492
+	sta L9492
 	lda #$00
-	sta $9446
+	sta L9446
 	lda #$9e
-	sta $9445
-	inc $95a3
-	dec $9493
+	sta L9445
+	inc L95a3
+	dec L9493
 	rts
 
-	.byte $00,$00,$00,$00,$00,$00,$00,$00
-	.byte $00,$00,$00,$00,$00,$00,$00 
-S944d	ldx $9446
+L943e	.byte $00
+L943f	.byte $00
+L9440	.byte $00
+L9441	.byte $00
+L9442	.byte $00
+L9443	.byte $00
+L9444	.byte $00
+L9445	.byte $00
+L9446	.byte $00
+L9447	.byte $00
+L9448	.byte $00
+L9449	.byte $00
+L944a	.byte $00
+L944b	.byte $00
+L944c	.byte $00 
+
+S944d	ldx L9446
 	stx S946e + 1
-	ldy $9445
+	ldy L9445
 	sty S946e + 2
 	txa
 	clc
@@ -2264,7 +2305,8 @@ S9486	lda S9486
 	inc S9486 + 2
 L9491	rts
 
-	.byte $00,$00
+L9492	.byte $00
+L9493	.byte $00
 str_FileExists ;$9494
 	.text " - filename already exists !!{return}"
 	.byte $00 
@@ -2283,13 +2325,13 @@ S951c	ldx #<$9c00
 	sec			; sec = set source address
 	jsr Read_Memory_xy	; set address to 9c00
 	lda #$10
-	sta $95a4		; scratch space?
+	sta L95a4		; scratch space?
 	lda #$00
-	sta $95a5		; setting up $1000?
-	sta $95a6
-	sta $95a1
-	sta $95a0
-	sta $963e
+	sta L95a5		; setting up $1000?
+	sta L95a6
+	sta L95a1
+	sta L95a0
+	sta L963e
 L953a	clc			; clc = read byte
 	jsr Read_Memory_xy	; get the next byte
 	cmp #$00   
@@ -2300,106 +2342,122 @@ L9544	cmp L95a7,x
 	dex
 	bpl L9544
 	clc
-	adc $95a6
-	sta $95a6
+	adc L95a6
+	sta L95a6
 	bcc L9558
-	inc $95a5
-L9558	dec $95a4
+	inc L95a5
+L9558	dec L95a4
 	bne L953a
-L955d	lda $95a6
+L955d	lda L95a6
 	bne L956a
-	lda $95a5
+	lda L95a5
 	bne L956a
 L9567	ldx #$ff
 	rts
 
 L956a	sec
-	lda $95a6
+	lda L95a6
 	sbc #$01
-	sta $95a6
+	sta L95a6
 	bcs L9578
-	dec $95a5
-L9578	lda $95a6
-	ldx $95a5
+	dec L95a5
+L9578	lda L95a6
+	ldx L95a5
 	ldy #$10
 	jsr S9603
-	sta $95a3
+	sta L95a3
 	lda #$f0
 	sec
-	adc $95a3
-	sta $95a2
+	adc L95a3
+	sta L95a2
 	bcc L9594
-	inc $95a1
+	inc L95a1
 L9594	lda #$fe
 	sec
-	sbc $95a3
-	ldy $95a3
+	sbc L95a3
+	ldy L95a3
 	ldx #$00
 	rts
-
-	.byte $00,$00,$00,$00,$00,$00,$00 
+	;      0   1   2   3   4   5   6
+L95a0	.byte $00
+L95a1	.byte $00
+L95a2	.byte $00
+L95a3	.byte $00
+L95a4	.byte $00
+L95a5	.byte $00
+L95a6	.byte $00 
 L95a7	.text "=:,*?"
 	.byte $a0 ;//"{Shift Space}"
-S95ad	sta $95ff
-	stx $95fe
-	sty $95fc
+S95ad	sta L95ff
+	stx L95fe
+	sty L95fc
 	lda #$00
-	sta $9600
-	sta $9601
-	sta $9602
+	sta L9600
+	sta L9601
+	sta L9602
 	ldx #$08
 L95c3	clc
-	lsr $95fc
+	lsr L95fc
 	bcc L95e5
 	clc
-	lda $9602
-	adc $95ff
-	sta $9602
-	lda $9601
-	adc $95fe
-	sta $9601
-	lda $9600
-	adc $95fd
-	sta $9600
+	lda L9602
+	adc L95ff
+	sta L9602
+	lda L9601
+	adc L95fe
+	sta L9601
+	lda L9600
+	adc L95fd
+	sta L9600
 L95e5	clc
-	rol $95ff
-	rol $95fe
-	rol $95fd
+	rol L95ff
+	rol L95fe
+	rol L95fd
 	dex
 	bne L95c3
-	ldy $9600
-	ldx $9601
-	lda $9602
+	ldy L9600
+	ldx L9601
+	lda L9602
 	rts
 
-	.byte $00,$00,$00,$00,$00,$00,$00 
-S9603	sta $9640
-	stx $963f
-	sty $963d
+L95fc	.byte $00
+L95fd	.byte $00
+L95fe	.byte $00
+L95ff	.byte $00
+L9600	.byte $00
+L9601	.byte $00
+L9602	.byte $00 
+
+S9603	sta L9640
+	stx L963f
+	sty L963d
 	lda #$00
 	ldx #$18
 L9610	clc
-	rol $9640
-	rol $963f
-	rol $963e
+	rol L9640
+	rol L963f
+	rol L963e
 	rol a
 	bcs L9622
-	cmp $963d
+	cmp L963d
 	bcc L9632
-L9622	sbc $963d
-	inc $9640
+L9622	sbc L963d
+	inc L9640
 	bne L9632
-	inc $963f
+	inc L963f
 	bne L9632
-	inc $963e
+	inc L963e
 L9632	dex
 	bne L9610
 	tay
-	ldx $963f
-	lda $9640
+	ldx L963f
+	lda L9640
 	rts
 
-	.byte $00,$00,$00,$00
+L963d	.byte $00
+L963e	.byte $00
+L963f	.byte $00
+L9640	.byte $00
 
 Read_Memory_xy ;$9641
 	; Read a byte of memory using .x and .y as an address
@@ -3002,3 +3060,4 @@ txt_LTKRev
 L9bb7	.byte $00 
 ;9bb8
 	.byte $00,$00,$00,$00,$00,$00,$00 
+; 9bbf is one past eof 
