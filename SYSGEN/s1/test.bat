@@ -4,6 +4,7 @@ call test_file b b
 call test_file catalogr catalogr.r
 call test_file creditsb creditsb.r
 call test_file checksum checksum.r
+call test_file configlu configlu.r
 call test_file convrtio convrtio.r
 call test_file d d.r
 call test_file diag diag.r

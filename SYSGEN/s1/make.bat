@@ -4,6 +4,7 @@ call build b
 call build catalogr
 call build creditsb
 call build checksum
+call build configlu
 call build convrtio
 call build d
 call build diag
