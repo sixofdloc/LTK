@@ -83,7 +83,7 @@ L805e
 	ldy #$07
 	ldx #$00
 L806a
-	lda $9ba9,y
+	lda L9ba9,y
 	cmp $9df4,y
 	bne L8077
 	dey
@@ -214,7 +214,7 @@ L812f
 	php
 	ldy #$05
 L8151
-	lda $9bb1,y
+	lda L9bb1,y
 	sta $9c96,y
 	dey
 	bpl L8151
@@ -451,7 +451,7 @@ L82b5
 	bne L82b2
 	ldy #$05
 L82bc
-	lda $9bb1,y
+	lda L9bb1,y
 	cmp L8005,y
 	bne L82c8
 	dey
@@ -488,10 +488,10 @@ S8452
 	sta L8cef
 	sta L8cf0
 	sta L8cf1
-	ldy $9bba
+	ldy L9bba
 	ldx #$00
 	stx L95fd
-	lda $9bb9
+	lda L9bb9
 	jsr S95ad
 	sta L8ce4
 	ldy #$00
@@ -628,28 +628,28 @@ L859f
  	bpl L859f
  	lda #$ee
  	sta $9c11
- 	lda $9bba
+ 	lda L9bba
  	sta $9c19
- 	lda $9bbb
+ 	lda L9bbb
  	sta $9c16
- 	lda $9bbc
+ 	lda L9bbc
  	sta $9c17
  	lda #$0a
  	sta $9c1d
  	sta $9c28
  	lda L9bb7
  	sta $9c12
- 	lda $9bb8
+ 	lda L9bb8
  	sta $9c13
- 	lda $9bbe
+ 	lda L9bbe
  	sta $9c1a
- 	lda $9bbd
+ 	lda L9bbd
  	sta $9c15
  	ldx #$01
  	stx $9c18
  	ldy #$07
 L85e6
-	lda $9ba9,y
+	lda L9ba9,y
 	sta $9df4,y
 	dey
 	bpl L85e6
@@ -665,7 +665,7 @@ L85e6
 	sta BufPtrH
 	dec $9c2a
 	dec $9c1e
-	lda $9bb9
+	lda L9bb9
 	sta $9c14
 	lda L8cf4
 	sta $9c36
@@ -2475,23 +2475,23 @@ L9655	rts		; return with the byte
 
 S9656	lda #$c2	; not a scsi command (http://www.t10.org/lists/op-num.htm)
 	sta CDBBuffer	; 9789
-	ldx $9bba
+	ldx L9bba
 	dex
-	stx $9792	; +9
-	lda $9bbb
-	sta $9793	; +10
-	ldx $9bbc
+	stx L9792	; +9
+	lda L9bbb
+	sta L9793	; +10
+	ldx L9bbc
 	dex
-	stx $9794	; +11
+	stx L9794	; +11
 	lda L9bb7
 	and #$3f
-	sta $978f	; +6
-	lda $9bb8
-	sta $9790	; +1
-	lda $9bbd
-	sta $9795	; +15
-	lda $9bbe
-	sta $9796	; +13
+	sta L978f	; +6
+	lda L9bb8
+	sta L9790	; +1
+	lda L9bbd
+	sta L9795	; +15
+	lda L9bbe
+	sta L9796	; +13
 	jsr SCSI_Select	; FIXME: according to interpretation of scsi_select, bne will never branch.
 	bne SetCarryRTS ;  Never happens.
 	ldx #$10	; $10 bytes to send
@@ -2700,8 +2700,14 @@ S977b
 
 CDBBuffer	; $9789
 	.byte $00,$00,$00,$00,$00,$00
-	.byte $04,$00 	; $978f
-	.byte $00,$00,$00,$00,$00,$00,$00,$00 ; 9791
+L978f	.byte $04
+L9790	.byte $00
+	.byte $00
+L9792	.byte $00
+L9793	.byte $00
+L9794	.byte $00
+L9795	.byte $00
+L9796	.byte $00,$00,$00 
 LBA_mms	.byte $00
 LBA_ms	.byte $00
 BufPtrH	.byte $00
@@ -2710,7 +2716,7 @@ LBA_ls	.byte $00
 
 S979e
 	ldx #$00
-	stx $9936
+	stx L9936
 	inx
 	stx LBA_ls
 	lda #$00
@@ -2726,92 +2732,92 @@ S979e
 	jsr $c000
 L97c3
 	lda $9e13
-	sta $992d
+	sta L992d
 	lda $9e15
-	sta $992e
+	sta L992e
 	lda $9e16
-	sta $9930
+	sta L9930
 	lda $9e17
-	sta $9931
+	sta L9931
 	lda $9e19
-	sta $9932
+	sta L9932
 L97e1
 	inc LBA_ms
 	bne L97e9
 	inc LBA_mms
 L97e9
 	lda #$00
-	sta $992f
+	sta L992f
 	jsr SCSI_READ
 	bcc L97f6
 	jsr $c000
 L97f6
 	lda #$9e
 	sta S9929 + 2
-	sta $9891
+	sta L9890 + 1
 	lda #$00
 	sta S9929 + 1
-	sta $9890
-	lda $992d
-	sta $9933
+	sta L9890
+	lda L992d
+	sta L9933
 L980c
 	lda #$00
-	sta $9935
+	sta L9935
 	ldy #$02
 L9813
 	iny
 	lda #$80
-	sta $9934
+	sta L9934
 	jsr S9929
 	cmp #$ff
 	bne L9830
 	lda #$08
 	clc
-	adc $9935
-	sta $9935
-	cmp $9932
+	adc L9935
+	sta L9935
+	cmp L9932
 	bcc L9813
 	bcs L9847
 L9830
-	bit $9934
+	bit L9934
 	beq L988c
 L9835
-	inc $9935
-	ldx $9935
-	cpx $9932
+	inc L9935
+	ldx L9935
+	cpx L9932
 	beq L9847
-	lsr $9934
+	lsr L9934
 	bne L9830
 	beq L9813
 L9847
-	lda $992e
+	lda L992e
 	clc
 	adc S9929 + 1
 	sta S9929 + 1
-	sta $9890
+	sta L9890
 	bcc L985c
 	inc S9929 + 2
-	inc $9891
+	inc L9890 + 1
 L985c
 	ldx #$ff
-	dec $9931
+	dec L9931
 	beq L986e
-	cpx $9931
+	cpx L9931
 	bne L9877
-	dec $9930
+	dec L9930
 	jmp L9877
 
 L986e
-	lda $9930
+	lda L9930
 	bne L9877
 	ldx #$fd
 	sec
 	rts
 
 L9877
-	dec $9933
+	dec L9933
 	bne L980c
-	lda $992f
+	lda L992f
 	beq L9889
 	jsr SCSI_WRITE
 	bcc L9889
@@ -2820,16 +2826,17 @@ L9889
 	jmp L97e1
 
 L988c
-	ora $9934
-	sta $988f,y
-	pha
-	tya
-	pha
-	lda $9936
-	beq L98a1
-	ldx $9c18
-	cpx #$0a
-	bcc L98ba
+	ora L9934
+L9890	=*+1		; target is operand
+L988f	sta L988f,y	; label to satisfy assembler
+	pha		
+	tya		
+	pha		
+	lda L9936	
+	beq L98a1	
+	ldx $9c18	
+	cpx #$0a	
+	bcc L98ba	
 L98a1
 	asl a
 	tax
@@ -2839,19 +2846,19 @@ L98a1
 	iny
 	jsr S9929
 	clc
-	adc $9935
+	adc L9935
 	sta $9c21,x
 	pla
 	adc #$00
 	sta $9c20,x
 L98ba
 	lda #$ff
-	sta $992f
+	sta L992f
 	pla
 	tay
 	pla
-	inc $9936
-	ldx $9936
+	inc L9936
+	ldx L9936
 	cpx $9c11
 	beq L98d0
 	jmp L9835
@@ -2872,7 +2879,7 @@ L98ea
 	ldx #$ff
 	lda $9e92
 	sec
-	sbc $9936
+	sbc L9936
 	sta $9e92
 	bcs L9903
 	dec $9e91
@@ -2880,7 +2887,7 @@ L98ea
 	bne L9903
 	dec $9e90
 L9903
-	lda $9936
+	lda L9936
 	clc
 	adc $9e95
 	sta $9e95
@@ -2903,10 +2910,17 @@ S9929
 	lda S9929,y
 	rts
 	
-	;992d
-	.byte $00,$00,$00
-	;9330
-	.byte $00,$00,$00,$00,$00,$00,$00 
+
+L992d	.byte $00
+L992e	.byte $00
+L992f	.byte $00
+L9930	.byte $00
+L9931	.byte $00
+L9932	.byte $00
+L9933	.byte $00
+L9934	.byte $00
+L9935	.byte $00
+L9936	.byte $00 
 	; 00 00 00 00 00 00 00 
 	; 00 - File Name length
 	;    00 - Lo-Byte of File Name address
@@ -3054,10 +3068,27 @@ txt_LTKRev
 	.screen "LT. KERNAL REV. 7.2 (12/18/90)" ;$9b8a
 
 ;$9ba8
-	.byte $00,$00,$00,$00,$00,$00,$00,$00
-;9bb0
-	.byte $00,$00,$00,$00,$00,$00,$00
+L9ba8	.byte $00
+L9ba9	.byte $00
+L9baa	.byte $00
+L9bab	.byte $00
+L9bac	.byte $00
+L9bad	.byte $00
+L9bae	.byte $00
+L9baf	.byte $00
+L9bb0	.byte $00
+L9bb1	.byte $00
+L9bb2	.byte $00
+L9bb3	.byte $00
+L9bb4	.byte $00
+L9bb5	.byte $00
+L9bb6	.byte $00
 L9bb7	.byte $00 
-;9bb8
-	.byte $00,$00,$00,$00,$00,$00,$00 
+L9bb8	.byte $00
+L9bb9	.byte $00
+L9bba	.byte $00
+L9bbb	.byte $00
+L9bbc	.byte $00
+L9bbd	.byte $00
+L9bbe	.byte $00 
 ; 9bbf is one past eof 
