@@ -1,23 +1,89 @@
+; ****************************
+; * 
+; * Lieutenant Kernal resource project
+; * 
+; *             _                                         
+; *  ___   ___ | |_  _   _  _ __     __ _  ___  _ __ ___  
+; * / __| / _ \| __|| | | || '_ \   / _` |/ __|| '_ ` _ \ 
+; * \__ \|  __/| |_ | |_| || |_) |_| (_| |\__ \| | | | | |
+; * |___/ \___| \__| \__,_|| .__/(_)\__,_||___/|_| |_| |_|
+; *                        |_|                            
+; * 
+; * Setup is responsible for the actual 'SYSGEN' work
+; *  that prepares a new harddisk to run the LtK DOS.
+; *
+; * While the system supports both c64 and
+; *  c128 systems, setup runs exclusively in 64 mode.
+; *
+; ****************************
+
+
+; ****************************
+; * 
+; * Includes
+; *
+; ****************************
 
 	.include "../../include/kernal.asm"
 	.include "../../include/zeropage.asm"
 	.include "../../include/ltk_equates.asm"
-	*=$8000
+
+; ****************************
+; * 
+; * Local labels
+; *
+; ****************************
+
+BASIC_LoadAddr	=$0801
 
 	; FIXME: Should we make an ltk_hwequates or add these to the ltk_equates file?
 HA_data     =$df00	; SCSI data port: port or ddr
 HA_data_cr  =$df01	; SCSI data port control reg
-HA_ctrl     =$df02	; SCSI control port [TODO: Map these bits]
+HA_ctrl     =$df02	; SCSI control port
+        ; control port bit map: To be verifed (FIXME etc)
+	; bit	use	likelyhood
+        ;  0		
+        ;  1		
+        ;  2		
+        ;  3	BSY	90%
+        ;  4	SEL	50%
+        ;  5		
+        ;  6	ATN	50%
+        ;  7		
 HA_ctrl_cr  =$df03	; SCSI control port control reg
 	; setup.prg
 	; Responsible for installing the LtK DOS to the disk.
+
+; ****************************
+; * 
+; * Documentation and notes
+; *
+; ****************************
+
+; Keep related notes within one remark block
+;  separate unrelated note blocks with a blank line.
+
+; * This is the third program in a chain of programs to sysgen a new drive.
+;    First, 'b' gets loaded, which loads 'sb2'.  Some interesting stuff in sb2:
+; *  sb2 loads setup to $8000, and copies the pointer above at InBufPtr to itself.
+;    Then track 18 sector 18 is loaded to that location ($9ba9 originally)
+;    After that work is done, setup is started via jmp $8000
+
+; InputBuf ($9ba9) will contain the contents of sector18-18.asm.
+
+; ****************************
+; * 
+; * Program starts here
+; *
+; ****************************
  
+	*=$8000
 SETUP_Start
 	jmp START
 
-L8003
-	; 8003, 8004 are used by sb2 to determine where to load sector 18,18!
-	.byte $a9,$9b
+InBufPtr
+	;.byte $a9,$9b
+	.word InputBuf		; Used by sb2 to determine where to load sector 18,18
 L8005	.byte $00
 L8006	.byte $00
 L8007	.byte $00
@@ -25,22 +91,13 @@ L8008	.byte $00
 L8009	.byte $00
 L800a	.byte $00 
 
-; Notes to assist disassembly:
-; * This is the third program in a chain of programs to sysgen a new drive.
-;    First, 'b' gets loaded, which loads 'sb2'.  Some interesting stuff in sb2:
-; *  sb2 loads setup to $8000, and copies the pointer above at L8003 to itself.
-;    Then track 18 sector 18 is loaded to that location ($9ba9 originally)
-;    After that work is done, setup is started via jmp $8000
-
-; 9ba9 will contain the contents of sector18-18.asm.
-
 
 START
 	jsr DetectAndRewrite 	; find HA and rewrite if necessary
 				; Returns $DF in .A if HA is at DF00
-	bit L9bb7		; $c0 = %1100 0000; s=1, v=1
+	bit Drive0_Flags	; $80 = %1000 0000; s=1, v=0 (st1201N example at end of setup.asm)
 	bvc L802d
-	jsr SCSI_Select		
+	jsr SCSI_Select		; SCSI_Select selects device id 0
 	lda #$7f
 	sta HA_data
 	lda #$60
@@ -51,58 +108,58 @@ L8022
 	bne L8022
 L8025
 	inx
-	bne L8025
+	bne L8025		;delay a bit
 	lda #$40
 	sta HA_ctrl
 L802d
-	bit L9bb7		; $c0, S gets set
-	bmi L8035		; branch taken with our sample t/s 18,18
+	bit Drive0_Flags	; $80, S gets set
+	bmi L8035		; branch taken for ST1201N data below
 	jsr S9656
 L8035
 	ldx #$00
-	stx LBA_mms
 	stx LBA_ms
-	inx
 	stx LBA_ls
+	inx
+	stx TransCt		; SCSI LBA 1 (aka second block on disk)
 	lda #$00
 	sta BufPtrL
 	lda #$9c
-	sta BufPtrH
+	sta BufPtrH		; to $9c00
 	jsr SCSI_READ_8c96
-	lda $9c1e
-	beq L805e
+	lda $9c1e		; check flag in sector 1 offset 1e
+	beq L805e		; zero?
 	cmp #$ac
-	beq L805e
+	beq L805e		; $ac
 	cmp #$af
-	beq L805e
-	dec lab_822a
+	beq L805e		; af? Jump for these
+	dec lab_822a		; none of the above, decrement 822a
 L805e
 	lda #$ff
-	sta $9c1e
-	jsr SCSI_WRITE_8c9e
-	ldy #$07
-	ldx #$00
+	sta $9c1e		; set flag to FF
+	jsr SCSI_WRITE_8c9e	; send block back to disk
+	ldy #$07		; 8-byte serial number
+	ldx #$00		; unneeded.
 L806a
-	lda L9ba9,y
-	cmp $9df4,y
-	bne L8077
+	lda Serialno,y		; get serial number from 18,18
+	cmp $9df4,y		; compare with copy from rom?
+	bne L8077		; fail: print warning
 	dey
 	bpl L806a
-	bmi L80a3
+	bmi L80a3		; success, skip warning and continue.
 
 	;print warning about serial # on drive not matching sysgen disk
 L8077
 	ldx #<str_SNMismatchWarning
 	ldy #>str_SNMismatchWarning
-	jsr printZTString
+	jsr printZTString	; print serial mismatch warning
 	cli
 L807f
 	jsr GETIN
 	tax
-	beq L807f
+	beq L807f		; wait for a key
 	sei
-	cmp #$59
-	beq L809a
+	cmp #$59		; Y to continue?
+	beq L809a		; not the key we were looking for.
 HA_Fail ;$808a
 	; We end up here if the host adapter can't be found.
 	; Copy a routine to the tape buffer that will
@@ -110,9 +167,9 @@ HA_Fail ;$808a
 	;  reset the system.
 	; FIXME: Should this reset stub also take the data 
 	;  port offline?
+
 	ldy #$00
-L808c
-	lda Offline_And_Reset,y ;$818f
+L808c	lda Offline_And_Reset,y ;$818f
 	sta $033c,y
 	beq L8097
 	iny
@@ -120,6 +177,8 @@ L808c
 L8097
 	jmp $033c	; never to be seen again [offline and reset]
 
+
+	; All checks have been done at this point.  Let's do some SYSGEN work.
 L809a
 	dec lab_8229
 	dec lab_822a
@@ -131,8 +190,8 @@ L80a3
 	lda #$9e
 	sta BufPtrH
 	lda #$1a
-	sta LBA_ms
-	jsr SCSI_READ_8c96
+	sta LBA_ls		; mms=0; ms=1a, ls=1 at this point (FIXME: verify)
+	jsr SCSI_READ_8c96	; read block $001a01 to $9e00 (sounds a bit high on blocknumber)
 	ldx #$00
 	lda $9cad
 	cmp #$37
@@ -144,7 +203,7 @@ L80a3
 L80c6
 	stx lab_8228
 	txa
-	beq L80eb
+	beq L80eb		; was .X 0?
 	ldy #$31
 L80ce
 	lda $9e04,y
@@ -166,9 +225,9 @@ L80db
 	bne L80db
 L80eb
 	lda #$9d
-	sta LBA_ms
+	sta LBA_ls
 	lda #$02
-	sta LBA_mms
+	sta LBA_ms
 	jsr SCSI_READ_8c96
 	ldy #$0f
 L80fa
@@ -187,10 +246,10 @@ L810a
 	jsr printZTString
 	jsr S8452
 	ldx #$00
-	stx LBA_mms
 	stx LBA_ms
-	inx
 	stx LBA_ls
+	inx
+	stx TransCt
 	lda #$00
 	sta BufPtrL
 	lda #$9c
@@ -232,8 +291,8 @@ L8166
 	sta BufPtrH
 	lda #$00
 	sta $9c1e
-	sta LBA_mms
 	sta LBA_ms
+	sta LBA_ls
 	jsr SCSI_WRITE_8c9e
 	;print message that Initialization is complete...
 	ldx #<str_InitComplete
@@ -377,11 +436,11 @@ S822b
 	lda #$9e
 	sta BufPtrH
 	ldx #$01
-	stx LBA_ls
+	stx TransCt
 	ldy #$00
 L823c
-	stx LBA_ms
-	sty LBA_mms
+	stx LBA_ls
+	sty LBA_ms
 	jsr SCSI_READ_8c96
 	lda #$00
 	sta $fb
@@ -416,8 +475,8 @@ L827a
 	inc $fc
 	dex
 	bne L8251
-	ldx LBA_ms
-	ldy LBA_mms
+	ldx LBA_ls
+	ldy LBA_ms
 	inx
 	bne L828f
 	iny
@@ -488,10 +547,10 @@ S8452
 	sta L8cef
 	sta L8cf0
 	sta L8cf1
-	ldy L9bba
+	ldy Drive0_Heads
 	ldx #$00
 	stx L95fd
-	lda L9bb9
+	lda Drive0_Sectors
 	jsr S95ad
 	sta L8ce4
 	ldy #$00
@@ -534,7 +593,7 @@ L84aa
 	lda L8cf4
 	sta $9c17
 	lda #$01
-	sta LBA_ls
+	sta TransCt
 	lda #$01
 	sta $9c18
 	lda L8ce4
@@ -553,14 +612,14 @@ L84ec
  	lda #$ee
  	sta L95a2
  	sta $9c21
- 	sta LBA_ms
+ 	sta LBA_ls
  	lda #$9c
  	sta BufPtrH
  	lda #$00
  	sta BufPtrL
  	lda #$00
  	sta L95a0
- 	sta LBA_mms
+ 	sta LBA_ms
  	lda #$ff
  	sta $9c96
  	sta $9c97
@@ -628,28 +687,28 @@ L859f
  	bpl L859f
  	lda #$ee
  	sta $9c11
- 	lda L9bba
+ 	lda Drive0_Heads
  	sta $9c19
- 	lda L9bbb
+ 	lda Drive0_CylHi
  	sta $9c16
- 	lda L9bbc
+ 	lda Drive0_CylLo
  	sta $9c17
  	lda #$0a
  	sta $9c1d
  	sta $9c28
- 	lda L9bb7
+ 	lda Drive0_Flags
  	sta $9c12
- 	lda L9bb8
+ 	lda Drive0_StepPeriod
  	sta $9c13
- 	lda L9bbe
+ 	lda Drive0_Unknown
  	sta $9c1a
- 	lda L9bbd
+ 	lda Drive0_WPcomp
  	sta $9c15
  	ldx #$01
  	stx $9c18
  	ldy #$07
 L85e6
-	lda L9ba9,y
+	lda Serialno,y
 	sta $9df4,y
 	dey
 	bpl L85e6
@@ -657,23 +716,23 @@ L85e6
 	lda #$00
 	sta L95a0
 	sta L95a2
+	sta LBA_ls
 	sta LBA_ms
-	sta LBA_mms
 	lda #$00
 	sta BufPtrL
 	lda #$9c
 	sta BufPtrH
 	dec $9c2a
 	dec $9c1e
-	lda L9bb9
+	lda Drive0_Sectors
 	sta $9c14
 	lda L8cf4
 	sta $9c36
 	jsr SCSI_WRITE_8c9e
 	jsr Zero_9c00_9dff
 L8622
-	inc LBA_ms
-	lda LBA_ms
+	inc LBA_ls
+	lda LBA_ls
 	cmp #$1a
 	beq L8622
 	cmp #$ee
@@ -683,18 +742,18 @@ L8622
 
 L8636
 	lda #$01
-	sta LBA_mms
-	lda #$ef
 	sta LBA_ms
+	lda #$ef
+	sta LBA_ls
 	lda #$02
 	sta L8c40
 	lda #$9d
 	sta L8c39
 	jsr S8c28
 	lda #$02
-	sta LBA_mms
-	lda #$ae
 	sta LBA_ms
+	lda #$ae
+	sta LBA_ls
 	lda #$05
 	sta L8c40
 	lda #$00
@@ -703,7 +762,7 @@ L8636
 	lda #$00
 	sta L8cf1
 	lda #$07
-	sta LBA_ls
+	sta TransCt
 	lda #$01
 	ldx #<fname_LtKernal
 	ldy #>fname_LtKernal ;$8e40
@@ -715,13 +774,13 @@ L8636
 	lda #$ff
 	sta L8cf1
 	lda #$01
-	sta LBA_ls
+	sta TransCt
 	lda #$9c
 	sta BufPtrH
 	lda #$00
 	sta BufPtrL
 	lda #$ee
-	sta LBA_ms
+	sta LBA_ls
 	jsr SCSI_READ_8c96
 	jsr S979e
 	jsr Zero_9c00_9dff
@@ -738,10 +797,10 @@ L86a4
 	stx $9c18
 	jsr S979e
 	lda #$f0
-	sta LBA_ms
+	sta LBA_ls
 	sta L95a2
 	lda #$00
-	sta LBA_mms
+	sta LBA_ms
 	sta L95a0
 	lda #$00
 	sta BufPtrL
@@ -797,10 +856,10 @@ L872b
 	sta $9c18
 	jsr S979e
 	lda $9c20
-	sta LBA_mms
+	sta LBA_ms
 	sta L8cf2
 	lda $9c21
-	sta LBA_ms
+	sta LBA_ls
 	sta L8cf3
 	lda #$00
 	sta BufPtrL
@@ -823,9 +882,9 @@ L876d
 	sta $9c18
 	jsr S979e
 	lda $9c20
-	sta LBA_mms
-	lda $9c21
 	sta LBA_ms
+	lda $9c21
+	sta LBA_ls
 	lda #$00
 	sta BufPtrL
 	lda #$9c
@@ -855,7 +914,7 @@ L87c2
 	lda #$00
 	sta L8cf0
 	lda #$01
-	sta LBA_ls		; Number of pages to clear before loading (2x .A=200 bytes)
+	sta TransCt		; Number of pages to clear before loading (2x .A=200 bytes)
 	
 	lda #$11
 	ldx #<fname_Findfile
@@ -995,7 +1054,7 @@ L87c2
 	lda #$00
 	sta L8cf1
 	lda #$04
-	sta LBA_ls
+	sta TransCt
 	
 	lda #$44
 	ldx #<fname_RelaExpn
@@ -1058,7 +1117,7 @@ L87c2
 	jsr sg_LoadFile
 	
 	lda #$08
-	sta LBA_ls
+	sta TransCt
 
 	lda #$3b
 	ldx #<fname_ConfigLU
@@ -1066,7 +1125,7 @@ L87c2
 	jsr sg_LoadFile
 
 	lda #$08
-	sta LBA_ls
+	sta TransCt
 	
 	lda #$e6
 	ldx #<fname_MessFile
@@ -1074,7 +1133,7 @@ L87c2
 	jsr sg_LoadFile
 	
 	lda #$04
-	sta LBA_ls
+	sta TransCt
 	
 	lda #$6a
 	ldx #<fname_CommLoad
@@ -1162,7 +1221,7 @@ L87c2
 	jsr sg_LoadFile
 	
 	lda #$02
-	sta LBA_ls
+	sta TransCt
 	
 	lda #$0f
 	ldx #<fname_SysBootR
@@ -1175,7 +1234,7 @@ L87c2
 	jsr sg_LoadFile
 	
 	lda #$04
-	sta LBA_ls
+	sta TransCt
 	
 	lda #$c6
 	ldx #<fname_InitC128
@@ -1188,7 +1247,7 @@ L87c2
 	jsr sg_LoadFile
 	
 	lda #$02
-	sta LBA_ls
+	sta TransCt
 	
 	lda #$2d
 	ldx #<fname_Go64Boot
@@ -1201,7 +1260,7 @@ L87c2
 	jsr sg_LoadFile
 	
 	lda #$01
-	sta LBA_ls
+	sta TransCt
 	
 	lda #$c2
 	ldx #<fname_AutoUpdt
@@ -1355,25 +1414,25 @@ L8b48	jsr GETIN
 	jsr printZTString
 
 	lda #$10
-	sta LBA_ls
+	sta TransCt
 	lda #$d6
 	ldx #<fname_CP_MBoot
 	ldy #>fname_CP_MBoot ;$908e
 	jsr sg_LoadFile
 
 	lda #$2e
-	sta LBA_ms
+	sta LBA_ls
 	lda #$03
-	sta LBA_mms
+	sta LBA_ms
 	lda #$37
 	ldx #<fname_MasterCF
 	ldy #>fname_MasterCF ;$8ec2
 	jsr sg_Load_8bf8
 
 	lda #$33
-	sta LBA_ms
+	sta LBA_ls
 	lda #$00
-	sta LBA_mms
+	sta LBA_ms
 	lda #$08
 	ldx #<fname_ConfigCl
 	ldy #>fname_ConfigCl ;$907a
@@ -1382,9 +1441,9 @@ L8b48	jsr GETIN
 	lda lab_822a
 	beq L8ba5
 	lda #$9e
-	sta LBA_ms
+	sta LBA_ls
 	lda #$02
-	sta LBA_mms
+	sta LBA_ms
 	lda #$10
 	ldx #<fname_Defaults
 	ldy #>fname_Defaults ;$9070
@@ -1397,11 +1456,11 @@ L8ba5
 	sta ReadTable + 2
 	jsr LoadFromTable
 	ldx #$00
-	stx LBA_mms
+	stx LBA_ms
 	inx
-	stx LBA_ls
+	stx TransCt
 	lda #$ee
-	sta LBA_ms
+	sta LBA_ls
 	lda #$00
 	sta BufPtrL
 	lda #$9e
@@ -1425,12 +1484,12 @@ S8be7
 	bcc L8bf1
 	inx
 L8bf1
-	stx LBA_mms
-	sta LBA_ms
+	stx LBA_ms
+	sta LBA_ls
 	rts
 
 sg_Load_8bf8 ;$8bf8 ;Obviously needs a better name
-	sta LBA_ls
+	sta TransCt
 	stx ptr_fname
 	sty ptr_fname+1
 	jsr Zero_1000_2xA
@@ -1458,29 +1517,29 @@ S8c28
 	jsr SCSI_WRITE
 L8c2b
 	bcs L8c2b
-	inc LBA_ms
+	inc LBA_ls
 	bne L8c35
-	inc LBA_mms
+	inc LBA_ms
 L8c35
-	lda LBA_ms
+	lda LBA_ls
 L8c39	=*+1		; operand is the target
 	cmp #$00
 	bne S8c28
-	lda LBA_mms
+	lda LBA_ms
 L8c40	=*+1		; operand is the target
 	cmp #$00
 	bne S8c28
 	rts
 
-S8c44	sta LBA_ms
+S8c44	sta LBA_ls
 	lda #$00
-	sta LBA_mms
+	sta LBA_ms
 S8c4c	lda #$00
 	sta BufPtrL
 	lda #$9c
 	sta BufPtrH
 	lda #$01
-	sta LBA_ls
+	sta TransCt
 	jsr SCSI_READ_8c96
 	ldy #$10
 L8c60	lda $9c00,y
@@ -1533,9 +1592,9 @@ L8ca6	lda L8cef
 	bne L8cb3
 	inc L95a0
 L8cb3	lda L95a2
-	sta LBA_ms
+	sta LBA_ls
 	lda L95a0
-	sta LBA_mms
+	sta LBA_ms
 L8cbf	rts
 
 Zero_1000_2xA ; $8cc0
@@ -1608,10 +1667,10 @@ L8d12	cmp #$00		; set zero flag
 	rts			; return
 
 sg_LoadFile ;$8d15
-	sta LBA_ms		;Save .A for later (restored in sg_LoadFileSuccess)
+	sta LBA_ls		;Save .A for later (restored in sg_LoadFileSuccess)
 	stx ptr_fname		;stash addr of filename to $bb as if SETNAM was called
 	sty ptr_fname+1
-	lda LBA_ls
+	lda TransCt
 	jsr Zero_1000_2xA	;zero from $1000 to 2x .A
 	lda #$0a
 	sta len_fname		;filename length is 10 for all of the files this routine handles
@@ -1634,7 +1693,7 @@ sg_LoadFileSuccess
 	ldx #$00
 	stx BufPtrL
 	stx $f7			; start at $1000
-	stx LBA_mms
+	stx LBA_ms
 	lda L8cf1		; check flag (FIXME whats this)
 	beq L8d56		; flag clear? Skip store 0 to 11ff
 
@@ -1643,7 +1702,7 @@ L8d56
 	sei
 	lda L8cf1
 	beq L8dab
-	lda LBA_ms		; restore .A (saved in sg_LoadFile)
+	lda LBA_ls		; restore .A (saved in sg_LoadFile)
 	cmp #$1a		; check .A tag ($1a = fnam_LuChange)
 	bne L8d75
 	lda lab_8228
@@ -1684,7 +1743,7 @@ L8d93				; CALCULATE CHECKSUM?!
 	bne L8d93		; no, loop
 	sta $11ff		; store result
 	sec			; prep for subtract
-	lda LBA_ms		; Restore original .A from caller
+	lda LBA_ls		; Restore original .A from caller
 	sbc $11ff		; subtract
 	sta $11ff		; and save
 L8dab
@@ -1976,11 +2035,11 @@ L9191	lda #$00
 	sta BufPtrH
 	sta L9445
 	lda L95a2
-	sta LBA_ms
+	sta LBA_ls
 	lda L95a1
-	sta LBA_mms
+	sta LBA_ms
 	ldx #$01
-	stx LBA_ls
+	stx TransCt
 	jsr SCSI_READ
 	bcc L91ba
 	jsr $c000
@@ -2031,9 +2090,9 @@ L9209	lda L9442
 	bne L921e
 	cpx L9441
 	beq L922d
-L921e	sta LBA_mms
+L921e	sta LBA_ms
 	sta L95a1
-	stx LBA_ms
+	stx LBA_ls
 	stx L95a2
 	jsr SCSI_READ_8c96
 L922d	lda L943e
@@ -2114,9 +2173,9 @@ Sty_and_inc
 
 S92e9	sta L9306
 	lda #$f0
-	sta LBA_ms
+	sta LBA_ls
 	lda #$00
-	sta LBA_mms
+	sta LBA_ms
 	jsr SCSI_READ_8c96
 	ldy L95a3
 	lda L9306
@@ -2144,10 +2203,10 @@ L932f	lda L944a
 	asl a
 	tax
 	lda $9c20,x
-	sta LBA_mms
+	sta LBA_ms
 	sta L95a1
 	lda $9c21,x
-	sta LBA_ms
+	sta LBA_ls
 	sta L95a2
 	lda L9443
 	bne L9385
@@ -2156,7 +2215,7 @@ L932f	lda L944a
 	lda #$9c
 	sta BufPtrH
 	lda #$01
-	sta LBA_ls
+	sta TransCt
 	jsr S8c9e
 	lda $9c1a
 	ldx $9c1b
@@ -2175,9 +2234,9 @@ L936b	sta L944b
 	jmp L93a6
 
 L9385	lda L95a2
-	sta LBA_ms
+	sta LBA_ls
 	lda L95a1
-	sta LBA_mms
+	sta LBA_ms
 	lda L944b
 	sta BufPtrH
 	lda L944c
@@ -2241,9 +2300,9 @@ L9411	inc L95a2
 	bne L9419
 	inc L95a1
 L9419	lda L95a2
-	sta LBA_ms
+	sta LBA_ls
 	lda L95a1
-	sta LBA_mms
+	sta LBA_ms
 	jsr SCSI_READ_8c96
 	lda #$10
 	sta L9492
@@ -2475,28 +2534,28 @@ L9655	rts		; return with the byte
 
 S9656	lda #$c2	; not a scsi command (http://www.t10.org/lists/op-num.htm)
 	sta CDBBuffer	; 9789
-	ldx L9bba
+	ldx Drive0_Heads
 	dex
 	stx L9792	; +9
-	lda L9bbb
+	lda Drive0_CylHi
 	sta L9793	; +10
-	ldx L9bbc
+	ldx Drive0_CylLo
 	dex
 	stx L9794	; +11
-	lda L9bb7
+	lda Drive0_Flags
 	and #$3f
 	sta L978f	; +6
-	lda L9bb8
+	lda Drive0_StepPeriod
 	sta L9790	; +1
-	lda L9bbd
+	lda Drive0_WPcomp
 	sta L9795	; +15
-	lda L9bbe
+	lda Drive0_Unknown
 	sta L9796	; +13
 	jsr SCSI_Select	; FIXME: according to interpretation of scsi_select, bne will never branch.
 	bne SetCarryRTS ;  Never happens.
 	ldx #$10	; $10 bytes to send
 	ldy #$00	; from beginning of buffer
-	jsr SCSI_Send	
+	jsr SCSI_SEND	
 	jsr S9772
 	rts
 
@@ -2509,13 +2568,13 @@ SCSI_WRITE ; $969b
 	bne L96a1	; Multiple programmer mark:  Some areas use .byte $2c [BIT] for this
 SCSI_READ ; $969f
 	lda #$08	; SCSI READ(6)
-L96a1	sta CDBBuffer	; set scsi command	; 9789
-	lda LBA_mms
-	sta CDBBuffer+2	; set lba mmsb
+L96a1	sta SCSI_CMD	; set scsi command	; 9789
 	lda LBA_ms
-	sta CDBBuffer+3	; set lba msb
+	sta SCSI_msb	; set lba msb
 	lda LBA_ls
-	sta CDBBuffer+4	; set lba lsb
+	sta SCSI_lsb	; set lba lsb
+	lda TransCt
+	sta SCSI_tc	; set transfer count
 	lda BufPtrH
 	sta $f8		; set buffer address
 	lda BufPtrL
@@ -2524,9 +2583,9 @@ L96a1	sta CDBBuffer	; set scsi command	; 9789
 	bne SetCarryRTS ;  Never happens.
 	ldx #$06	; CDB is 6 bytes long
 	ldy #$00	; and starts at buff offset 0
-	jsr SCSI_Send
+	jsr SCSI_SEND
 	ldy #$00
-	lda CDBBuffer	; 9789
+	lda SCSI_CMD	; 9789
 	cmp #$08	; did we READ(6)?
 	beq L96f3	;  yes, perform read
 	lda #$2c
@@ -2547,7 +2606,7 @@ L96da
 			;  as it heads to the target.  If this is imaged
 			; This doesn't affect the DOS as the data gets re-
 			;  inverted on the way back in.  Note how
-			;  SCSI_Send inverts data to ensure the targets
+			;  SCSI_SEND inverts data to ensure the targets
 			;  understand the commands being sent.
 	sta HA_data	; send byte to target
 	lda HA_data	; handshake pulse out
@@ -2577,7 +2636,7 @@ L96fb	lda HA_ctrl	; handshake
 			;  as it heads to the target.  If this is imaged
 			; This doesn't affect the DOS as the data gets re-
 			;  inverted on the way back in.  Note how
-			;  SCSI_Send inverts data to ensure the targets
+			;  SCSI_SEND inverts data to ensure the targets
 			;  understand the commands being sent.
 	iny
 	bne L96fb	; for 256 bytes
@@ -2592,19 +2651,11 @@ L9711	jsr S9772	; done read/writing, cleanup (what does 9772 do?)
 
 SCSI_Select ; $9719
 	; Select a SCSI target FIXME: id 0?
-	; FIXME: scsi bits apparently:
-	; 7 
-	; 6 ATN
-	; 5 
-	; 4 SEL
-	; 3 BSY
-	; 2 
-	; 1 
-	; 0 
 	
 	; Judging by how this is called, it's expected
 	;  to return nonzero status if selection failed.
 	; However it's hard-coded to return zero (lda #0:rts)
+	;  and wait forever for device 0 to respond.
 
 	jsr HA_SetDataOutput
 	lda #$fe	; % 1111 1110 FIXME: targeting scsi ID 0?
@@ -2619,16 +2670,16 @@ L9726	lda HA_ctrl
 	lda #$00	; always returns z=1
 	rts
 
-SCSI_Send ; $9735
+SCSI_SEND ; $9735
 	; send .X bytes starting at CDBBuffer+.Y to bus
 	jsr CTSWait
 	lda CDBBuffer,y	; get byte from buffer	; 9789
 	eor #$ff	; invert for SCSI
 	sta HA_data	; send data to bus
-	jsr S9764
+	jsr S9764	; handshake
 	iny		; increment pointer
 	dex		; decrement count
-	bne SCSI_Send	; repeat until done
+	bne SCSI_SEND	; repeat until done
 	jsr CTSWait
 	rts
 
@@ -2698,8 +2749,19 @@ S977b
 		; add duplicate labels later to
 		;  improve code readability.
 
-CDBBuffer	; $9789
-	.byte $00,$00,$00,$00,$00,$00
+CDBBuffer	; $9789		; for read(6) and write(6):
+SCSI_CMD
+	.byte $00		; +0: opcode (08=read, 0a=write(6))
+SCSI_mmsb
+	.byte $00		; +1: lba mmsb
+SCSI_msb
+	.byte $00		; +2: lba msb
+SCSI_lsb
+	.byte $00		; +3: lba lsb
+SCSI_tc
+	.byte $00		; +4: transfer count
+SCSI_ctl
+	.byte $00		; +5: control field
 L978f	.byte $04
 L9790	.byte $00
 	.byte $00
@@ -2708,21 +2770,21 @@ L9793	.byte $00
 L9794	.byte $00
 L9795	.byte $00
 L9796	.byte $00,$00,$00 
-LBA_mms	.byte $00
 LBA_ms	.byte $00
+LBA_ls	.byte $00
 BufPtrH	.byte $00
 BufPtrL	.byte $00
-LBA_ls	.byte $00 
+TransCt	.byte $00 
 
 S979e
 	ldx #$00
 	stx L9936
 	inx
-	stx LBA_ls
+	stx TransCt
 	lda #$00
-	sta LBA_mms
-	lda #$ee
 	sta LBA_ms
+	lda #$ee
+	sta LBA_ls
 	lda #$9e
 	sta BufPtrH 
 	lda #$00
@@ -2742,9 +2804,9 @@ L97c3
 	lda $9e19
 	sta L9932
 L97e1
-	inc LBA_ms
+	inc LBA_ls
 	bne L97e9
-	inc LBA_mms
+	inc LBA_ms
 L97e9
 	lda #$00
 	sta L992f
@@ -2869,9 +2931,9 @@ L98d0
 	jsr $c000
 L98d8
 	lda #$ee
-	sta LBA_ms
+	sta LBA_ls
 	lda #$00
-	sta LBA_mms
+	sta LBA_ms
 	jsr SCSI_READ
 	bcc L98ea
 	jsr $c000
@@ -2932,7 +2994,6 @@ L9936	.byte $00
 
 ; FIXME: temporarily defining basic load address here.
 ;  The assembler will eventually error out when we decide where it should go.
-BASIC_LoadAddr	=$0801
 
 fname_ptr_table_2
 	.byte $05 ,<fname_Dir        ,>fname_Dir            ,<LTK_DOSOverlay ,>LTK_DOSOverlay ,$08 ,$03
@@ -3069,8 +3130,9 @@ txt_LTKRev
 
 ;$9ba8
 L9ba8	.byte $00
-L9ba9	.byte $00
-L9baa	.byte $00
+Serialno			; for routines that access the serial number
+InputBuf.byte $00	;$9ba9	; sb2 will load sector 18,18 here.
+L9baa	.byte $00		;  The sector will cover 9ba9 to 9ca8.
 L9bab	.byte $00
 L9bac	.byte $00
 L9bad	.byte $00
@@ -3083,12 +3145,60 @@ L9bb3	.byte $00
 L9bb4	.byte $00
 L9bb5	.byte $00
 L9bb6	.byte $00
-L9bb7	.byte $00 
-L9bb8	.byte $00
-L9bb9	.byte $00
-L9bba	.byte $00
-L9bbb	.byte $00
-L9bbc	.byte $00
-L9bbd	.byte $00
-L9bbe	.byte $00 
+
+			; According to the sector 18,18 layout, the first drive's
+			;  geometry is stored here.
+Drive0_Flags
+	.byte $00 	; SCSI 0: flags (bit 7=embedded controller)
+Drive0_StepPeriod
+	.byte $00	; SCSI 0: step period (probably 0)
+Drive0_Sectors
+	.byte $00	; SCSI 0: Sectors per track
+Drive0_Heads
+	.byte $00	; SCSI 0: Heads per cylindr
+Drive0_CylHi
+	.byte $00	; SCSI 0: Cylinders, high byte (scsi order!)
+Drive0_CylLo
+	.byte $00	; SCSI 0: Cylinders, low byte
+Drive0_WPcomp
+	.byte $00	; SCSI 0: Write Precomp
+Drive0_Unknown
+	.byte $00 	; SCSI 0: unknown (zero)
 ; 9bbf is one past eof 
+
+; for temporary reference:
+;
+;9ba9    ;$00 - $07 is your Serial Number
+;            ;MUST Match Serial Number contained in Host Adapter EPROM!
+;          ;Remember your Serial Number is in EPROM at $A-$13 AND $100A-$1013
+;          ;ALL below are Drive parameters Only
+;          ;(note the gap from $07 to $0E - Don't edit)
+;9bb7    ;$0E - $15 SCSI Drive Zero parameters (1st drive)
+;          ;If you only install ONE drive, this is the only area that needs editing
+;          ;All other cells should be: 128,0,0,0,0,0,0,0
+;          ;Manually set the Drive to SCSI address Zero
+;9bbf    ;$16 - $1D Drive One parameters   (2nd drive)
+;9bc7    ;$1E - $25 Drive Two parameters   (3rd drive)
+;9bcf    ;$26 - $2D Drive three parameters (4th drive), etc.
+;9bd7    ;$2E - $35 Drive four parameters  (5th drive), etc.
+;9bdf    ;$36 - $3D Drive five parameters  (6th drive), etc.
+;9be7    ;$3E - $45 Drive six parameters   (7th drive), etc.
+;9bef    ;$46 - $4D Drive seven parameters (8th drive), etc.
+; as above, ALL unedited cells Must be "128,0,0,0,0,0,0,0". During
+;  startup, this 'string' is how LK DOS knows there are No other drives attached)
+;
+;The following CELL chart shows each position, its purpose and the 
+;  values of our ST1201N example (note the number of Heads,
+;  Sectors/Track and HiByte/LoByte Cylinders) If you wanted to add 
+;  an additional ST1201N drive, you would use the same values at
+;  T18/S18, position $16 - $1D:
+;offset	T/S/Pos	ST1201N	Byte Function
+;0	$0E	128	BIT 7="N" embedded controller, BIT 0-6= Pulse Width for 3100
+;1	$0F	0	Step Period
+;2	$10	36	Sectors/Track
+;3	$11	9	Number of Heads
+;4	$12	4	Number of Cylinders - High Byte
+;5	$13	44	Number of Cylinders - Low Byte
+;6	$14	0	Write precomp Cylinders
+;7	$15	0	unknown, but is ZERO on all (spare?)
+
