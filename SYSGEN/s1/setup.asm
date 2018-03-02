@@ -38,21 +38,25 @@ BASIC_LoadAddr	=$0801
 
 	; FIXME: Should we make an ltk_hwequates or add these to the ltk_equates file?
 HA_data     =$df00	; SCSI data port: port or ddr
+	; Control port bit map for port A (data):
+	; bit	use	likelyhood
+	; ca1
+	; ca2	ACK	90%
 HA_data_cr  =$df01	; SCSI data port control reg
 HA_ctrl     =$df02	; SCSI control port
         ; control port bit map: To be verifed (FIXME etc)
 	; bit	use	likelyhood
         ;  0		
         ;  1		
-        ;  2		
+        ;  2	C/D	60%	
         ;  3	BSY	90%
         ;  4	SEL	50%
         ;  5		
         ;  6	ATN	50%
-        ;  7		
+        ;  7	REQ	60%
+	; cb1
+	; cb2
 HA_ctrl_cr  =$df03	; SCSI control port control reg
-	; setup.prg
-	; Responsible for installing the LtK DOS to the disk.
 
 ; ****************************
 ; * 
@@ -68,8 +72,18 @@ HA_ctrl_cr  =$df03	; SCSI control port control reg
 ; *  sb2 loads setup to $8000, and copies the pointer above at InBufPtr to itself.
 ;    Then track 18 sector 18 is loaded to that location ($9ba9 originally)
 ;    After that work is done, setup is started via jmp $8000
-
 ; InputBuf ($9ba9) will contain the contents of sector18-18.asm.
+
+; SCSI control bits:
+; name	location
+; req	pb7
+; ack	ca2
+; atn	pb6
+; bsy	pb3 
+; sel	pb4
+; 
+; 
+; 
 
 ; ****************************
 ; * 
@@ -2536,27 +2550,27 @@ S9656	lda #$c2	; not a scsi command (http://www.t10.org/lists/op-num.htm)
 	sta CDBBuffer	; 9789
 	ldx Drive0_Heads
 	dex
-	stx L9792	; +9
+	stx Heads	; +9
 	lda Drive0_CylHi
-	sta L9793	; +10
+	sta Cyl_Hi	; +10
 	ldx Drive0_CylLo
 	dex
-	stx L9794	; +11
+	stx Cyl_Low	; +11
 	lda Drive0_Flags
 	and #$3f
 	sta L978f	; +6
 	lda Drive0_StepPeriod
 	sta L9790	; +1
 	lda Drive0_WPcomp
-	sta L9795	; +15
+	sta WPcomp	; +15
 	lda Drive0_Unknown
-	sta L9796	; +13
+	sta D0_Unk	; +13
 	jsr SCSI_Select	; FIXME: according to interpretation of scsi_select, bne will never branch.
 	bne SetCarryRTS ;  Never happens.
 	ldx #$10	; $10 bytes to send
 	ldy #$00	; from beginning of buffer
 	jsr SCSI_SEND	
-	jsr S9772
+	jsr SCSI_GetStatus
 	rts
 
 SetCarryRTS ; $9699
@@ -2579,15 +2593,17 @@ L96a1	sta SCSI_CMD	; set scsi command	; 9789
 	sta $f8		; set buffer address
 	lda BufPtrL
 	sta $f7
-	jsr SCSI_Select
-	bne SetCarryRTS ;  Never happens.
+	jsr SCSI_Select	; Select drive
+	bne SetCarryRTS ;  This never happens.
 	ldx #$06	; CDB is 6 bytes long
 	ldy #$00	; and starts at buff offset 0
-	jsr SCSI_SEND
+	jsr SCSI_SEND	; Send read command
 	ldy #$00
-	lda SCSI_CMD	; 9789
+	lda SCSI_CMD	; Wait, what were we doing? lol
 	cmp #$08	; did we READ(6)?
-	beq L96f3	;  yes, perform read
+	beq SCSI_DoRead	;  yes, perform read
+
+	; Perform SCSI_WRITE
 	lda #$2c
 	;0010 1100
 	;00     ; irq off
@@ -2596,28 +2612,29 @@ L96a1	sta SCSI_CMD	; set scsi command	; 9789
 	;00; ca1 high
 	sta HA_data_cr	; FIXME: pulse ca2 for ???
 L96da
-	lda HA_ctrl	; must be hanshaking
-	bmi L96da
-	and #$04
-	beq L9711	; exit on error (done reading)
+	lda HA_ctrl	; Get bus status
+	bmi L96da	; wait for REQ to be set
+	and #$04	; Did drive move back to control phase?
+	beq SCSI_FinishRW ; exit when the target changes phase (will be done here)
 	lda ($f7),y	; get byte from buffer
 			; BIG FAT NOTE:  The SCSI interface is logically
 			;  inverted.  This means the data is also inverted
 			;  as it heads to the target.  If this is imaged
+			;  all bits will be backwards (00=ff, 01=fe, etc).
 			; This doesn't affect the DOS as the data gets re-
 			;  inverted on the way back in.  Note how
 			;  SCSI_SEND inverts data to ensure the targets
 			;  understand the commands being sent.
 	sta HA_data	; send byte to target
-	lda HA_data	; handshake pulse out
+	lda HA_data	; pulse ACK (ca2 pulse on read)
 	iny		; increment pointer
 	bne L96da	; until 256 bytes
 	inc $f8		; increase buff high address
 	jmp L96da	; and read until target says done
 	
-	; this behaves like SCSI_READ in ROM/lktbootstub.asm, but
-	;  it's not a subroutine and doesn't send a CDB.
-L96f3	jsr HA_SetDataInput
+	; Perform SCSI_READ
+SCSI_DoRead
+	jsr HA_SetDataInput
 	lda #$2c
 	;0010 1100
 	;00     ; irq off
@@ -2625,15 +2642,16 @@ L96f3	jsr HA_SetDataInput
 	;1      ; port register on
 	;00; ca1 high
 	sta HA_data_cr
-L96fb	lda HA_ctrl	; handshake
-	bmi L96fb
-	and #$04
-	beq L9711	; exit when error (done)
+L96fb	lda HA_ctrl	; Get bus status
+	bmi L96fb	; wait for REQ to be set
+	and #$04	; Did drive move back to control phase?
+	beq SCSI_FinishRW ; exit when target changes phase (will be done here)
 	lda HA_data	; get byte from target
 	sta ($f7),y	; deposit in buffer
 			; BIG FAT NOTE:  The SCSI interface is logically
 			;  inverted.  This means the data is also inverted
 			;  as it heads to the target.  If this is imaged
+			;  all bits will be backwards (00=ff, 01=fe, etc).
 			; This doesn't affect the DOS as the data gets re-
 			;  inverted on the way back in.  Note how
 			;  SCSI_SEND inverts data to ensure the targets
@@ -2643,14 +2661,15 @@ L96fb	lda HA_ctrl	; handshake
 	inc $f8		; increase buff high address
 	jmp L96fb	; repeat until target says done
 
-L9711	jsr S9772	; done read/writing, cleanup (what does 9772 do?)
+SCSI_FinishRW
+	jsr SCSI_GetStatus ; done read/writing, Get status byte and return.
 	txa
 	bne SetCarryRTS ;  Never happens.
 	clc
 	rts
 
 SCSI_Select ; $9719
-	; Select a SCSI target FIXME: id 0?
+	; Select a SCSI target FIXME: Seems to be hardcoded for ID 0
 	
 	; Judging by how this is called, it's expected
 	;  to return nonzero status if selection failed.
@@ -2676,11 +2695,11 @@ SCSI_SEND ; $9735
 	lda CDBBuffer,y	; get byte from buffer	; 9789
 	eor #$ff	; invert for SCSI
 	sta HA_data	; send data to bus
-	jsr S9764	; handshake
+	jsr SCSI_ACK	; handshake
 	iny		; increment pointer
 	dex		; decrement count
 	bne SCSI_SEND	; repeat until done
-	jsr CTSWait
+	jsr CTSWait	; FIXME: wait for data phase?
 	rts
 
 HA_SetDataInput ; $974b
@@ -2707,10 +2726,10 @@ HA_SetDataOutput ; $974e
 	
 CTSWait	; 957e - name borrowed from ROM/ltkbootstub.asm
 	lda HA_ctrl
-	bmi CTSWait	; check bit 7
+	bmi CTSWait	; check bit 7: FIXME is this C/D?
 	rts
 
-S9764	; FIXME: This likely pulses SCSI ACK or something.
+SCSI_ACK
 	lda #$2c
 	;0010 1100
 	;00     ; irq off
@@ -2718,7 +2737,7 @@ S9764	; FIXME: This likely pulses SCSI ACK or something.
 	;1      ; port register on
 	;00; ca1 high
 	sta HA_data_cr	; set port A to pulse ca2 on read
-	lda HA_data	; pulse ca2
+	lda HA_data	; pulse ACK
 	lda #$3c
 	;0011 1100
 	;00     ; irq off
@@ -2728,19 +2747,20 @@ S9764	; FIXME: This likely pulses SCSI ACK or something.
 	sta HA_data_cr	; set ca2 to high
 	rts
 
-S9772	; gets two bytes.
-	;  First is anded 9f and returned in .X
-	;  Second is returned in .A
+SCSI_GetStatus
+	; Gets scsi status and message bytes after read/write.
+	;  Status is anded 9f and returned in .X
+	;  Message is returned in .A
 	jsr HA_SetDataInput
-	jsr S977b	; get a data byte
+	jsr S977b	; get the status byte
 	and #$9f	; mask %1001 1111
 	tax		; return in .X
 S977b
 	jsr CTSWait	; 
-	lda HA_data	; Read scsi bus
+	lda HA_data	; Get message byte
 	eor #$ff	;  correct for bus inversion
-	tay		; keep safe (S9764 destroys .A)
-	jsr S9764	; 
+	tay		; keep safe (SCSI_ACK destroys .A)
+	jsr SCSI_ACK	; 
 	tya		; restore .A
 	rts		; and return it
 
@@ -2753,7 +2773,7 @@ CDBBuffer	; $9789		; for read(6) and write(6):
 SCSI_CMD
 	.byte $00		; +0: opcode (08=read, 0a=write(6))
 SCSI_mmsb
-	.byte $00		; +1: lba mmsb
+	.byte $00		; +1: lba mmsb (only accessed by SCSI_SEND)
 SCSI_msb
 	.byte $00		; +2: lba msb
 SCSI_lsb
@@ -2762,14 +2782,15 @@ SCSI_tc
 	.byte $00		; +4: transfer count
 SCSI_ctl
 	.byte $00		; +5: control field
-L978f	.byte $04
-L9790	.byte $00
-	.byte $00
-L9792	.byte $00
-L9793	.byte $00
-L9794	.byte $00
-L9795	.byte $00
-L9796	.byte $00,$00,$00 
+L978f	.byte $04		;  6
+L9790	.byte $00		;  7
+	.byte $00		;  8
+Heads	.byte $00		;  9 Copied from the first
+Cyl_Hi	.byte $00		;  a  drive entry in sector
+Cyl_Low	.byte $00		;  b  18,18. 
+WPcomp	.byte $00		;  c
+D0_Unk	.byte $00		;  d
+	.byte $00,$00 		;  e,f < Bytes 0-f are sent to the drive (s9656)
 LBA_ms	.byte $00
 LBA_ls	.byte $00
 BufPtrH	.byte $00
