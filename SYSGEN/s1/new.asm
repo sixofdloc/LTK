@@ -1,9 +1,11 @@
 ;new.r.prg
-	*=$4000
+	.include "../../include/ltk_dos_addresses.asm"
+	.include "../../include/ltk_equates.asm"
+	*=LTK_DOSOverlay ; $95e0, $4000 for sysgen
 	lda #$ff
-	sta $8025
-	sta $8026
-	sta $8027
+	sta LTK_Var_SAndRData
+	sta LTK_Var_SAndRData+1
+	sta LTK_Var_SAndRData+2
 	pla
 	pla
-	jmp $805a
+	jmp LTK_SysRet_OldRegs

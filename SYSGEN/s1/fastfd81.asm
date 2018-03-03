@@ -1,19 +1,6 @@
-WFDis v1.4 Interactive 6502 Disassembler
-Human Mode @Version 2017-11-04 Changelog
-
-This standalone version disassembles binary code for the 6502 processor and variants.
-
-All processing is client-side JavaScript. The analyzed file is not uploaded to the server.
-Requires a modern HTML5/ES6 browser (tested in Firefox and Chromium).
-
-CPU model: 
-
-Select a file to disassemble (formats): Choose File Restart
-
-Help
-Saves
-fastfd81.r.prg
- 
+;fastfd81.r.prg
+	*=$1c20 ;$4000 for SYSGEN
+	
 L1c20               "FASTCOPY{Shift Space}{Shift Space}00/ 00011234567890123456"
 L1c42                     84 fe ff 00 00 00 48 1c 4a 1c 00 3b 58 0c 
                     00 00 00 00 00 00 00 00 0d 

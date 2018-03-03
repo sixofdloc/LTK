@@ -1,7 +1,7 @@
 ;user.r.prg
 	.include "../../include/ltk_dos_addresses.asm"
 	.include "../../include/ltk_equates.asm"
-	*=LTK_DOSOverlay ;$4000 for sysgen
+	*=LTK_DOSOverlay ;$95e0, $4000 for sysgen
  
 START
 	pha

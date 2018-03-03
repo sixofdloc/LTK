@@ -1,7 +1,7 @@
 ;convrtio.r.prg
 	.include "../../include/ltk_dos_addresses.asm"
 	.include "../../include/ltk_equates.asm"
-	*=LTK_MiniSubExeArea ;$4000 for sysgen
+	*=LTK_MiniSubExeArea ;$95e0, $4000 for sysgen
 L93e0               
 	jmp L9492
                     

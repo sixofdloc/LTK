@@ -1,0 +1,129 @@
+SYSGEN RE-SOURCE PROGRESS AS OF 2018-03-02
+
+COMPLETES
+==============================================================================
+FILENAME		LOAD_ADDR	1st Pass Complete?
+b			$0100		YES                
+catalogr.r		$93e0		YES      
+checksum.r 		$95e0		YES      
+configlu.r		$c000		YES       
+convrtio.r 		$95e0		YES      
+diag.r  		$95e0		YES         
+dir.r  			$c000		YES          
+dosovrly.r		$9530		YES       
+errorhan.r		$93e0		YES       
+fileprot.r 		$9f00		YES      
+findfil2.r		$93e0		YES       
+fastcpqd.r		$1c20		YES       
+go64boot.r 		$8000		YES      
+initc064.r 		$95e0		YES      
+l.r   			$95e0		YES           
+ltkernal.r		$8000		YES      
+lu.r			$95e0		YES             
+luchange.r		$93e0		YES       
+new.r 			$95e0		YES
+openrand.r		$95e0		YES       
+sb2   			$0810		YES           
+scramidn.r		$93e0		YES       
+setup 			$8000		YES           
+ship.r			$95e0		YES           
+sysbootr.r		$0400		YES       
+user.r			$95e0		YES			           
+
+
+IN PROGRESS OR KNOWN ISSUES
+==============================================================================
+activate.r		$c000		YES  - REVISIT THIS ONE     
+creditsb.r		UNKNOWN		YES, excluding load address       
+messfile.r 		UNKNOWN		YES, excluding load address      
+fastfd81.r		$1c20?		IN PROGRESS       
+
+
+KNOWN LOAD ADDRESS
+==============================================================================
+autocopy.r 		$95e0		NO      
+autodel.r       	$95e0		NO 
+automove.r  		$95e0		NO     
+build.r      		$95e0		NO   
+buildindex.r     	$95e0		NO
+change.r		$95e0		NO         
+clear.r    		$95e0		NO      
+config.r		$95e0		NO         
+copy.r			$95e0		NO           
+d.r 			$95e0		NO             
+del.r  			$95e0		NO          
+di.r          		$95e0		NO   
+dump.r   		$95e0		NO        
+era.r			$95e0		NO            
+fastcopy.r		$95e0		NO       
+fetch.r          	$95e0		NO
+merge.r          	$95e0		NO
+oops.r           	$95e0		NO
+query.r          	$95e0		NO
+recover.r  		$95e0		NO      
+renum.r          	$95e0		NO
+s.r  			$95e0		NO	            
+type.r           	$95e0		NO
+validate.r  		$95e0		NO    
+
+
+UNKNOWN, STILL TO PROCESS
+==============================================================================
+adjindex.r
+alocatcn.r       
+alocatrn.r       
+alocexrn.r       
+altserch.r       
+apndexrn.r       
+appendrn.r       
+autoupdt.r       
+close128.r       
+closefil.r       
+cmndchn1.r       
+cmndchn2.r       
+commload.r       
+dealexrn.r       
+dealoccn.r       
+dealocrn.r       
+directry.r       
+dosov128.r       
+expnrand.r       
+fastcp1a.r       
+fastcp2a.r       
+fastcpdd.r       
+fastcprm.r       
+fastcpy1.r       
+fastcpy2.r       
+fastfdos.r       
+findfile.r       
+gocpmode.r       
+idxm0128.r       
+idxm1128.r       
+idxm2128.r       
+idxm3128.r       
+idxm4128.r       
+idxm5128.r       
+idxm6128.r       
+idxm7128.r       
+indxmod0.r       
+indxmod1.r       
+indxmod2.r       
+indxmod3.r       
+indxmod4.r       
+indxmod5.r       
+indxmod6.r       
+indxmod7.r       
+initc128.r       
+loadcntg.r       
+loadrand.r       
+loadrnd2.r       
+loadrnd3.r       
+ltkrn128.r       
+openf128.r       
+openfile.r       
+openrela.r       
+relaexpn.r       
+savetodv.r       
+subcallr.r       
+subcl128.r       
+sysbt128.r       
