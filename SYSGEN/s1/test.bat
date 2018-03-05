@@ -33,6 +33,7 @@ call test_file scramidn scramidn.r
 call test_file setup setup
 call test_file ship ship.r
 call test_file sysboot sysbootr.r
+call test_file type type.r
 call test_file user user.r
 call test_file validate validate.r
 

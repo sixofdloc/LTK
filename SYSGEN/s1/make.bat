@@ -34,6 +34,7 @@ call build scramidn
 call build setup
 call build ship
 call build sysboot
+call build type
 call build user
 call build validate
 
