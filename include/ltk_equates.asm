@@ -207,14 +207,14 @@ secadr=$1f ;file's secondary address
  ;                                                                         
  ;misc. system vectors and control locations                               
  ;                                                                         
-LTK_Krn_BankOut		=	$fc4e ;address of the kernal bank-out routine in shadow ram         
-bnkswt=$fc5f ;kertrap bank control switch                                  
-keyenb=$fc60 ;numeric keypad enable flag ($ff=enabled 0=disabled)          
-LTK_Krn_BankIn		=	$fc71 ;bankin=$fc71 ;kertrap bank in routine                                      
-basext=$fc74 ;basic extensions trap vector (ex. key file routines)         
-go64md=$fc7a ;go 64 mode entry point (used by c128 mode)    
+LTK_Krn_BankOut		=	$fc4e 	;address of the kernal bank-out routine in shadow ram         
+LTK_Krn_BankControl	=	$fc5f 	;kertrap bank control switch                                  
+LTK_Krn_KeypadEnable	=	$fc60 	;numeric keypad enable flag ($ff=enabled 0=disabled)          
+LTK_Krn_BankIn		=	$fc71 	;bankin=$fc71 ;kertrap bank in routine                                      
+LTK_Krn_BasExtTrap	=	$fc74 	;basic extensions trap vector (ex. key file routines)         
+LTK_Krn_Go64		=	$fc7a 	;go 64 mode entry point (used by c128 mode)    
 
-idx64=$c8 ;index to current position in the basic input buffer @ $0200     
-idx128=$ea ;index to current position in the basic input buffer @ $0200    
-errchn=$e0 ;error channel fpt offset                                       
-LTK_Command_Buffer	=	$0200 ;command buffer used by exec & processors            
+idx64			=	$c8 	;index to current position in the basic input buffer @ $0200     
+idx128			=	$ea 	;index to current position in the basic input buffer @ $0200    
+errchn			=	$e0 	;error channel fpt offset                                       
+LTK_Command_Buffer	=	$0200 	;command buffer used by exec & processors            
