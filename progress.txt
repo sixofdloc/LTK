@@ -3,11 +3,17 @@ SYSGEN RE-SOURCE PROGRESS AS OF 2018-03-02
 COMPLETES
 ==============================================================================
 FILENAME		LOAD_ADDR	1st Pass Complete?
+autocopy.r 		$c000 		YES      
+autodel.r       	$c000		YES
 b			$0100		YES                
+build.r      		$c000		YES
+buildindex.r     	$95e0		YES
 catalogr.r		$93e0		YES      
 checksum.r 		$95e0		YES      
+config.r		$95e0		YES
 configlu.r		$c000		YES       
 convrtio.r 		$95e0		YES      
+d.r 			$95e0		YES             
 diag.r  		$95e0		YES         
 dir.r  			$c000		YES          
 dosovrly.r		$9530		YES       
@@ -29,6 +35,7 @@ setup 			$8000		YES
 ship.r			$95e0		YES           
 sysbootr.r		$0400		YES       
 user.r			$95e0		YES			           
+validate.r  		$c000		YES
 
 
 IN PROGRESS OR KNOWN ISSUES
@@ -41,30 +48,23 @@ fastfd81.r		$1c20?		IN PROGRESS
 
 KNOWN LOAD ADDRESS
 ==============================================================================
-autocopy.r 		$95e0		NO      
-autodel.r       	$95e0		NO 
-automove.r  		$95e0		NO     
-build.r      		$95e0		NO   
-buildindex.r     	$95e0		NO
+automove.r  		$c000		NO     
 change.r		$95e0		NO         
 clear.r    		$95e0		NO      
-config.r		$95e0		NO         
 copy.r			$95e0		NO           
-d.r 			$95e0		NO             
-del.r  			$95e0		NO          
+del.r  			$c000		NO          
 di.r          		$95e0		NO   
-dump.r   		$95e0		NO        
+dump.r   		$c000		NO        
 era.r			$95e0		NO            
 fastcopy.r		$95e0		NO       
-fetch.r          	$95e0		NO
-merge.r          	$95e0		NO
+fetch.r          	$c000		NO
+merge.r          	$c000		NO
 oops.r           	$95e0		NO
 query.r          	$95e0		NO
 recover.r  		$95e0		NO      
-renum.r          	$95e0		NO
+renum.r          	$c000		NO
 s.r  			$95e0		NO	            
-type.r           	$95e0		NO
-validate.r  		$95e0		NO    
+type.r           	$c000		NO
 
 
 UNKNOWN, STILL TO PROCESS
