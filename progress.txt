@@ -29,6 +29,8 @@ lu.r			$95e0		YES
 luchange.r		$93e0		YES       
 new.r 			$95e0		YES
 openrand.r		$95e0		YES       
+renum.r          	$c000		NO
+s.r  			$95e0		YES	            
 sb2   			$0810		YES           
 scramidn.r		$93e0		YES       
 setup 			$8000		YES           
@@ -63,8 +65,6 @@ merge.r          	$c000		NO
 oops.r           	$95e0		NO
 query.r          	$95e0		NO
 recover.r  		$95e0		NO      
-renum.r          	$c000		NO
-s.r  			$95e0		NO	            
 
 
 UNKNOWN, STILL TO PROCESS
