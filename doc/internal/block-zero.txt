@@ -1,0 +1,36 @@
+
+ ____ __   __ ____  _____  _____  __  __  _____  ____      _     ____  _  __
+/ ___|\ \ / // ___||_   _|| ____||  \/  ||_   _||  _ \    / \   / ___|| |/ /
+\___ \ \ V / \___ \  | |  |  _|  | |\/| |  | |  | |_) |  / _ \ | |    | ' / 
+ ___) | | |   ___) | | |  | |___ | |  | |  | |  |  _ <  / ___ \| |___ | . \ 
+|____/  |_|  |____/  |_|  |_____||_|  |_|  |_|  |_| \_\/_/   \_\\____||_|\_\ block
+                                                                            
+
+Documentation for the first block on LU10 (scsi ID 0, LBA 0) as prepared by setup.asm
+
+This is intended to describe the usage of data in the first block not only by the bootstrap ROM but also by the operating system and setup.asm during runtime.
+
+If someone has a better idea for formatting, feel free to update the document.  Apologies for the extra-wide format.
+
+For now, it'll be offset, size, a label, and notes.
+
+All values are in hexadecimal.
+
+offset	size	label		notes
+0	a			"SYSTEMTRACK" string used as a magic identifier by ltkbootstub.asm
+
+11	1			Unknown, set to $ee.  Maybe more magic bytes.
+12	1	LU10_flags	The first byte of the drive geometry goes here; copied from sector 18,18
+13	1	LU10_StepTime	Should actually be Step Period, but the label is too long.  Copied from 18,18
+14	1	LU10_Sectors	Number of sectors per track in LU 10; copied from sector 18,18
+15	1	LU10_WPcomp	Write precompensation copied from sector 18,18
+16	2	LU10_cylinders	Number of cylinders in SCSI (big-endian) order
+18	1			Unknown, set to 1.
+19	1	LU10_heads	Number of heads in LU 10; originally copied from sector 18,18
+1a	1	LU10_Unk	Unknown, but copied from sector 18,18
+1d	1			Unknown, set to $0a.
+28	1			Unknown, set to $0a.
+9d				Lt. Kernal copyright message
+100				All other drives' gemoetry data
+1f4	8	SerialNo	System serial number; must match the ROM.
+				  Some systems have a ninth digit in the serial number.  This isn't copied to disk.
