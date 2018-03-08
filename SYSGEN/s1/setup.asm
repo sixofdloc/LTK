@@ -18,6 +18,7 @@
 ; ****************************
 
 ; ****************************
+; * 
 ; * VIM settings for David.
 ; * 
 ; * vim:syntax=a65:hlsearch:background=dark:
@@ -43,13 +44,13 @@
 BASIC_LoadAddr	=$0801
 
 	; FIXME: Should we make an ltk_hwequates or add these to the ltk_equates file?
-HA_data     =$df00	; SCSI data port: port or ddr
+HA_data    =$df00	; SCSI data port: port or ddr
 	; Control port bit map for port A (data):
 	; bit	use	likelyhood
 	; ca1
 	; ca2	ACK	90%
-HA_data_cr  =$df01	; SCSI data port control reg
-HA_ctrl     =$df02	; SCSI control port
+HA_data_cr =$df01	; SCSI data port control reg
+HA_ctrl    =$df02	; SCSI control port
         ; control port bit map: To be verifed (FIXME etc)
 	; bit	use	likelyhood
         ;  0		
@@ -62,10 +63,10 @@ HA_ctrl     =$df02	; SCSI control port
         ;  7	REQ	60%
 	; cb1
 	; cb2
-HA_ctrl_cr  =$df03	; SCSI control port control reg
+HA_ctrl_cr =$df03	; SCSI control port control reg
 
-Sec_buf1 =$9c00
-Sec_buf2 =$9e00
+Sec_buf1 =$9c00		; Sector buffer #1
+Sec_buf2 =$9e00		; Sector buffer #2
 
 ; ****************************
 ; * 
@@ -81,18 +82,20 @@ Sec_buf2 =$9e00
 ; *  sb2 loads setup to $8000, and copies the pointer above at InBufPtr to itself.
 ;    Then track 18 sector 18 is loaded to that location ($9ba9 originally)
 ;    After that work is done, setup is started via jmp $8000
-; InputBuf ($9ba9) will contain the contents of sector18-18.asm.
+; InputBuf ($9ba9) will contain the contents of sector18-18.asm when the program
+;  starts.
 
 ; SCSI control bits:
 ; name	location
-; req	pb7
 ; ack	ca2
 ; atn	pb6
-; bsy	pb3 
+; bsy	pb3
+; c/d	 
+; i/o	
+; msg	
+; req	pb7
+; rst	
 ; sel	pb4
-; 
-; 
-; 
 
 ; ****************************
 ; * 
@@ -116,65 +119,58 @@ L800a	.byte $00
 
 
 START
-	jsr DetectAndRewrite 	; find HA and rewrite if necessary
+	jsr DetectAndRewrite 	; find HA and rewrite this program for $de00 if necessary
 				; Returns $DF in .A if HA is at DF00
 	bit Drive0_Flags	; $80 = %1000 0000; s=1, v=0 (st1201N example at end of setup.asm)
-	bvc L802d
-	jsr SCSI_Select		; SCSI_Select selects device id 0
+	bvc L802d		; normal drive?  Skip special select
+	jsr SCSI_Select		; Select scsi 0
 	lda #$7f
 	sta HA_data
 	lda #$60
-	sta HA_ctrl
+	sta HA_ctrl		; do some funkiness to wake the drive
 	ldx #$00
-L8022
-	inx
+L8022	inx
 	bne L8022
-L8025
-	inx
-	bne L8025		;delay a bit
-	lda #$40
-	sta HA_ctrl
-L802d
-	bit Drive0_Flags	; $80, S gets set
-	bmi L8035		; branch taken for ST1201N data below
-	jsr S9656
-L8035
-	ldx #$00
+L8025	inx
+	bne L8025		; delay a bit
+	lda #$40		; %0100 0000
+	sta HA_ctrl		; more funkiness...
+L802d	bit Drive0_Flags	; Check bit 7 (integrated controller / smart disk)
+	bmi L8035		; Set = smart disk, so the controller knows its geometry
+	jsr SCSI_Set_geometry	; Send disk geometry to the controller.
+L8035	ldx #$00		; And, we're all set.  Lets use our scsi disk!
 	stx LBA_ms
 	stx LBA_ls
 	inx
-	stx TransCt		; SCSI LBA 1 (aka second block on disk)
+	stx TransCt		; SCSI LBA 0 (SYSTEMTRACK)
 	lda #<Sec_buf1
 	sta BufPtrL
 	lda #>Sec_buf1
-	sta BufPtrH		; to $9c00
+	sta BufPtrH		; to sector buffer 1
 	jsr SCSI_READ_8c96
-	lda Sec_buf1+$1e		; check flag in sector 1 offset 1e
+	lda Sec_buf1+$1e	; check flag in sector 1 offset 1e
 	beq L805e		; zero?
 	cmp #$ac
-	beq L805e		; $ac
+	beq L805e		; $ac?
 	cmp #$af
 	beq L805e		; af? Jump for these
 	dec lab_822a		; none of the above, decrement 822a
-L805e
-	lda #$ff
-	sta Sec_buf1+$1e		; set flag to FF
+L805e	lda #$ff
+	sta Sec_buf1+$1e	; set flag to FF
 	jsr SCSI_WRITE_8c9e	; send block back to disk
 	ldy #$07		; 8-byte serial number
 	ldx #$00		; unneeded.
-L806a
-	lda Serialno,y		; get serial number from 18,18
-	cmp $9df4,y		; compare with copy from rom?
+L806a	lda Serialno,y		; get serial number from 18,18
+	cmp Sec_buf1+$1f4,y	; compare with copy from rom?
 	bne L8077		; fail: print warning
 	dey
 	bpl L806a
 	bmi L80a3		; success, skip warning and continue.
 
 	;print warning about serial # on drive not matching sysgen disk
-L8077
-	ldx #<str_SNMismatchWarning
+L8077	ldx #<str_SNMismatchWarning
 	ldy #>str_SNMismatchWarning
-	jsr printZTString	; print serial mismatch warning
+	jsr printZTString
 	cli
 L807f
 	jsr GETIN
@@ -197,24 +193,21 @@ L808c	lda Offline_And_Reset,y ;$818f
 	beq L8097
 	iny
 	bne L808c
-L8097
-	jmp $033c	; never to be seen again [offline and reset]
+L8097	jmp $033c	; never to be seen again [offline and reset]
 
 
 	; All checks have been done at this point.  Let's do some SYSGEN work.
-L809a
-	dec lab_8229
+L809a	dec lab_8229
 	dec lab_822a
 	jmp L810a
 
-L80a3
-	lda #<Sec_buf2
+L80a3	lda #<Sec_buf2
 	sta BufPtrL
 	lda #>Sec_buf2
 	sta BufPtrH
 	lda #$1a
-	sta LBA_ls		; mms=0; ms=1a, ls=1 at this point (FIXME: verify)
-	jsr SCSI_READ_8c96	; read block $001a01 to $9e00 (sounds a bit high on blocknumber)
+	sta LBA_ls		; lba=$1a
+	jsr SCSI_READ_8c96	; read block $1a to $9e00
 	ldx #$00
 	lda Sec_buf1+$ad
 	cmp #$37
@@ -233,21 +226,21 @@ L80ce
 	sta tab_841a,y
 	dey
 	bpl L80ce
+
 	ldx #$0a
 	ldy #$00
-L80db
-	lda L841c,y
+L80db	lda L841c,y
 	and #$f7
 	sta L841c,y
 	iny
 	iny
 	iny
 	iny
-	iny
+	iny			; y=y+5
 	dex
 	bne L80db
-L80eb
-	lda #>Sec_buf1+$102
+
+L80eb	lda #>Sec_buf1+$102
 	sta LBA_ls
 	lda #<Sec_buf1+$102	; get LBA from buffer 1
 	sta LBA_ms
@@ -260,16 +253,16 @@ L80fa				; Check for the system config file's presense
 	dey
 	bpl L80fa		; continue checking
 	bmi L810a		; perfect match.  Leave flag at lab_822a clear and sysgen.
-L8107
-	dec lab_822a
+
+L8107	dec lab_822a
 	;print message "Please Wait, SYSGEN in progress"
 L810a
 	ldx #<str_SYSGENInProgress
 	ldy #>str_SYSGENInProgress
 	jsr printZTString
-	jsr SYSGEN
+	jsr SYSGEN		; Perform the actual work
 
-	ldx #$00
+	ldx #$00		; set up the final bits
 	stx LBA_ms
 	stx LBA_ls		; LBA 0 (SYSTEMTRACK)
 	inx
@@ -280,8 +273,7 @@ L810a
 	sta BufPtrH		; to $9c00
 	jsr SCSI_READ_8c96	; Get the SYSTEMTRACK sector
 	ldy #$37
-L812f
-	lda $9bbf,y		; copy the remaining drive's geometry
+L812f	lda Drive1_Geometry,y	; copy the remaining drive's geometry
 	sta Sec_buf1+$100,y	;  to sector offset $100
 	dey
 	bpl L812f
@@ -289,21 +281,22 @@ L812f
 	sta Sec_buf1+$94
 	lda L8cf6		
 	sta Sec_buf1+$95	;  to sector offset $94
-	;print "checksumming" message
-	ldx #<str_Checksumming
+
+				; run checksums to check integrity
+	ldx #<str_Checksumming	; print "checksumming" message
 	ldy #>str_Checksumming
 	jsr printZTString
 	jsr CHECKSUM		; Checksum the installed system.  Z=1 means ok.
 	php			; save status for later
 	ldy #$05
-L8151
-	lda L9bb1,y
+
+L8151	lda L9bb1,y
 	sta Sec_buf1+$96,y
 	dey
 	bpl L8151
 	iny
-L815b
-	lda txt_LTKRev,y
+				; copy revision text to the block
+L815b	lda txt_LTKRev,y
 	beq L8166
 	sta Sec_buf1+$9d,y
 	iny
@@ -314,7 +307,7 @@ L8166
 	lda #>Sec_buf1
 	sta BufPtrH		; Sector buffer 1
 	lda #$00
-	sta Sec_buf1+$1e
+	sta Sec_buf1+$1e	; filesystem clean flag?
 	sta LBA_ms
 	sta LBA_ls		; LBA 0
 	jsr SCSI_WRITE_8c9e	; write SYSTEMTRACK sector
@@ -332,8 +325,8 @@ L8166
 
 L8189	; either way, the process is done.
 	jsr printZTString
-LOCKUP
-	jmp LOCKUP		; wait for reset.
+
+Done	jmp Done		; wait for reset.
 
 Offline_And_Reset ; $818f
 	; copied to $033c and run on failure.
@@ -355,7 +348,7 @@ DetectAndRewrite ; $8198
 	; first, let's check at DF00 for the LtK hardware (specifically, the PIA)
 	ldx #$08	; shift 8 times later
 	lda #$01	; set bit 1
-	sta HA_data	; of PA (scsi data- ltkbootstub.asm SCSI_READ call)
+	sta HA_data	; the data port
 L819f
 	cmp HA_data	; same?
 	bne L81b3	; No, check at de00.
@@ -576,46 +569,45 @@ SYSGEN
 	sta L8cef
 	sta L8cf0
 	sta L8cf1
-	ldy Drive0_Heads
+	ldy Drive0_Heads ; mulitply drive0_heads by...
 	ldx #$00
-	stx L95fd
-	lda Drive0_Sectors
-	jsr S95ad
-	sta L8ce4
+	stx Mul_o2l	; reset low byte of input
+	lda Drive0_Sectors ; ...drive0_sectors
+	jsr Multiply	; Multiply heads*sectors
+	sta L8ce4	; save lsb
 	ldy #$00
-	sty L963e
+	sty L963e	; clear divide operand
 	ldy #$08
-	jsr S9603	; FIXME: Generate random number?
-	cpy #$00
-	clc
-	beq L847e
-	sec
-L847e
-	adc #$03
-	sta L8ce5
+	jsr Divide	; divide
+	cpy #$00	; Set flags based on remainder
+	clc		; clear carry
+	beq L847e	; remainder=0?
+	sec		;  No, set carry
+L847e	adc #$03	; add 3
+	sta L8ce5	;  save to L8ce5
 	lda #$00
 	sta L963e
 	lda #$f8
 	ldx #$07
 	ldy L8ce4
-	jsr S9603	; FIXME: Generate random number?
+	jsr Divide
 	sta L8cf4
 	ldy L8ce5
 	ldx #$02
 	lda #$00
 	sta L963e
-	jsr S9603	; FIXME: Generate random number?
+	jsr Divide
 	sta L8ce6
-	jsr Zero_9c00_9dff
+	jsr Zero_Sec_buf1
 
 	; prepare DISCBITMAP sector
 	ldx #$09
 L84aa
 	lda fname_DiscBitmap,x ;$90d4
-	sta Sec_buf1,x
+	sta Sec_buf1,x		; Copy 'DISCBITMAP' to sector
 	dex
 	bpl L84aa
-	lda L8ce6
+	lda L8ce6		
 	sta Sec_buf1+$13
 	lda L8ce5
 	sta Sec_buf1+$15
@@ -666,7 +658,7 @@ L8522
 	sta L8ceb
 	lda L8ce6
 	sta L8cec
-	jsr Zero_9c00_9dff
+	jsr Zero_Sec_buf1
 L8535
 	lda L8cea
  	sta staAndIncDest + 1
@@ -712,7 +704,7 @@ L8580
 
 	; Prepare SYSTEMTRACK sector
 	;  This routine was used to start /doc/block-zero.txt
- 	jsr Zero_9c00_9dff	; zero out the sector buffer
+ 	jsr Zero_Sec_buf1	; zero out the sector buffer
  	ldx #$0a		; 10 bytes
 L859f	lda fname_SystemTrack,x ; copy 'SYSTEMTRACK' magic string to buf
  	sta Sec_buf1,x
@@ -742,7 +734,7 @@ L859f	lda fname_SystemTrack,x ; copy 'SYSTEMTRACK' magic string to buf
  	ldy #$07
 L85e6
 	lda Serialno,y
-	sta $9df4,y
+	sta Sec_buf1+$1f4,y
 	dey
 	bpl L85e6
 	jsr S979e		; read DISCBITMAP sector to 9e00 and copy some data out
@@ -758,15 +750,14 @@ L85e6
 	dec Sec_buf1+$2a
 	dec Sec_buf1+$1e
 	lda Drive0_Sectors	
-	sta Sec_buf1+$14		; set sector count
+	sta Sec_buf1+$14	; set sector count
 	lda L8cf4
 	sta Sec_buf1+$36
 	jsr SCSI_WRITE_8c9e	; send SYSTEMTRACK sector to disk
 
 	; Clear sectors $01->$ed while skipping sector $1a
-	jsr Zero_9c00_9dff	; clear the sector buffer at 9c00 to zero
-L8622
-	inc LBA_ls		; set next sector
+	jsr Zero_Sec_buf1	; clear the sector buffer at 9c00 to zero
+L8622	inc LBA_ls		; set next sector
 	lda LBA_ls
 	cmp #$1a		; at sector 1a? (contains the system prompt and some code)
 	beq L8622		;  yes, skip this sector
@@ -819,10 +810,10 @@ L8636
 	sta LBA_ls
 	jsr SCSI_READ_8c96
 	jsr S979e
-	jsr Zero_9c00_9dff
+
+	jsr Zero_Sec_buf1
 	ldx #$0a
-L86a4
-	lda fname_SystemIndex,x ;$L90e9
+L86a4	lda fname_SystemIndex,x ;$L90e9
 	sta Sec_buf1,x
 	dex
 	bpl L86a4
@@ -848,21 +839,19 @@ L86a4
 	dec L8ced
 	lda #$10
 	sta L8cee
-	jsr Zero_9c00_9dff
+
+	jsr Zero_Sec_buf1
 	lda #<Sec_buf1+$1d
 	sta L86f8 + 1
 	lda #>Sec_buf1
 	sta L86f8 + 2
-L86f4
-	ldx #$03
+L86f4	ldx #$03
 	lda #$ff
-L86f8
-	sta L86f8
+L86f8	sta L86f8
 	inc L86f8 + 1
 	bne L8703
 	inc L86f8 + 2
-L8703
-	dex
+L8703	dex
 	bne L86f8
 	clc
 	lda L86f8 + 1
@@ -870,19 +859,17 @@ L8703
 	sta L86f8 + 1
 	bcc L8714
 	inc L86f8 + 2
-L8714
-	dec L8cee
+L8714	dec L8cee
 	bne L86f4
-L8719
-	jsr SCSI_WRITE_8c9e
+L8719	jsr SCSI_WRITE_8c9e
 	dec L8ced
 	bne L8719
 	lda #$00
 	sta L8cef
-	jsr Zero_9c00_9dff
+
+	jsr Zero_Sec_buf1
 	ldy #$0f
-L872b
-	lda fname_Fastcopy_Modules,y ;$9104
+L872b	lda fname_Fastcopy_Modules,y ;$9104
 	sta Sec_buf1,y
 	dey
 	bpl L872b
@@ -905,10 +892,10 @@ L872b
 	sta Sec_buf1+$1d
 	jsr SCSI_WRITE_8c9e
 	jsr S8c4c
-	jsr Zero_9c00_9dff
+
+	jsr Zero_Sec_buf1
 	ldy #$0f
-L876d
-	lda fname_SystemConfigFile,y ;$90f4
+L876d	lda fname_SystemConfigFile,y ;$90f4
 	sta Sec_buf1,y
 	dey
 	bpl L876d
@@ -934,20 +921,17 @@ L876d
 	beq L87ae
 	jmp Break
 
-L87ae
-	lda #$ee
+L87ae	lda #$ee
 	jsr S8c44
 	beq L87b8
 	jmp Break
 
-L87b8
-	lda #$f0
+L87b8	lda #$f0
 	jsr S8c44
 	beq L87c2
 	jmp Break
 
-L87c2
-	lda #$00
+L87c2	lda #$00
 	sta L8cf0
 	lda #$01
 	sta TransCt		; Number of pages to clear before loading (2x .A=200 bytes)
@@ -1392,15 +1376,13 @@ LoadFromTable ; Loads files from a table using ReadTable to get file information
 	bcc L8af7	; continue if no error
 	jmp Break2
 
-L8af7
-	sei
-	jsr Zero_9c00_9dff
+L8af7	sei
+	jsr Zero_Sec_buf1
 	ldx len_fname	; get file name length
 	dex
 	dex		; cut '.R' off the end
 	ldy #$00
-L8b01
-	lda (ptr_fname),y ; copy filename 
+L8b01	lda (ptr_fname),y ; copy filename 
 	sta Sec_buf1,y	;  to 9c00
 	sta $c000,y	;  and c000
 	iny
@@ -1422,14 +1404,12 @@ L8b01
 	bne L8b38
 	lda #$c0
 	sta Sec_buf1+$12
-L8b38
-	jsr S9179
+L8b38	jsr S9179
 	beq LoadFromTable
-Break
-	brk
 
-Break2
-	brk
+Break	brk
+
+Break2	brk
 
 S8ad0_return
 	rts
@@ -1540,8 +1520,7 @@ sg_Load_8bf8 ;$8bf8 ;Obviously needs a better name
 	cli
 	lda #$00
 	jsr LOAD
-L8c18
-	bcs L8c18
+L8c18	bcs L8c18
 	lda #$10
 	sta BufPtrH
 	lda #$00
@@ -1554,13 +1533,11 @@ L8c18
 	;  the caller's specified end sector (
 SCSI_MultiWrite
 	jsr SCSI_WRITE		; write current sector
-L8c2b
-	bcs L8c2b		;  exit on error
+L8c2b	bcs L8c2b		;  exit on error
 	inc LBA_ls		; Incerement to next sector
 	bne L8c35
 	inc LBA_ms		;  optionally correct for overflow
-L8c35
-	lda LBA_ls		; get current sector
+L8c35	lda LBA_ls		; get current sector
 SCSI_MultiWrite_Last_ls	=*+1	;  (parameter from caller)
 	cmp #$00		;  does it match caller's request?
 	bne SCSI_MultiWrite	;   no, loop.
@@ -1616,25 +1593,25 @@ said_done
 	rts
 
 	
-SCSI_READ_8c96		;$8c96 - label added to improve readability
-	jsr SCSI_READ	;Perform the scsi read
-	bcc L8ca6	; was ok?
-	bcs SCSI_READ_8c96 ; nope, retry until success.
-	.byte $c0 ; This never gets executed
-SCSI_WRITE_8c9e ; $8c9e- label added to improve code readability
-S8c9e	jsr SCSI_WRITE
-	bcc L8ca6
-	jsr $c000
-L8ca6	lda L8cef
-	beq L8cbf
-	inc L95a2
-	bne L8cb3
-	inc L95a0
-L8cb3	lda L95a2
-	sta LBA_ls
-	lda L95a0
-	sta LBA_ms
-L8cbf	rts
+SCSI_READ_8c96			;$8c96 - label added to improve readability
+	jsr SCSI_READ		; Perform the scsi read
+	bcc L8ca6		; was ok?  Recycle code below
+	bcs SCSI_READ_8c96	; nope, retry until success.
+	.byte $c0		; This never gets executed
+SCSI_WRITE_8c9e			; $8c9e- label added to improve code readability
+S8c9e	jsr SCSI_WRITE		;$8c9e- label is for readability also.
+	bcc L8ca6		; write complete?  Proceed
+	jsr $c000		; apparently there's an error handler loaded to $c000
+L8ca6	lda L8cef		;Read or write is successful.  Let's check flag L8cef
+	beq L8cbf		; zero.  Return
+	inc L95a2		; increment L95a2
+	bne L8cb3		; no overflow, proceed
+	inc L95a0		; increment L95a0
+L8cb3	lda L95a2		; get L95a2
+	sta LBA_ls		;  copy to LBA_ls
+	lda L95a0		; get L95a0
+	sta LBA_ms		;  copy to LBA_ms
+L8cbf	rts			; return
 
 Zero_1000_2xA ; $8cc0
 	; clear from $1000 to 2x .A and return
@@ -1684,13 +1661,13 @@ L8cf4	.byte $00
 L8cf5	.byte $00
 L8cf6	.byte $00 
 
-Zero_9c00_9dff ; $8cf7
+Zero_Sec_buf1 ; $8cf7
 	lda #$00
 	tay
 L8cfa	sta Sec_buf1,y ; clear 9c00-9cff
 	iny
 	bne L8cfa
-L8d00	sta $9d00,y ; clear 9d00-9dff
+L8d00	sta Sec_buf1+$100,y ; clear 9d00-9dff
 	iny
 	bne L8d00
 	rts
@@ -1737,8 +1714,7 @@ sg_LoadFileSuccess
 	beq L8d56		; flag clear? Skip store 0 to 11ff
 
 	stx $11ff
-L8d56
-	sei
+L8d56	sei
 	lda L8cf1
 	beq L8dab
 	lda LBA_ls		; restore .A (saved in sg_LoadFile)
@@ -1747,20 +1723,17 @@ L8d56
 	lda lab_8228
 	beq L8d8e
 	ldy #$31		; start at $844b
-L8d6a
-	lda tab_841a,y		; copy from 841a
+L8d6a	lda tab_841a,y		; copy from 841a
 	sta $1004,y
 	dey			; to $1004
 	bpl L8d6a
 	bmi L8d8e		; and continue.
-L8d75
-	cmp #$22		;check .A ($22 = fname_ScraMidn)
+L8d75	cmp #$22		;check .A ($22 = fname_ScraMidn)
 	bne L8d8e
 	jsr $1000		; call it.
 
 	ldy #$00
-L8d7e
-	lda $1000,y		; Get original byte from loaded file
+L8d7e	lda $1000,y		; Get original byte from loaded file
 	tax
 	lda #$ea		; NOP opcode
 	sta $1000,y		; overwrite beginning of scramidn.r
@@ -1768,8 +1741,7 @@ L8d7e
 	inx
 	bne L8d7e
 	stx $11ff		; x is zero now
-L8d8e
-	lda #$00		; not $1a or $22 so go right here.
+L8d8e	lda #$00		; not $1a or $22 so go right here.
 	tay
 	ldx #$02		; 2a pages to do math on
 L8d93				; CALCULATE CHECKSUM?! 
@@ -1785,12 +1757,10 @@ L8d93				; CALCULATE CHECKSUM?!
 	lda LBA_ls		; Restore original .A from caller
 	sbc $11ff		; subtract
 	sta $11ff		; and save
-L8dab
-	jsr SCSI_WRITE		; write scsi sector
+L8dab	jsr SCSI_WRITE		; write scsi sector
 	bcc L8db3		; ok? return.
-	jsr $c000
-L8db3
-	rts
+	jsr $c000		; jump to error handler at $c000
+L8db3	rts
 
 fname_Findfile ;$8db4
 	.screen "FINDFILE.R"
@@ -2066,7 +2036,7 @@ L9181	sta L9493
 	bne L9191
 	jsr S979e
 	bcc L9191
-	jsr $c000
+	jsr $c000		; jump to error handler at $c000
 L9191	lda #<Sec_buf2
 	sta BufPtrL
 	sta L9446
@@ -2081,7 +2051,7 @@ L9191	lda #<Sec_buf2
 	stx TransCt
 	jsr SCSI_READ
 	bcc L91ba
-	jsr $c000
+	jsr $c000		; jump to error handler at $c000
 L91ba	lda #$10
 	sta L9492
 	lda #$00
@@ -2206,7 +2176,7 @@ L92cc	ldx #<str_CR
 	rts
 
 Store_iny
-	sta Store_iny,y ;operand modified before call
+	sta Store_iny,y		;operand modified before call
 	iny
 	rts
 
@@ -2462,7 +2432,7 @@ L956a	sec
 L9578	lda L95a6
 	ldx L95a5
 	ldy #$10
-	jsr S9603	; FIXME: Generate random number?
+	jsr Divide
 	sta L95a3
 	lda #$f0
 	sec
@@ -2476,7 +2446,7 @@ L9594	lda #$fe
 	ldy L95a3
 	ldx #$00
 	rts
-	;      0   1   2   3   4   5   6
+
 L95a0	.byte $00
 L95a1	.byte $00
 L95a2	.byte $00
@@ -2486,71 +2456,76 @@ L95a5	.byte $00
 L95a6	.byte $00 
 L95a7	.text "=:,*?"
 	.byte $a0 ;//"{Shift Space}"
-S95ad	sta L95ff
-	stx L95fe
-	sty L95fc
+
+	; Shift-and-add multiply engine
+Multiply			; $95ad
+	; TODO: Figure out which * which
+	sta Mul_o2h		; input 1 (16 bits) (sectors)
+	stx Mul_o2m		; input 1 (16 bits)
+	sty Mul_o1		; input 2 (8 bits)  (heads)
 	lda #$00
-	sta L9600
-	sta L9601
-	sta L9602
-	ldx #$08
-L95c3	clc
-	lsr L95fc
-	bcc L95e5
-	clc
-	lda L9602
-	adc L95ff
-	sta L9602
-	lda L9601
-	adc L95fe
-	sta L9601
-	lda L9600
-	adc L95fd
-	sta L9600
-L95e5	clc
-	rol L95ff
-	rol L95fe
-	rol L95fd
-	dex
-	bne L95c3
-	ldy L9600
-	ldx L9601
-	lda L9602
+	sta Mul_mmsb		; reset our scratch space
+	sta Mul_msb
+	sta Mul_lsb
+	ldx #$08		; eight bit multiply
+Mul_add	clc
+	lsr Mul_o1		; shift a bit out the right side of drive0_heads
+	bcc Mul_shf		;  carry clear? Multiply by two (shift left)
+	clc			;  not clear, prepare for addition
+	lda Mul_lsb		;  Multiply final oputput 
+	adc Mul_o2h		; 
+	sta Mul_lsb		; 
+	lda Mul_msb		; 
+	adc Mul_o2m		; 
+	sta Mul_msb		; 
+	lda Mul_mmsb		; 
+	adc Mul_o2l		;  by opeator 2
+	sta Mul_mmsb		;  and save to output
+Mul_shf	clc			; 
+	rol Mul_o2h		; Get a bit from Operator 2 by two (o2h gets discarded)
+	rol Mul_o2m		;  (this is a bit strange as the bits are done
+	rol Mul_o2l		;   in reverse order)
+	dex			; done eight times yet?
+	bne Mul_add		;  no, continue.
+	ldy Mul_mmsb
+	ldx Mul_msb
+	lda Mul_lsb
 	rts
 
-L95fc	.byte $00
-L95fd	.byte $00
-L95fe	.byte $00
-L95ff	.byte $00
-L9600	.byte $00
-L9601	.byte $00
-L9602	.byte $00 
+Mul_o1	.byte $00
+Mul_o2l	.byte $00
+Mul_o2m	.byte $00
+Mul_o2h	.byte $00
+Mul_mmsb .byte $00
+Mul_msb	.byte $00
+Mul_lsb	.byte $00 
 
-S9603	sta L9640		; randum number generator?
-	stx L963f		;  a lot of the math here seems
-	sty L963d		;  nonsensical.  Perhaps it just 
-	lda #$00		;  returns a 24-bit random.
-	ldx #$18
+	; Divide
+Divide	sta L9640		; 
+	stx L963f		; 
+	sty L963d		; 
+	lda #$00		; Clear 8-bit remainder
+	ldx #$18		; Process 18 bits
 L9610	clc
-	rol L9640		; multiply 3-byte number at L9640
-	rol L963f		;  by two
+	rol L9640		; 
+	rol L963f		; 
 	rol L963e
 	rol a
-	bcs L9622		; overflow? do some fixing
-	cmp L963d		; larger than L963d?
-	bcc L9632		;  no, no fix needed.
-L9622	sbc L963d		; correct by subtracting 963d
-	inc L9640		;  and increment value at 9640->
+	bcs L9622		; 
+	cmp L963d		; 
+	bcc L9632		; 
+L9622	sbc L963d		; 
+	inc L9640		; 
 	bne L9632		
 	inc L963f		
 	bne L9632
-	inc L963e		; ..->963e by one
-L9632	dex
-	bne L9610		; keep it up for .X counts
-	tay			; save .A to .Y
-	ldx L963f		; fill out .X
-	lda L9640		; and .A
-	rts			; and return them
+	inc L963e		; 
+L9632	dex			; done?
+	bne L9610		;  No, continue.
+	tay			; remainder -> .Y
+	ldx L963f		; 
+	lda L9640		; A,X=result
+	rts			;  return
 
 L963d	.byte $00
 L963e	.byte $00
@@ -2571,7 +2546,12 @@ L964a	lda L964a       ; get a byte
 	inc L964a + 2
 L9655	rts		; return with the byte
 
-S9656	lda #$c2	; not a scsi command (http://www.t10.org/lists/op-num.htm)
+SCSI_Set_geometry
+	; Educated guesswork determines that this code sends the geometry
+	;  of a scsi controller for simpler drives.  It seems the controller
+	;  wouldn't have any form of nonvolatile storage as it would need
+	;  the geometry sent during startup.
+	lda #$c2	; not a scsi command (http://www.t10.org/lists/op-num.htm)
 	sta CDBBuffer	; 9789
 	ldx Drive0_Heads
 	dex
@@ -2780,8 +2760,7 @@ SCSI_GetStatus
 	jsr S977b	; get the status byte
 	and #$9f	; mask %1001 1111
 	tax		; return in .X
-S977b
-	jsr CTSWait	; 
+S977b	jsr CTSWait	; 
 	lda HA_data	; Get message byte
 	eor #$ff	;  correct for bus inversion
 	tay		; keep safe (SCSI_ACK destroys .A)
@@ -2837,9 +2816,8 @@ S979e
 	sta BufPtrL		; buffer at 9e00
 	jsr SCSI_READ		; Read block 0000ee to Sector buffer 2.  This is the DISCBITMAP sector in two unrelated hdd images
 	bcc L97c3		; hopefully it went well
-	jsr $c000
-L97c3
-	lda Sec_buf2+$13	; offset 13 (15 in both hd images)
+	jsr $c000		; jump to error handler at $c000
+L97c3	lda Sec_buf2+$13	; offset 13 (15 in both hd images)
 	sta L992d
 	lda Sec_buf2+$15	; offset 15 (18 in both hd images)
 	sta L992e
@@ -2849,18 +2827,15 @@ L97c3
 	sta L9931
 	lda Sec_buf2+$19	; offset 19 (a8 in both hd images)
 	sta L9932
-L97e1
-	inc LBA_ls		; increment sector
+L97e1	inc LBA_ls		; increment sector
 	bne L97e9
 	inc LBA_ms		;  optionally fix for overflow
-L97e9
-	lda #$00
+L97e9	lda #$00
 	sta L992f		; clear L992f
 	jsr SCSI_READ		; still reading to 9e00
 	bcc L97f6
-	jsr $c000
-L97f6
-	lda #>Sec_buf2
+	jsr $c000		; jump to error handler at $c000
+L97f6	lda #>Sec_buf2
 	sta LDA_Y + 2
 	sta L9890 + 1
 	lda #<Sec_buf2
@@ -2868,12 +2843,10 @@ L97f6
 	sta L9890		;  and L9890 to Sector buffer 2
 	lda L992d
 	sta L9933		; FIXME: Is 9933 a count?
-L980c
-	lda #$00
+L980c	lda #$00
 	sta L9935
 	ldy #$02		; start at 9e02
-L9813
-	iny
+L9813	iny
 	lda #$80
 	sta L9934
 	jsr LDA_Y		; get byte
@@ -2886,19 +2859,16 @@ L9813
 	cmp L9932		; check against 9932
 	bcc L9813		; lower? Loop.
 	bcs L9847		; Otherwise L9847.
-L9830
-	bit L9934
+L9830	bit L9934
 	beq L988c
-L9835
-	inc L9935
+L9835	inc L9935
 	ldx L9935
 	cpx L9932
 	beq L9847
 	lsr L9934
 	bne L9830
 	beq L9813
-L9847
-	lda L992e		; get L992e
+L9847	lda L992e		; get L992e
 	clc
 	adc LDA_Y + 1		; add it to our source pointer
 	sta LDA_Y + 1
@@ -2906,8 +2876,7 @@ L9847
 	bcc L985c		; no overflow? Skip ahead
 	inc LDA_Y + 2
 	inc L9890 + 1		; fix for overflow
-L985c
-	ldx #$ff		; prep X to check for -1
+L985c	ldx #$ff		; prep X to check for -1
 	dec L9931		; Dec L9931
 	beq L986e		;  zero?
 	cpx L9931
@@ -2915,26 +2884,22 @@ L985c
 	dec L9930		; Not yet, dec L9930 too.
 	jmp L9877		; skip ahead
 
-L986e
-	lda L9930		; L9931 was zero after a dec
+L986e	lda L9930		; L9931 was zero after a dec
 	bne L9877		; is L9930 nonzero? skip ahead
 	ldx #$fd		; FIXME: why fd?
 	sec			; indicate error?
 	rts			; done.
 
-L9877
-	dec L9933		; dec L9933
+L9877	dec L9933		; dec L9933
 	bne L980c		; not zero yet? branch to L980c
 	lda L992f		; get L992f
 	beq L9889		; zero? Jump to 97e1
 	jsr SCSI_WRITE		; write the sector to disk
 	bcc L9889		; hopefully it went well.
-	jsr $c000		
-L9889
-	jmp L97e1		; loop
+	jsr $c000				; jump to error handler at $c000
+L9889	jmp L97e1		; loop
 
-L988c
-	ora L9934
+L988c	ora L9934
 L9890	=*+1		; target is operand
 L988f	sta L988f,y	; label to satisfy assembler
 	pha		
@@ -2945,8 +2910,7 @@ L988f	sta L988f,y	; label to satisfy assembler
 	ldx Sec_buf1+$18	
 	cpx #$0a	
 	bcc L98ba	
-L98a1
-	asl a
+L98a1	asl a
 	tax
 	ldy #$01
 	jsr LDA_Y
@@ -2959,8 +2923,7 @@ L98a1
 	pla
 	adc #$00
 	sta Sec_buf1+$20,x
-L98ba
-	lda #$ff
+L98ba	lda #$ff
 	sta L992f
 	pla
 	tay
@@ -2971,20 +2934,17 @@ L98ba
 	beq L98d0
 	jmp L9835
 	
-L98d0
-	jsr SCSI_WRITE
+L98d0	jsr SCSI_WRITE
 	bcc L98d8
-	jsr $c000
-L98d8
-	lda #$ee
+	jsr $c000		; jump to error handler at $c000
+L98d8	lda #$ee
 	sta LBA_ls
 	lda #$00
 	sta LBA_ms
 	jsr SCSI_READ
 	bcc L98ea
-	jsr $c000
-L98ea
-	ldx #$ff
+	jsr $c000		; jump to error handler at $c000
+L98ea	ldx #$ff
 	lda Sec_buf2+$92
 	sec
 	sbc L9936
@@ -2994,8 +2954,7 @@ L98ea
 	cpx Sec_buf2+$91
 	bne L9903
 	dec Sec_buf2+$90
-L9903
-	lda L9936
+L9903	lda L9936
 	clc
 	adc Sec_buf2+$95
 	sta Sec_buf2+$95
@@ -3003,19 +2962,16 @@ L9903
 	inc Sec_buf2+$94
 	bne L9917
 	inc Sec_buf2+$93
-L9917
-	lda #$ff
+L9917	lda #$ff
 	sta Sec_buf2+$96
 	sta Sec_buf2+$97
 	jsr SCSI_WRITE
 	bcc L9927
-	jsr $c000
-L9927
-	clc
+	jsr $c000		; jump to error handler at $c000
+L9927	clc
 	rts
 
-LDA_Y
-	lda LDA_Y,y
+LDA_Y	lda LDA_Y,y
 	rts
 	
 
@@ -3249,4 +3205,5 @@ Drive0_Unknown
 ;5	$13	44	Number of Cylinders - Low Byte
 ;6	$14	0	Write precomp Cylinders
 ;7	$15	0	unknown, but is ZERO on all (spare?)
+Drive1_Geometry	=*	; for the SYSTEMTRACK init code
 
