@@ -3,6 +3,8 @@
 	.include "../../include/ltk_dos_addresses.asm"
 	.include "../../include/ltk_equates.asm"
 
+	; FIXME:  This needs to be re-disassembled as it runs at $1000 during sysgen
+	;  Ref: sysgen.asm label L8d75
 	*=LTK_MiniSubExeArea ; $93e0, $4000 for sysgen
  
 START
