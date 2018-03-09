@@ -157,7 +157,7 @@ L8035	ldx #$00		; And, we're all set.  Lets use our scsi disk!
 	beq L805e		; $ac?
 	cmp #$af
 	beq L805e		; af? Jump for these
-	dec lab_822a		; none of the above, decrement 822a
+	dec DOS_MISSING		; none of the above, decrement 822a
 L805e	lda #$ff
 	sta Sec_buf1+$1e	; set flag to FF
 	jsr SCSI_WRITE_8c9e	; send block back to disk
@@ -168,7 +168,7 @@ L806a	lda Serialno,y		; get serial number from 18,18
 	bne L8077		; fail: print warning
 	dey
 	bpl L806a
-	bmi L80a3		; success, skip warning and continue.
+	bmi SerialOK		; success, skip warning and continue.
 
 	;print warning about serial # on drive not matching sysgen disk
 L8077	ldx #<str_SNMismatchWarning
@@ -181,7 +181,7 @@ L807f
 	beq L807f		; wait for a key
 	sei
 	cmp #$59		; Y to continue?
-	beq L809a		; not the key we were looking for.
+	beq L809a		;  got it, continue
 HA_Fail ;$808a
 	; We end up here if the host adapter can't be found.
 	; Copy a routine to the tape buffer that will
@@ -201,63 +201,71 @@ L8097	jmp $033c	; never to be seen again [offline and reset]
 
 	; All checks have been done at this point.  Let's do some SYSGEN work.
 L809a	dec lab_8229
-	dec lab_822a
+	dec DOS_MISSING
 	jmp L810a
 
-L80a3	lda #<Sec_buf2
+	; serial number is verified, continuing here.
+SerialOK
+	lda #<Sec_buf2
 	sta BufPtrL
 	lda #>Sec_buf2
 	sta BufPtrH
 	lda #$1a
-	sta LBA_ls		; lba=$1a
-	jsr SCSI_READ_8c96	; read block $1a to $9e00
-	ldx #$00
-	lda Sec_buf1+$ad
+	sta LBA_ls		; lba=$1a (LuChange gets loaded here eventually)
+	jsr SCSI_READ_8c96	; read block $1a (luchange) to Buffer 2
+	ldx #$00		; .X=0
+	lda Sec_buf1+$ad	; perform integrity checks
 	cmp #$37
 	bne L80c6
 	lda Sec_buf1+$ae
 	cmp #$2e
-	bne L80c6
-	dex
-L80c6
-	stx lab_8228
+	bne L80c6		; (FIXME: These dont check out on lba $1a of six's hdd image)
+	dex			; seems ok, x=$ff
+L80c6	stx lutable_ok
 	txa
 	beq L80eb		; was .X 0?
-	ldy #$31
-L80ce
-	lda Sec_buf2+4,y
-	sta tab_841a,y
+
+	ldy #$31		; $31 (49) bytes
+L80ce	lda Sec_buf2+4,y	; copy from luchange.r+$04 to save on-hdd data
+	sta luchange_table,y    ; to our luchnage table
 	dey
 	bpl L80ce
+	; working data for reference from luchange.asm offset 4:
+        ;.byte $ff,$00,$1e,$40,$c8,$11,$00,$e6
+        ;.byte $40,$c8,$11,$01,$ae,$40,$a6,$11
+        ;.repeat $23,$ff	; $23 $ff's follow.
 
-	ldx #$0a
-	ldy #$00
-L80db	lda L841c,y
-	and #$f7
-	sta L841c,y
-	iny
-	iny
-	iny
-	iny
-	iny			; y=y+5
-	dex
-	bne L80db
 
-L80eb	lda #>Sec_buf1+$102
+	ldx #$0a		; 9 entries (+1 because zero exits)
+	ldy #$00		; init index
+L80db	lda L841c,y		;  get byte from L841c
+	and #$f7		;  strip high byte
+	sta L841c,y		;  put it back
+	iny			;  skip one
+	iny			;  two
+	iny			;  three
+	iny			;  four
+	iny			;  five bytes
+	dex			;  all entries done?
+	bne L80db		;  no, loop.
+	; 9*6=54 ($36) bytes in the table
+
+	; seems likely that sec buf 1 still has SYSTEMTRACK in it (FIXME)
+L80eb	lda #>$9d02		; 9d02 is the SYSTEMCONFIGFILE sector
 	sta LBA_ls
-	lda #<Sec_buf1+$102	; get LBA from buffer 1
+	lda #<$9d02
 	sta LBA_ms
-	jsr SCSI_READ_8c96	; and read sector in
+	jsr SCSI_READ_8c96	; read LBA $9d02 (SYSTEMCONFIGFILE) to buffer 2
 	ldy #$0f
 L80fa				; Check for the system config file's presense
 	lda Sec_buf2,y
-	cmp fname_SystemConfigFile,y ;$90f4
-	bne L8107		; Mismatch?  Set the flag at lab_822a and sysgen. 
+	cmp fname_SystemConfigFile,y
+	bne L8107		; Mismatch?  Set the flag at DOS_MISSING and sysgen. 
 	dey
 	bpl L80fa		; continue checking
-	bmi L810a		; perfect match.  Leave flag at lab_822a clear and sysgen.
+	bmi L810a		; perfect match.  Leave flag at DOS_MISSING clear and sysgen.
 
-L8107	dec lab_822a
+L8107	dec DOS_MISSING
 	;print message "Please Wait, SYSGEN in progress"
 L810a
 	ldx #<str_SYSGENInProgress
@@ -445,11 +453,13 @@ LDA_fb_Yinc
  	iny
  	rts
 
-lab_8228
+lutable_ok
  	.byte $00
 lab_8229
 	.byte $00
-lab_822a
+DOS_MISSING	; flag is nonzero if the dos is determined to be missing.
+		; this is checked by simple integreity checks of SYSTEMTRACK,
+		; LUCHANGE, and SYSTEMCONFIGFILE sectors.
 	.byte $00
 
 	; Checksum routine.  Does checksum work
@@ -556,22 +566,33 @@ str_Checksumming ;$839d
 str_CSMismatch ;$83c6
 	.text "{clr}{return}sorry, the dos checksums did {rvs on}not{rvs off} verify.{return}{return}you must do the entire sysgen again.{return}"
 	.byte $00
-tab_841a
-	.byte $00
-L841b	.byte $00
-L841c	.byte $d0,$d0,$00,$c0
-	.byte $50,$60,$50,$06,$06,$00,$00,$30,$00
-	.byte $f0,$00,$00,$00,$00,$06,$66,$06,$00
-	.byte $60,$00,$06,$00,$00,$60,$00,$06,$66
-	.byte $c6,$06,$06,$00,$00,$00,$00,$00,$06
-	.byte $06,$60,$00,$f0,$60,$00,$00,$06,$06
-	.byte $00,$06,$00,$60,$00
+luchange_table ; $841a
+	; luchange:$04-$35 gets copied here.  The commented data below is from luchange.asm (DO NOT DECOMMENT)
+        ;.byte $ff,$00,$1e,$40,$c8,$11,$00,$e6
+        ;.byte $40,$c8,$11,$01,$ae,$40,$a6,$11
+        ;.repeat $23,$ff	; $23 $ff's follow.
+
+	.byte $00			; ff
+	.byte $00			; 00
+	
+	;L80db processes these as if they're entries of 6 bytes each, 10 entries.
+	;      It strips the high bit of the first byte in each.
+L841c	.byte $d0,$d0,$00,$c0,$50,$60	; 1 $1e,$40,$c8,$11,$00,$e6
+	.byte $50,$06,$06,$00,$00,$30	; 2 $40,$c8,$11,$01,$ae,$40
+	.byte $00,$f0,$00,$00,$00,$00	; 3 $a6,$11,$23,$ff,$ff,$ff
+	.byte $06,$66,$06,$00,$60,$00	; 4 $ff,$ff,$ff,$ff,$ff,$ff
+	.byte $06,$00,$00,$60,$00,$06	; 5 $ff,$ff,$ff,$ff,$ff,$ff
+	.byte $66,$c6,$06,$06,$00,$00	; 6 $ff,$ff,$ff,$ff,$ff,$ff
+	.byte $00,$00,$00,$06,$06,$60	; 7 $ff,$ff,$ff,$ff,$ff,$ff
+	.byte $00,$f0,$60,$00,$00,$06	; 8 $ff,$ff,$ff,$ff,$ff,$ff
+	; when copying data from sector $1a (luchange) during startup, this last entry doesn't get copied.
+	.byte $06,$00,$06,$00,$60,$00	; 9
 
 SYSGEN
 	lda #$ff
 	sta L8cef
 	sta L8cf0
-	sta L8cf1
+	sta SGLF_NoMods	; modify files while loading by default
 	ldy Drive0_Heads ; mulitply drive0_heads by...
 	ldx #$00
 	stx Mul_o2l	; reset low byte of input
@@ -790,7 +811,7 @@ L8636
 	jsr SCSI_MultiWrite	; Fill them all with zeros.
 
 	lda #$00
-	sta L8cf1
+	sta SGLF_NoMods		; Don't modify these files while loading
 	lda #$07		;7 scsi blocks (14 pages, 3584 bytes)
 	sta TransCt
 	lda #$01
@@ -802,7 +823,7 @@ L8636
 	ldy #>fname_LtKrn128
 	jsr sg_LoadFile
 	lda #$ff
-	sta L8cf1
+	sta SGLF_NoMods		; Modify these files while loading
 	lda #$01
 	sta TransCt
 	lda #>Sec_buf1
@@ -1075,7 +1096,7 @@ L87c2	lda #$00
 	jsr sg_LoadFile
 	
 	lda #$00
-	sta L8cf1		; send these files unmodified
+	sta SGLF_NoMods		; send these files unmodified
 	lda #$04
 	sta TransCt		; 4 sectors (8 pages, 2048 bytes)
 	
@@ -1459,7 +1480,7 @@ L8b48	jsr GETIN
 	ldy #>fname_ConfigCl
 	jsr sg_Load_8bf8
 
-	lda lab_822a
+	lda DOS_MISSING
 	beq L8ba5
 	lda #$9e
 	sta LBA_ls
@@ -1659,7 +1680,7 @@ L8ced	.byte $00
 L8cee	.byte $00
 L8cef	.byte $00
 L8cf0	.byte $00
-L8cf1	.byte $00	; used as a flag (either set $ff or $00)
+SGLF_NoMods	.byte $00	; used as a flag (either set $ff or $00)
 L8cf2	.byte $00
 L8cf3	.byte $00
 L8cf4	.byte $00
@@ -1693,10 +1714,10 @@ L8d12	cmp #$00		; set zero flag
 ; * sg_loadfile:  Load a file into memory and write to LU 10
 ; * 
 ; * Inputs:
-; * 	L8cf1:		Special edit flag (FIXME: not understood)
-; * 	LBA_ls:		First sector of file (FIXME: This is guesswork)
+; * 	SGLF_NoMods:	Special edit flag (FIXME: not understood)
 ; * 	TransCt:	Number of sectors to write for this file
-; * 	A register:	Special case flag (FIXME: not fully understood)
+; * 	A register:	Starting LBA of the file to be loaded
+; * 			Two special cases for .A:
 ; * 			$1a for luachange.r
 ; * 			$22 for scramidn.r
 ; * 	X register:	Low byte of address to filename
@@ -1734,26 +1755,26 @@ sg_LoadFileSuccess		; we have the file in memory, now put it in the LtK filesyst
 	stx BufPtrL
 	stx $f7			; start sending data from $1000
 	stx LBA_ms
-	lda L8cf1		; get special-case flag
+	lda SGLF_NoMods		; get special-case flag
 	beq SGLF_1		;  flag clear. Skip store 0 to $11ff
 
 	stx $11ff		; Store 0 at program offset $1ff
 SGLF_1	sei
-	lda L8cf1		; get special-case flag
+	lda SGLF_NoMods		; get special-case flag
 	beq SGLF_W		;  zero: just write the file to disk
 	lda LBA_ls		; restore .A to find out what file we're processing
 
 	cmp #$1a		;  check .A ($1a = fnam_LuChange)
 	bne L8d75		;   no match, skip to next check
 	; special handling for luchange.r is done here.
-	lda lab_8228		; get flag from lab_8228 (FIXME: whats this)
+	lda lutable_ok		; get flag from lutable_ok (FIXME: whats this)
 	beq L8d8e		;  zero? skip all this work
 	ldy #$31		; start at $844b
-L8d6a	lda tab_841a,y		;  copy from 841a
+L8d6a	lda luchange_table,y	;  copy from our luchange table
 	sta $1004,y
-	dey			;  to $1004
+	dey			;  to luchange's data block
 	bpl L8d6a		;  and continue
-	bmi L8d8e		; Skip to checksum
+	bmi L8d8e		; Skip around handling scramidn.r
 
 L8d75	cmp #$22		;check .A ($22 = fname_ScraMidn)
 	bne L8d8e		; no match, skip to writing the file to disk.
