@@ -21,7 +21,7 @@
 ; * 
 ; * VIM settings for David.
 ; * 
-; * vim:syntax=a65:hlsearch:background=dark:
+; * vim:syntax=a65:hlsearch:background=dark:ai:
 ; * 
 ; ****************************
 
@@ -120,29 +120,32 @@ L800a	.byte $00
 
 START
 	jsr DetectAndRewrite 	; find HA and rewrite this program for $de00 if necessary
-				; Returns $DF in .A if HA is at DF00
-	bit Drive0_Flags	; $80 = %1000 0000; s=1, v=0 (st1201N example at end of setup.asm)
-	bvc L802d		; normal drive?  Skip special select
+
+	bit Drive0_Flags	; Check for a drive with a built-in controller (this is the case usually)
+	bvc L802d		;  Bit6=0: normal drive?  Skip special drive code
+
 	jsr SCSI_Select		; Select scsi 0
-	lda #$7f
+	lda #$7f		; ID 7?
 	sta HA_data
-	lda #$60
-	sta HA_ctrl		; do some funkiness to wake the drive
+	lda #$60		; %0110 0000 (FIXME: what's bit 5?)
+	sta HA_ctrl		;  do some funkiness to wake a special type fo drive
 	ldx #$00
 L8022	inx
 	bne L8022
 L8025	inx
 	bne L8025		; delay a bit
-	lda #$40		; %0100 0000
+	lda #$40		; %0100 0000 - release bit 5
 	sta HA_ctrl		; more funkiness...
-L802d	bit Drive0_Flags	; Check bit 7 (integrated controller / smart disk)
-	bmi L8035		; Set = smart disk, so the controller knows its geometry
-	jsr SCSI_Set_geometry	; Send disk geometry to the controller.
+
+L802d	bit Drive0_Flags	; bit7=1: Intelligent (modern) drive?
+	bmi L8035		;  Yes, skip ahead again
+	jsr SCSI_Set_geometry	;  Older controller.  Send drive geometry to the controller
+
 L8035	ldx #$00		; And, we're all set.  Lets use our scsi disk!
 	stx LBA_ms
-	stx LBA_ls
+	stx LBA_ls		; SCSI LBA 0 (SYSTEMTRACK sector)
 	inx
-	stx TransCt		; SCSI LBA 0 (SYSTEMTRACK)
+	stx TransCt		; One sector to transfer
 	lda #<Sec_buf1
 	sta BufPtrL
 	lda #>Sec_buf1
@@ -788,15 +791,15 @@ L8636
 
 	lda #$00
 	sta L8cf1
-	lda #$07
-	sta TransCt		;
+	lda #$07		;7 scsi blocks (14 pages, 3584 bytes)
+	sta TransCt
 	lda #$01
-	ldx #<fname_LtKernal
-	ldy #>fname_LtKernal ;$8e40
+	ldx #<fname_LtKernal	; 3168 bytes
+	ldy #>fname_LtKernal
 	jsr sg_LoadFile
 	lda #$08
-	ldx #<fname_LtKrn128 
-	ldy #>fname_LtKrn128 ;$8f4e
+	ldx #<fname_LtKrn128 	; 3377 bytes
+	ldy #>fname_LtKrn128
 	jsr sg_LoadFile
 	lda #$ff
 	sta L8cf1
@@ -934,425 +937,427 @@ L87b8	lda #$f0
 L87c2	lda #$00
 	sta L8cf0
 	lda #$01
-	sta TransCt		; Number of pages to clear before loading (2x .A=200 bytes)
+	sta TransCt		; one sector (2 pages, 512 bytes)
 	
-	lda #$11
-	ldx #<fname_Findfile
-	ldy #>fname_Findfile ;$8db4
+	lda #$11		; Sector for file start
+	ldx #<fname_Findfile	; 147 bytes
+	ldy #>fname_Findfile
 	jsr sg_LoadFile
 	
-	lda #$20
-	ldx #<fname_FindFil2
-	ldy #>fname_FindFil2 ;$8ecc
+	lda #$20		; Sector for file start
+	ldx #<fname_FindFil2	; 319 bytes
+	ldy #>fname_FindFil2
 	jsr sg_LoadFile
 	
-	lda #$12
-	ldx #<fname_LoadRand
-	ldy #>fname_LoadRand ;$8dbe
+	lda #$12		; Sector for file start
+	ldx #<fname_LoadRand	; 457 bytes
+	ldy #>fname_LoadRand
 	jsr sg_LoadFile
 	
-	lda #$26
-	ldx #<fname_LoadRnd2 
-	ldy #>fname_LoadRnd2 ;$8fe4
+	lda #$26		; Sector for file start
+	ldx #<fname_LoadRnd2	; 498 bytes
+	ldy #>fname_LoadRnd2
 	jsr sg_LoadFile
 	
-	lda #$27
-	ldx #<fname_LoadRnd3 
-	ldy #>fname_LoadRnd3 ;$8ff8
+	lda #$27		; Sector for file start
+	ldx #<fname_LoadRnd3	; 477 bytes
+	ldy #>fname_LoadRnd3
 	jsr sg_LoadFile
 	
-	lda #$13
-	ldx #<fname_ErrorHan 
-	ldy #>fname_ErrorHan ;$8dc8
+	lda #$13		; Sector for file start
+	ldx #<fname_ErrorHan	; 500 bytes
+	ldy #>fname_ErrorHan
 	jsr sg_LoadFile
 	
-	lda #$14
-	ldx #<fname_LoadCntg 
-	ldy #>fname_LoadCntg ;$8dd2
+	lda #$14		; Sector for file start
+	ldx #<fname_LoadCntg	; 392 bytes
+	ldy #>fname_LoadCntg
 	jsr sg_LoadFile
 	
-	lda #$15
-	ldx #<fname_AlocAtRn 
-	ldy #>fname_AlocAtRn ;$8ddc
+	lda #$15		; Sector for file start
+	ldx #<fname_AlocAtRn	;  513 bytes (halp, oversized file)
+	ldy #>fname_AlocAtRn
 	jsr sg_LoadFile
 	
-	lda #$16
-	ldx #<fname_AlocAtCn 
-	ldy #>fname_AlocAtCn ;$8de6
+	lda #$16		; Sector for file start
+	ldx #<fname_AlocAtCn	;  509 bytes
+	ldy #>fname_AlocAtCn
 	jsr sg_LoadFile
 	
-	lda #$17
-	ldx #<fname_AppendRn
-	ldy #>fname_AppendRn ;$8df0
+	lda #$17		; Sector for file start
+	ldx #<fname_AppendRn	; 499 bytes
+	ldy #>fname_AppendRn
 	jsr sg_LoadFile
 	
-	lda #$18
-	ldx #<fname_DealocRn
-	ldy #>fname_DealocRn ;$8dfa
+	lda #$18		; Sector for file start
+	ldx #<fname_DealocRn	; 500 bytes
+	ldy #>fname_DealocRn
 	jsr sg_LoadFile
 	
-	lda #$19
-	ldx #<fname_DealocCn
-	ldy #>fname_DealocCn ;$8e4a
+	lda #$19		; Sector for file start
+	ldx #<fname_DealocCn	; 479 bytes
+	ldy #>fname_DealocCn
 	jsr sg_LoadFile
 	
-	lda #$1a
-	ldx #<fname_LuChange 
-	ldy #>fname_LuChange ;$8e54
+	lda #$1a		; Sector for file start
+	ldx #<fname_LuChange 	; 212 bytes
+	ldy #>fname_LuChange
 	jsr sg_LoadFile
 	
-	lda #$1b
-	ldx #<fname_AlocExRn 
-	ldy #>fname_AlocExRn ;$8e72
+	lda #$1b		; Sector for file start
+	ldx #<fname_AlocExRn 	; 482 bytes
+	ldy #>fname_AlocExRn
 	jsr sg_LoadFile
 	
-	lda #$1c
-	ldx #<fname_ExpnRand
-	ldy #>fname_ExpnRand ;$8e7c
+	lda #$1c		; Sector for file start
+	ldx #<fname_ExpnRand	; 416 bytes
+	ldy #>fname_ExpnRand
 	jsr sg_LoadFile
 	
-	lda #$1d
-	ldx #<fname_ApndExRn
-	ldy #>fname_ApndExRn ;$8e86
+	lda #$1d		; Sector for file start
+	ldx #<fname_ApndExRn	; 502 bytes
+	ldy #>fname_ApndExRn
 	jsr sg_LoadFile
 	
-	lda #$1e
-	ldx #<fname_DealExRn
-	ldy #>fname_DealExRn ;$8e90
+	lda #$1e		; Sector for file start
+	ldx #<fname_DealExRn	; 512 bytes
+	ldy #>fname_DealExRn
 	jsr sg_LoadFile
 	
-	lda #$21
-	ldx #<fname_CreditsB
-	ldy #>fname_CreditsB ;$8ed6
+	lda #$21		; Sector for file start
+	ldx #<fname_CreditsB	; 485 bytes
+	ldy #>fname_CreditsB
 	jsr sg_LoadFile
 	
-	lda #$22
-	ldx #<fname_ScraMidn
-	ldy #>fname_ScraMidn ;$8ee0
+	lda #$22		; Sector for file start
+	ldx #<fname_ScraMidn	; 278 bytes
+	ldy #>fname_ScraMidn
 	jsr sg_LoadFile
 	
-	lda #$23
-	ldx #<fname_SubCallr
-	ldy #>fname_SubCallr ;$8eea
+	lda #$23		; Sector for file start
+	ldx #<fname_SubCallr	; 424 bytes
+	ldy #>fname_SubCallr
 	jsr sg_LoadFile
 	
-	lda #$25
-	ldx #<fname_SubCl128
-	ldy #>fname_SubCl128 ;$8f8a
+	lda #$25		; Sector for file start
+	ldx #<fname_SubCl128	; 495 bytes
+	ldy #>fname_SubCl128
 	jsr sg_LoadFile
 	
-	lda #$24
-	ldx #<fname_CatalogR
-	ldy #>fname_CatalogR ;$8f3a
+	lda #$24		; Sector for file start
+	ldx #<fname_CatalogR	; 304 bytes
+	ldy #>fname_CatalogR
 	jsr sg_LoadFile
 	
-	lda #$1f
-	ldx #<fname_AdjIndex
-	ldy #>fname_AdjIndex ;$8eae
+	lda #$1f		; Sector for file start
+	ldx #<fname_AdjIndex	; 470 bytes
+	ldy #>fname_AdjIndex
 	jsr sg_LoadFile
 	
-	lda #$28
-	ldx #<fname_ConvrtIO
-	ldy #>fname_ConvrtIO ;$9002
+	lda #$28		; Sector for file start
+	ldx #<fname_ConvrtIO	; 260 bytes
+	ldy #>fname_ConvrtIO
 	jsr sg_LoadFile
 	
-	lda #$29
-	ldx #<fname_FileProt
-	ldy #>fname_FileProt ;$9048
+	lda #$29		; Sector for file start
+	ldx #<fname_FileProt	; 147 bytes
+	ldy #>fname_FileProt
 	jsr sg_LoadFile
 	
-	lda #$2a
-	ldx #<fname_GoCPMode
-	ldy #>fname_GoCPMode ;$9084
+	lda #$2a		; Sector for file start
+	ldx #<fname_GoCPMode	; 503 bytes
+	ldy #>fname_GoCPMode
 	jsr sg_LoadFile
 	
-	lda #$2f
-	ldx #<fname_AltSerch
-	ldy #>fname_AltSerch ;$9098
+	lda #$2f		; Sector for file start
+	ldx #<fname_AltSerch	; 367 bytes
+	ldy #>fname_AltSerch
 	jsr sg_LoadFile
 	
 	lda #$00
-	sta L8cf1
+	sta L8cf1		; send these files unmodified
 	lda #$04
-	sta TransCt
+	sta TransCt		; 4 sectors (8 pages, 2048 bytes)
 	
-	lda #$44
-	ldx #<fname_RelaExpn
-	ldy #>fname_RelaExpn ;$8e68
+	lda #$44		; Sector for file start
+	ldx #<fname_RelaExpn	; 1230  bytes
+	ldy #>fname_RelaExpn
 	jsr sg_LoadFile
 	
-	lda #$48
-	ldx #<fname_OpenRela
-	ldy #>fname_OpenRela ;$8e5e
+	lda #$48		; Sector for file start
+	ldx #<fname_OpenRela	; 371 bytes
+	ldy #>fname_OpenRela
 	jsr sg_LoadFile
 	
-	lda #$4c
-	ldx #<fname_DosOvrly
-	ldy #>fname_DosOvrly ;$8e04
+	lda #$4c		; Sector for file start
+	ldx #<fname_DosOvrly	; 1510 bytes
+	ldy #>fname_DosOvrly
 	jsr sg_LoadFile
 	
-	lda #$9a
-	ldx #<fname_DosOv128
-	ldy #>fname_DosOv128 ;$8f58
+	lda #$9a		; Sector for file start
+	ldx #<fname_DosOv128	; 1406 bytes
+	ldy #>fname_DosOv128
 	jsr sg_LoadFile
 	
-	lda #$50
-	ldx #<fname_OpenFile
-	ldy #>fname_OpenFile ;$8e0e
+	lda #$50		; Sector for file start
+	ldx #<fname_OpenFile	; 1506 bytes
+	ldy #>fname_OpenFile
 	jsr sg_LoadFile
 	
-	lda #$9e
-	ldx #<fname_OpenF128
-	ldy #>fname_OpenF128 ;$8f62
+	lda #$9e		; Sector for file start
+	ldx #<fname_OpenF128	; 1530 bytes
+	ldy #>fname_OpenF128
 	jsr sg_LoadFile
 	
-	lda #$54
-	ldx #<fname_CloseFil
-	ldy #>fname_CloseFil ;$8e18
+	lda #$54		; Sector for file start
+	ldx #<fname_CloseFil	; 786 bytes
+	ldy #>fname_CloseFil
 	jsr sg_LoadFile
 	
-	lda #$a2
-	ldx #<fname_Close128
-	ldy #>fname_Close128 ;$8f6c
+	lda #$a2		; Sector for file start
+	ldx #<fname_Close128	; 797 bytes
+	ldy #>fname_Close128
 	jsr sg_LoadFile
 	
-	lda #$58
-	ldx #<fname_SaveToDv
-	ldy #>fname_SaveToDv ;$8e22
+	lda #$58		; Sector for file start
+	ldx #<fname_SaveToDv	; 1972 bytes
+	ldy #>fname_SaveToDv
 	jsr sg_LoadFile
 	
-	lda #$5c
-	ldx #<fname_CmndChn1
-	ldy #>fname_CmndChn1 ;$8e2c
+	lda #$5c		; Sector for file start
+	ldx #<fname_CmndChn1	; 1536 bytes
+	ldy #>fname_CmndChn1
 	jsr sg_LoadFile
 	
-	lda #$ca
-	ldx #<fname_CmndChn2
-	ldy #>fname_CmndChn2 ;$9052
+	lda #$ca		; Sector for file start
+	ldx #<fname_CmndChn2	; 1752 bytes
+	ldy #>fname_CmndChn2
 	jsr sg_LoadFile
 	
-	lda #$60
-	ldx #<fname_Directry
-	ldy #>fname_Directry ;$8e36
+	lda #$60		; Sector for file start
+	ldx #<fname_Directry	; 1531 bytes
+	ldy #>fname_Directry
 	jsr sg_LoadFile
 	
 	lda #$08
-	sta TransCt
+	sta TransCt		; 8 sectors (16 pages, 4096 bytes)
 
-	lda #$3b
-	ldx #<fname_ConfigLU
-	ldy #>fname_ConfigLU ;$8e9a
+	lda #$3b		; Sector for file start
+	ldx #<fname_ConfigLU	; 3341 bytes
+	ldy #>fname_ConfigLU
 	jsr sg_LoadFile
 
 	lda #$08
-	sta TransCt
+	sta TransCt		; 8 sectors (16 pages, 4096 bytes)
 	
-	lda #$e6
-	ldx #<fname_MessFile
-	ldy #>fname_MessFile ;$8ea4
+	lda #$e6		; Sector for file start
+	ldx #<fname_MessFile	; 4098 bytes
+	ldy #>fname_MessFile
 	jsr sg_LoadFile
 	
 	lda #$04
-	sta TransCt
+	sta TransCt		; 4 sectors (8 pages, 2048 bytes)
 	
-	lda #$6a
-	ldx #<fname_CommLoad
-	ldy #>fname_CommLoad ;$8eb8
+	lda #$6a		; Sector for file start
+	ldx #<fname_CommLoad	; 458 bytes
+	ldy #>fname_CommLoad
 	jsr sg_LoadFile
 	
-	lda #$ce
-	ldx #<fname_IndxMod0
-	ldy #>fname_IndxMod0 ;$905c
+	lda #$ce		; Sector for file start
+	ldx #<fname_IndxMod0	; 1236  bytes
+	ldy #>fname_IndxMod0
 	jsr sg_LoadFile
 	
-	lda #$7e
-	ldx #<fname_IndxMod1
-	ldy #>fname_IndxMod1 ;$8ef4
+	lda #$7e		; Sector for file start
+	ldx #<fname_IndxMod1	; 1496 bytes
+	ldy #>fname_IndxMod1
 	jsr sg_LoadFile
 	
-	lda #$82
-	ldx #<fname_IndxMod2
-	ldy #>fname_IndxMod2 ;$8efe
+	lda #$82		; Sector for file start
+	ldx #<fname_IndxMod2	; 1119 bytes
+	ldy #>fname_IndxMod2
 	jsr sg_LoadFile
 	
-	lda #$86
-	ldx #<fname_IndxMod3
-	ldy #>fname_IndxMod3 ;$8f08
+	lda #$86		; Sector for file start
+	ldx #<fname_IndxMod3	; 566 bytes
+	ldy #>fname_IndxMod3
 	jsr sg_LoadFile
 	
-	lda #$8a
-	ldx #<fname_IndxMod4
-	ldy #>fname_IndxMod4 ;$8f12
+	lda #$8a		; Sector for file start
+	ldx #<fname_IndxMod4	; 645 bytes
+	ldy #>fname_IndxMod4
 	jsr sg_LoadFile
 	
-	lda #$8e
-	ldx #<fname_IndxMod5
-	ldy #>fname_IndxMod5 ;$8f1c
+	lda #$8e		; Sector for file start
+	ldx #<fname_IndxMod5	; 658 bytes
+	ldy #>fname_IndxMod5
 	jsr sg_LoadFile
 	
-	lda #$92
-	ldx #<fname_IndxMod6
-	ldy #>fname_IndxMod6; $8f26
+	lda #$92		; Sector for file start
+	ldx #<fname_IndxMod6	; 658 bytes
+	ldy #>fname_IndxMod6
 	jsr sg_LoadFile
 	
-	lda #$96
-	ldx #<fname_IndxMod7
-	ldy #>fname_IndxMod7 ;$8f30
+	lda #$96		; Sector for file start
+	ldx #<fname_IndxMod7	; 1382 bytes
+	ldy #>fname_IndxMod7
 	jsr sg_LoadFile
 	
-	lda #$d2
-	ldx #<fname_IdxM0128
-	ldy #>fname_IdxM0128 ;$9066
+	lda #$d2		; Sector for file start
+	ldx #<fname_IdxM0128	; 1266 bytes
+	ldy #>fname_IdxM0128
 	jsr sg_LoadFile
 	
-	lda #$a6
-	ldx #<fname_IdxM1128
-	ldy #>fname_IdxM1128 ;$8f94
+	lda #$a6		; Sector for file start
+	ldx #<fname_IdxM1128	; 1511 bytes
+	ldy #>fname_IdxM1128
 	jsr sg_LoadFile
 	
-	lda #$aa
-	ldx #<fname_IdxM2128
-	ldy #>fname_IdxM2128 ;$8f9e
+	lda #$aa		; Sector for file start
+	ldx #<fname_IdxM2128	; 1149 bytes
+	ldy #>fname_IdxM2128
 	jsr sg_LoadFile
 	
-	lda #$ae
-	ldx #<fname_IdxM3128
-	ldy #>fname_IdxM3128 ;$8fa8
+	lda #$ae		; Sector for file start
+	ldx #<fname_IdxM3128	; 621 bytes
+	ldy #>fname_IdxM3128
 	jsr sg_LoadFile
 	
-	lda #$b2
-	ldx #<fname_IdxM4128
-	ldy #>fname_IdxM4128 ;$8fb2
+	lda #$b2		; Sector for file start
+	ldx #<fname_IdxM4128	; 697 bytes
+	ldy #>fname_IdxM4128
 	jsr sg_LoadFile
 	
-	lda #$b6
-	ldx #<fname_IdxM5128
-	ldy #>fname_IdxM5128 ;$8fbc
+	lda #$b6		; Sector for file start
+	ldx #<fname_IdxM5128	; 710 bytes
+	ldy #>fname_IdxM5128
 	jsr sg_LoadFile
 	
-	lda #$ba
-	ldx #<fname_IdxM6128
-	ldy #>fname_IdxM6128 ;$8fc6
+	lda #$ba		; Sector for file start
+	ldx #<fname_IdxM6128	; 710 bytes
+	ldy #>fname_IdxM6128
 	jsr sg_LoadFile
 	
-	lda #$be
-	ldx #<fname_IdxM7128
-	ldy #>fname_IdxM7128 ;$8fd0
+	lda #$be		; Sector for file start
+	ldx #<fname_IdxM7128	; 1397 bytes
+	ldy #>fname_IdxM7128
 	jsr sg_LoadFile
 	
 	lda #$02
-	sta TransCt
+	sta TransCt		; 2 sectors (4 pages, 512 bytes)
 	
-	lda #$0f
-	ldx #<fname_SysBootR
-	ldy #>fname_SysBootR ;$8f44
+	lda #$0f		; Sector for file start
+	ldx #<fname_SysBootR	; 977 bytes
+	ldy #>fname_SysBootR
 	jsr sg_LoadFile
 	
-	lda #$31
-	ldx #<fname_SysBt128 
-	ldy #>fname_SysBt128 ;$8f76
+	lda #$31		; Sector for file start
+	ldx #<fname_SysBt128 	; 1025 bytes
+	ldy #>fname_SysBt128
 	jsr sg_LoadFile
 	
 	lda #$04
-	sta TransCt
+	sta TransCt		; 4 sectors (8 pages, 2048 bytes)
 	
-	lda #$c6
-	ldx #<fname_InitC128
-	ldy #>fname_InitC128 ;$8f80
+	lda #$c6		; Sector for file start
+	ldx #<fname_InitC128	; 1191 bytes
+	ldy #>fname_InitC128
 	jsr sg_LoadFile
 	
-	lda #$64
-	ldx #<fname_InitC064
-	ldy #>fname_InitC064 ;$90a2
+	lda #$64		; Sector for file start
+	ldx #<fname_InitC064	; 831 bytes
+	ldy #>fname_InitC064
 	jsr sg_LoadFile
 	
 	lda #$02
-	sta TransCt
+	sta TransCt		; 2 sectors (4 pages, 1024 bytes)
 	
-	lda #$2d
-	ldx #<fname_Go64Boot
-	ldy #>fname_Go64Boot ;$8fda
+	lda #$2d		; Sector for file start
+	ldx #<fname_Go64Boot	; 503 bytes
+	ldy #>fname_Go64Boot
 	jsr sg_LoadFile
 	
-	lda #$72
-	ldx #<fname_OpenRand
-	ldy #>fname_OpenRand ;$8fee
+	lda #$72		; Sector for file start
+	ldx #<fname_OpenRand	; 305 bytes
+	ldy #>fname_OpenRand
 	jsr sg_LoadFile
 	
 	lda #$01
-	sta TransCt
+	sta TransCt		; one sector (2 pages, 512 bytes)
 	
-	lda #$c2
-	ldx #<fname_AutoUpdt
-	ldy #>fname_AutoUpdt ;$900c
+	lda #$c2		; Sector for file start
+	ldx #<fname_AutoUpdt	; 365 bytes
+	ldy #>fname_AutoUpdt
 	jsr sg_LoadFile
 	
+	; all sg_LoadFile commands are finished. 
+
 	lda #$01
 	jsr S8be7
 	lda #$0c
-	ldx #<fname_FastFDos
-	ldy #>fname_FastFDos ;$9016
+	ldx #<fname_FastFDos	; 6146 bytes
+	ldy #>fname_FastFDos
 	jsr sg_Load_8bf8
 	
 	lda #$0d
 	jsr S8be7
 	lda #$0c
-	ldx #<fname_FastFD81
-	ldy #>fname_FastFD81 ;$90c0
+	ldx #<fname_FastFD81	; 6146 bytes
+	ldy #>fname_FastFD81
 	jsr sg_Load_8bf8
 
 	lda #$19
 	jsr S8be7
 	lda #$08
-	ldx #<fname_FastCpy1
-	ldy #>fname_FastCpy1 ;$9020
+	ldx #<fname_FastCpy1	; 2619 bytes
+	ldy #>fname_FastCpy1
 	jsr sg_Load_8bf8
 
 	lda #$21
 	jsr S8be7
 	lda #$08
-	ldx #<fname_FastCp1a
-	ldy #>fname_FastCp1a ;$902a
+	ldx #<fname_FastCp1a	; 2608 bytes
+	ldy #>fname_FastCp1a
 	jsr sg_Load_8bf8
 
 	lda #$29
 	jsr S8be7
 	lda #$08
-	ldx #<fname_FastCpy2
-	ldy #>fname_FastCpy2 ;$9034
+	ldx #<fname_FastCpy2	; 2784 bytes
+	ldy #>fname_FastCpy2
 	jsr sg_Load_8bf8
 
 	lda #$31
 	jsr S8be7
 	lda #$08
-	ldx #<fname_FastCp2a
-	ldy #>fname_FastCp2a ;$903e
+	ldx #<fname_FastCp2a	; 3159 bytes
+	ldy #>fname_FastCp2a
 	jsr sg_Load_8bf8
 
 	lda #$39
 	jsr S8be7
 	lda #$08
-	ldx #<fname_FastCpDD
-	ldy #>fname_FastCpDD ;$90ca
+	ldx #<fname_FastCpDD	; 2426 bytes
+	ldy #>fname_FastCpDD
 	jsr sg_Load_8bf8
 
 	lda #$a3
 	jsr S8be7
 	lda #$0a
-	ldx #<fname_FastCpRm
-	ldy #>fname_FastCpRm ;$90ac
+	ldx #<fname_FastCpRm	; 5031 bytes
+	ldy #>fname_FastCpRm
 	jsr sg_Load_8bf8
 
 	lda #$ad
 	jsr S8be7
 	lda #$01
-	ldx #<fname_FastCpQD
-	ldy #>fname_FastCpQD ;$90b6
+	ldx #<fname_FastCpQD	; 260 bytes
+	ldy #>fname_FastCpQD
 	jsr sg_Load_8bf8
 	
 	lda #<fname_ptr_table_2
 	sta ReadTable + 1
-	lda #>fname_ptr_table_2 ;$9937
+	lda #>fname_ptr_table_2
 	sta ReadTable + 2
 	jsr LoadFromTable
 	jmp L8b40
@@ -1415,7 +1420,7 @@ S8ad0_return
 	rts
 
 L8b40	ldx #<str_Flip_Disk
-	ldy #>str_Flip_Disk ;$9114
+	ldy #>str_Flip_Disk
 	jsr printZTString
 
 	cli
@@ -1426,14 +1431,14 @@ L8b48	jsr GETIN
 	bne L8b40 ; not return? Repeat the prompt.
 
 	ldx #<str_Thankyou_Continuing
-	ldy #>str_Thankyou_Continuing ;$9159
+	ldy #>str_Thankyou_Continuing
 	jsr printZTString
 
 	lda #$10
 	sta TransCt
 	lda #$d6
 	ldx #<fname_CP_MBoot
-	ldy #>fname_CP_MBoot ;$908e
+	ldy #>fname_CP_MBoot
 	jsr sg_LoadFile
 
 	lda #$2e
@@ -1442,7 +1447,7 @@ L8b48	jsr GETIN
 	sta LBA_ms
 	lda #$37
 	ldx #<fname_MasterCF
-	ldy #>fname_MasterCF ;$8ec2
+	ldy #>fname_MasterCF
 	jsr sg_Load_8bf8
 
 	lda #$33
@@ -1451,7 +1456,7 @@ L8b48	jsr GETIN
 	sta LBA_ms
 	lda #$08
 	ldx #<fname_ConfigCl
-	ldy #>fname_ConfigCl ;$907a
+	ldy #>fname_ConfigCl
 	jsr sg_Load_8bf8
 
 	lda lab_822a
@@ -1462,13 +1467,13 @@ L8b48	jsr GETIN
 	sta LBA_ms
 	lda #$10
 	ldx #<fname_Defaults
-	ldy #>fname_Defaults ;$9070
+	ldy #>fname_Defaults
 	jsr sg_Load_8bf8
 
 L8ba5
 	lda #<fname_ptr_table_3
 	sta ReadTable + 1
-	lda #>fname_ptr_table_3 ;$9a1f
+	lda #>fname_ptr_table_3
 	sta ReadTable + 2
 	jsr LoadFromTable
 	ldx #$00
@@ -1488,7 +1493,7 @@ L8ba5
 	sta L8cf6
 	lda #<fname_ptr_table_4
 	sta ReadTable + 1
-	lda #>fname_ptr_table_4 ;$9a43
+	lda #>fname_ptr_table_4
 	sta ReadTable + 2
 	jsr LoadFromTable
 	rts
@@ -1604,14 +1609,14 @@ S8c9e	jsr SCSI_WRITE		;$8c9e- label is for readability also.
 	jsr $c000		; apparently there's an error handler loaded to $c000
 L8ca6	lda L8cef		;Read or write is successful.  Let's check flag L8cef
 	beq L8cbf		; zero.  Return
-	inc L95a2		; increment L95a2
+	inc L95a2		;increment L95a2
 	bne L8cb3		; no overflow, proceed
-	inc L95a0		; increment L95a0
-L8cb3	lda L95a2		; get L95a2
-	sta LBA_ls		;  copy to LBA_ls
-	lda L95a0		; get L95a0
-	sta LBA_ms		;  copy to LBA_ms
-L8cbf	rts			; return
+	inc L95a0		;increment L95a0
+L8cb3	lda L95a2		;get L95a2
+	sta LBA_ls		; copy to LBA_ls
+	lda L95a0		;get L95a0
+	sta LBA_ms		; copy to LBA_ms
+L8cbf	rts			;return
 
 Zero_1000_2xA ; $8cc0
 	; clear from $1000 to 2x .A and return
@@ -1682,12 +1687,31 @@ ReadTable; $8d07
 L8d12	cmp #$00		; set zero flag
 	rts			; return
 
+
+; ****************************
+; * 
+; * sg_loadfile:  Load a file into memory and write to LU 10
+; * 
+; * Inputs:
+; * 	L8cf1:		Special edit flag (FIXME: not understood)
+; * 	LBA_ls:		First sector of file (FIXME: This is guesswork)
+; * 	TransCt:	Number of sectors to write for this file
+; * 	A register:	Special case flag (FIXME: not fully understood)
+; * 			$1a for luachange.r
+; * 			$22 for scramidn.r
+; * 	X register:	Low byte of address to filename
+; * 	Y register:	High byte of address to filename
+; * 
+; * Because SCSI_WRITE will send data until the target says to stop,
+; *  an arbitrary number of sequential sectors can be sent to it.
+; * sg_LoadFile takes advantage of this to write files to the drive with ease.
+
 sg_LoadFile ;$8d15
 	sta LBA_ls		;Save .A for later (restored in sg_LoadFileSuccess)
 	stx ptr_fname		;stash addr of filename to $bb as if SETNAM was called
 	sty ptr_fname+1
-	lda TransCt
-	jsr Zero_1000_2xA	;zero from $1000 to 2x .A
+	lda TransCt		;Get expected file size
+	jsr Zero_1000_2xA	; clear memory before loading
 	lda #$0a
 	sta len_fname		;filename length is 10 for all of the files this routine handles
 	lda #$08		; drive 8
@@ -1698,69 +1722,77 @@ sg_LoadFile ;$8d15
 	ldy #$10		;load address is $1000
 	cli
 	lda #$00
-	jsr LOAD		; LOAD "fname",8 to $1000
+	jsr LOAD		;LOAD "fname",8 to $1000
 	bcc sg_LoadFileSuccess	; all good, continue
 	jmp Break2		; something broke.  Instead of telling the user lets just drop out.
 
-sg_LoadFileSuccess
+sg_LoadFileSuccess		; we have the file in memory, now put it in the LtK filesystem.
 	lda #$10
 	sta BufPtrH
 	sta $f8
 	ldx #$00
 	stx BufPtrL
-	stx $f7			; start at $1000
+	stx $f7			; start sending data from $1000
 	stx LBA_ms
-	lda L8cf1		; check flag (FIXME whats this)
-	beq L8d56		; flag clear? Skip store 0 to 11ff
+	lda L8cf1		; get special-case flag
+	beq SGLF_1		;  flag clear. Skip store 0 to $11ff
 
-	stx $11ff
-L8d56	sei
-	lda L8cf1
-	beq L8dab
-	lda LBA_ls		; restore .A (saved in sg_LoadFile)
-	cmp #$1a		; check .A tag ($1a = fnam_LuChange)
-	bne L8d75
-	lda lab_8228
-	beq L8d8e
+	stx $11ff		; Store 0 at program offset $1ff
+SGLF_1	sei
+	lda L8cf1		; get special-case flag
+	beq SGLF_W		;  zero: just write the file to disk
+	lda LBA_ls		; restore .A to find out what file we're processing
+
+	cmp #$1a		;  check .A ($1a = fnam_LuChange)
+	bne L8d75		;   no match, skip to next check
+	; special handling for luchange.r is done here.
+	lda lab_8228		; get flag from lab_8228 (FIXME: whats this)
+	beq L8d8e		;  zero? skip all this work
 	ldy #$31		; start at $844b
-L8d6a	lda tab_841a,y		; copy from 841a
+L8d6a	lda tab_841a,y		;  copy from 841a
 	sta $1004,y
-	dey			; to $1004
-	bpl L8d6a
-	bmi L8d8e		; and continue.
-L8d75	cmp #$22		;check .A ($22 = fname_ScraMidn)
-	bne L8d8e
-	jsr $1000		; call it.
+	dey			;  to $1004
+	bpl L8d6a		;  and continue
+	bmi L8d8e		; Skip to checksum
 
-	ldy #$00
-L8d7e	lda $1000,y		; Get original byte from loaded file
-	tax
-	lda #$ea		; NOP opcode
-	sta $1000,y		; overwrite beginning of scramidn.r
-	iny
-	inx
-	bne L8d7e
+L8d75	cmp #$22		;check .A ($22 = fname_ScraMidn)
+	bne L8d8e		; no match, skip to writing the file to disk.
+	; special handling of scramidn.r is done here.
+	jsr $1000		; call it.
+	ldy #$00		; init index
+	; FIXME:  Will need to correctly disassemble and comment scramidn.asm 
+	;  to decypher the rest of this segment.  It's likely that scramidn
+	;  modifies itself when called.
+L8d7e	lda $1000,y		; Get count of bytes to change
+	tax			;  Store in counter
+	lda #$ea		; NOP
+	sta $1000,y		;  replace the byte in the file 
+	iny			;  point to next byte
+	inx			;  increment counter
+	bne L8d7e		;  more to do?
 	stx $11ff		; x is zero now
-L8d8e	lda #$00		; not $1a or $22 so go right here.
-	tay
-	ldx #$02		; 2a pages to do math on
-L8d93				; CALCULATE CHECKSUM?! 
-	clc
-	adc ($f7),y		; Add up
+
+	; all optional file handling has been done.  Lets check some integrity (FIXME: right?)
+L8d8e	lda #$00		; Seed our checksum with a 0
+	tay			;  clear index
+	ldx #$02		;  Checksum first two pages
+
+L8d93	clc			;   no overflows please
+	adc ($f7),y		;    sum up next byte
 	iny
-	bne L8d93
-	inc $f8
-	dex			; pages done?
-	bne L8d93		; no, loop
-	sta $11ff		; store result
-	sec			; prep for subtract
-	lda LBA_ls		; Restore original .A from caller
-	sbc $11ff		; subtract
-	sta $11ff		; and save
-L8dab	jsr SCSI_WRITE		; write scsi sector
-	bcc L8db3		; ok? return.
+	bne L8d93		;    for 256 bytes
+	inc $f8			;   increment pointer high byte
+	dex			;   enough pages done?
+	bne L8d93		;    no, loop
+	sta $11ff		;  store result in magic spot
+	sec			;  prep for subtract
+	lda LBA_ls		;  Restore original .A from caller
+	sbc $11ff		;   subtract sector location of file (lowbyte)
+	sta $11ff		;   and save
+SGLF_W	jsr SCSI_WRITE		;  write scsi sector(s) to disk starting at LBA_ls
+	bcc L8db3		;   ok? return.
 	jsr $c000		; jump to error handler at $c000
-L8db3	rts
+L8db3	rts			; file's on disk now.  Return to caller
 
 fname_Findfile ;$8db4
 	.screen "FINDFILE.R"
