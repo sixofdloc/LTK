@@ -29,6 +29,7 @@ call build luchange
 call build messfile
 call build new
 call build openrand
+call build recover
 call build renum
 call build s
 call build sb2
