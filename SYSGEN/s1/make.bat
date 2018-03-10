@@ -16,6 +16,7 @@ call build diag
 call build dir
 call build dosoverly
 call build errorhan
+call build fastcopy
 call build fastcpqd
 call build fetch
 call build fileprot
