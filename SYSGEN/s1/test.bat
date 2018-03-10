@@ -28,6 +28,7 @@ call test_file luchange luchange.r
 call test_file messfile messfile.r
 call test_file new new.r
 call test_file openrand openrand.r
+call test_file query query.r
 call test_file recover recover.r
 call test_file renum renum.r
 call test_file s s.r
