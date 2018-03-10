@@ -26,8 +26,10 @@ call build l
 call build ltkernal
 call build lu
 call build luchange
+call build merge
 call build messfile
 call build new
+call build oops
 call build openrand
 call build query
 call build recover

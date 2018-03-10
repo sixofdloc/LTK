@@ -25,8 +25,10 @@ call test_file l l.r
 call test_file ltkernal ltkernal.r
 call test_file lu lu.r
 call test_file luchange luchange.r
+call test_file merge merge.r
 call test_file messfile messfile.r
 call test_file new new.r
+call test_file oops oops.r
 call test_file openrand openrand.r
 call test_file query query.r
 call test_file recover recover.r
