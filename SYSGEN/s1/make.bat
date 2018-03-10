@@ -17,6 +17,7 @@ call build dir
 call build dosoverly
 call build errorhan
 call build fastcpqd
+call build fetch
 call build fileprot
 call build findfil2
 call build go64boot_cd00

@@ -21,6 +21,7 @@ errorhan.r		$93e0		YES
 fileprot.r 		$9f00		YES      
 findfil2.r		$93e0		YES       
 fastcpqd.r		$1c20		YES       
+fetch.r          	$c000		YES
 go64boot.r 		$8000		YES      
 initc064.r 		$95e0		YES      
 l.r   			$95e0		YES           
@@ -64,7 +65,6 @@ di.r          		$95e0		NO
 dump.r   		$c000		NO        
 era.r			$95e0		NO            
 fastcopy.r		$95e0		NO       
-fetch.r          	$c000		NO
 
 
 UNKNOWN, STILL TO PROCESS

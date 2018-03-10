@@ -17,6 +17,7 @@ call test_file dir dir.r
 call test_file dosoverly dosovrly.r
 call test_file errorhan errorhan.r
 call test_file fastcpqd fastcpqd.r
+call test_file fetch fetch.r
 call test_file fileprot fileprot.r
 call test_file findfil2 findfil2.r
 call test_file go64boot go64boot.r
