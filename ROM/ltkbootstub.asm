@@ -1,4 +1,23 @@
 
+;**************************************
+;*   _  _    _     _                    _         _           _                             
+;*  | || |_ | | __| |__    ___    ___  | |_  ___ | |_  _   _ | |__     __ _  ___  _ __ ___  
+;*  | || __|| |/ /| '_ \  / _ \  / _ \ | __|/ __|| __|| | | || '_ \   / _` |/ __|| '_ ` _ \ 
+;*  | || |_ |   < | |_) || (_) || (_) || |_ \__ \| |_ | |_| || |_) |_| (_| |\__ \| | | | | |
+;*  |_| \__||_|\_\|_.__/  \___/  \___/  \__||___/ \__| \__,_||_.__/(_)\__,_||___/|_| |_| |_|
+;*                                                                                          
+
+
+
+
+; ****************************
+; * 
+; * VIM settings for David.
+; * 
+; * vim:syntax=a65:hlsearch:background=dark:ai:
+; * 
+; ****************************
+
 DOSSTART            
 	clc
 	bcc STARTUP
@@ -15,14 +34,14 @@ sncopyloop
 	bpl sncopyloop
                     
 	jsr Delay
+
 	ldx #$08
 	lda #$01
-	sta $df00
-Lcd20
-	cmp $df00
-	bne IOAddrRewrite
+	sta HA_data
+Lcd20	cmp HA_data	; Look for the host adapter at IO2
+	bne IOAddrRewrite ; Not found, look at IO1
 	clc
-	rol $df00
+	rol HA_data
 	rol a
 	dex
 	bne Lcd20
@@ -38,16 +57,15 @@ IOAddrRewrite
 	ldx #$08
 	lda #$01
 	sta $de00
-Lcd3b
-	cmp $de00
-	bne ShutdownAndReboot_1
+Lcd3b	cmp $de00	; Look for the host adapter at IO1
+	bne ShutdownAndReboot_1; Not found, turn things off and reboot
 	clc
 	rol $de00
 	rol a
 	dex
 	bne Lcd3b
 	
-	lda #<DOSSTART
+	lda #<DOSSTART	; Prep to rewrite this boot stub for IO1 instead of IO2
 	sta $31
 	lda #>DOSSTART
 	sta $32
@@ -69,6 +87,7 @@ IOAddrRewrite_loop
 	beq CheckForIO2Addr
 	cmp #OPCODE_BIT
 	bne NoOpcodeRewrite
+
 CheckForIO2Addr
 	jsr GetByteAtZP31Y
 	cmp #$04
@@ -85,9 +104,9 @@ CheckForIO2Addr
 	sta $31
 	bcc Lcd8f
 	inc $32
-Lcd8f
-	clc
+Lcd8f	clc
 	bcc IOAddrRewrite_loop
+
 NoOpcodeRewrite
 	inc $31
 	bne Lcd98
@@ -103,37 +122,73 @@ Lcd98
 	
 	;so any needed changes from IO2->IO1 in our DOS are done now, and we carry on 
 NoRelocate
-	sta $0400
+	sta $0400	; Host adapter address high page gets stored at $0400
 	lda #$30
-	sta $df03
+			;0011 0000
+			;00	; irq off
+			;110	; cb2 low
+			;0	; ddr on
+			;00	; cb1 high
+	sta HA_ctrl_cr
 	lda #$70
-	sta $df02
+	sta HA_ctrl
 	lda #$34
-	sta $df03
+			;0011 0100
+			;00	; irq off
+			;110	; cb2 low
+			;1	; port register on
+			;00	; cb1 high
+	sta HA_ctrl_cr
 	lda #$40
-	sta $df02
+	sta HA_ctrl
 	lda #$3c
-	sta $df03
+                        ;0011 1100
+                        ;00     ; irq off
+                        ;111    ; cb2 high
+                        ;1      ; port register on
+                        ;00     ; cb1 high
+
+	sta HA_ctrl_cr
 	lda #$30
-	sta $df01
+			;0011 0000
+			;00	; irq off
+			;110	; ca2 low
+			;0	; ddr on
+			;00	; ca1 high
+
+	sta HA_data_cr
 	lda #$00
-	sta $df00
+	sta HA_data
 	lda #$34
-	sta $df01
-	jsr Scf0c
+			;0011 0100
+                        ;0011 0100
+                        ;00     ; irq off
+                        ;110    ; ca2 low
+                        ;1      ; port register on
+                        ;00     ; ca1 high
+
+	sta HA_data_cr
+	jsr SCSI_SELECT
+
 	lda #$7f
-	sta $df00
+	sta HA_data
 	lda #$60
-	sta $df02
+	sta HA_ctrl
+
 	ldx #$00
-Lcde0
-	inx
+Lcde0	inx
 	bne Lcde0
-Lcde3
-	inx
+Lcde3	inx
 	bne Lcde3
+
 	lda #$40
-	sta $df02
+                        ;0010 0000
+                        ;00     ; irq off
+                        ;100    ; handshake [ca2: pulse low on read; cb2: go low on write]
+                        ;0      ; ddr on
+                        ;00     ; ca1 high
+
+	sta HA_ctrl
 	lda #$30
 	sta $31
 	lda #$00
@@ -142,10 +197,10 @@ Lcde3
 Lcdf5
 	jsr Delay
 Lcdf8
-	lda $df02
+	lda HA_ctrl
 	and #$08
 	bne Lce04
-	jsr Scf71
+	jsr SCSI_ACK
 	bne Lcdf8
 Lce04
 	jsr SCSI_TEST_UNIT_READY
@@ -174,7 +229,7 @@ Lce23
 Lce30               
 	beq ShutdownAndReboot
 Lce32
-	inc CDBBuffer+4  ;increment transfer length?
+	inc CDBBuffer+4  ;increment transfer length
 	
 	lda #$e0    ; read operation destination is $91e0
 	sta $31
@@ -182,9 +237,9 @@ Lce32
 	sta $32
 	
 	lda #$34
-	sta $df03
+	sta HA_ctrl_cr
 	
-	lda $0400
+	lda $0400	; dummy read: SCSI_READ immediately reloads .A
 	sta $9e43
 	jsr SCSI_READ	
 	
@@ -237,9 +292,21 @@ lockUp
                     
 ShutdownAndReboot
 	lda #$3c
-	sta $df03
+                        ;0011 1100
+                        ;00     ; irq off
+                        ;111    ; ca2 high
+                        ;1      ; port register on
+                        ;00     ; ca1 high
+
+	sta HA_ctrl_cr
 	lda #$40
-	sta $df02
+                        ;0010 0000
+                        ;00     ; irq off
+                        ;100    ; handshake [ca2: pulse low on read; cb2: go low on write]
+                        ;0      ; ddr on
+                        ;00     ; ca1 high
+
+	sta HA_ctrl
 	lda #$00
 	sta $8004
 	jmp $fce2
@@ -269,12 +336,12 @@ SCSI_REZERO_UNIT
 SCSI_TEST_UNIT_READY
 	lda #$00
 	sta CDBBuffer
-	jsr Scf0c
+	jsr SCSI_SELECT
 	bne Lcf0b
 	ldx #$06
 	ldy #$00
 	jsr SendCDB
-	jsr Scf7f
+	jsr SCSI_Done
 	txa
 	rts
                     
@@ -282,112 +349,115 @@ SCSI_TEST_UNIT_READY
 SCSI_READ
 	lda #SCSI_OPCODE_READ
 	sta CDBBuffer
-	jsr Scf0c
-	bne Lcf0b
-	ldx #$06    ;length of this cdb
-	ldy #$00    ;start at beginning of CDB buffer
-	jsr SendCDB
+	jsr SCSI_SELECT	; select disk
+	bne Lcf0b	; return z=1 if fail
+	ldx #$06	; length of this cdb
+	ldy #$00	; start at beginning of CDB buffer
+	jsr SendCDB	; send command
 	ldy #$00
-	jsr Scf58
+	jsr HA_SetDatIn	; get off the data bus
 	lda #$2c
-	sta $df01
-Lcef2
-	lda $df02
-	bmi Lcef2
+                        ;0010 1100
+                        ;00     ; irq off
+                        ;101    ; handshake [ca2: pulse low on read; cb2: go low on write]
+                        ;1      ; port register on
+                        ;00     ; ca1 high
+
+	sta HA_data_cr
+Lcef2	lda HA_ctrl	; check for REQ from hdd (ready to go)
+	bmi Lcef2	;  wait for it
 	and #$04
 	beq Lcf07
-	lda $df00	;read a byte from the PIA?
-	sta ($31),y	;store it in our outbuffer
-	iny
+	lda HA_data	; get a byte from the drive
+	sta ($31),y	; store it in our outbuffer
+	iny		; increment write index
 	bne Lcef2
-	inc $32
-	bne Lcef2
-Lcf07
-	jsr Scf7f
+	inc $32		; and optionally fix high byte of pointer
+	bne Lcef2	; should never fail to loop (SHOULD...)
+
+Lcf07	jsr SCSI_Done	; clean up and get status
 	txa
-Lcf0b
-	rts
+Lcf0b	rts
                     
-Scf0c               
-	lda #$3c
+SCSI_SELECT
+	lda #$3c	; retries
 	sta $34
-	jsr Scf5b
-	lda #$fe
-	sta $df00
-	lda #$50
-	sta $df02
-Lcf1d
-	ldx #$00
-Lcf1f
-	lda $df02
-	and #$08
-	beq Lcf3a
+	jsr HA_SetDataOut
+	lda #$fe	;1111 1110 = select scsi id 0
+	sta HA_data	; assert target id (=0)
+	lda #$50	; assert atn+sel (ltk_hw_equates)
+	sta HA_ctrl
+Lcf1d	ldx #$00
+Lcf1f	lda HA_ctrl	; off the bus
+	and #$08	; check for req
+	beq Lcf3a	; asserted, jump out of the loop
 	inx
-	bne Lcf1f
+	bne Lcf1f	; keep looking for a bit
 	dec $34
-	bne Lcf35
-	lda #$40
-	sta $df02
-	jmp ShutdownAndReboot
-Lcf35
-	jsr Delay
-	beq Lcf1d
-Lcf3a
-	ora #$40
-	sta $df02
+	bne Lcf35	; delay a bit and retry
+	lda #$40	; take the adapter offline
+	sta HA_ctrl
+	jmp ShutdownAndReboot ; and fail.
+
+Lcf35	jsr Delay	; delay
+	beq Lcf1d	; retry selection
+
+Lcf3a	ora #$40	; assert c/d, we have the target's attention
+	sta HA_ctrl
 	lda #$00
-	rts
+	rts		; return with z=1
                     
 SendCDB   ;# of bytes in x, offset in y
 	jsr CTSWait
 	lda CDBBuffer,y
 	; It inverts all writes to the drive? wtf
-	eor #$ff
-	sta $df00
-	jsr Scf71
+	eor #$ff	; the host adapter inverts data on the way out, so invert it ahead of time to fix.
+	sta HA_data
+	jsr SCSI_ACK	; pulse ACK so the hdd knows there's a byte on the bus
 	iny
 	dex
 	bne SendCDB
 	jsr CTSWait
 	rts
                     
-Scf58
+HA_SetDatIn
 	ldx #$00
-	.byte $2c
-Scf5b
+	.byte $2c	; skip ldx #ff
+HA_SetDataOut
 	ldx #$ff
-	lda #$38
-	sta $df01
-	stx $df00
-	lda #$3c
-	sta $df01
+	lda #$38	; turn DDR on
+	sta HA_data_cr
+	stx HA_data
+	lda #$3c	; turn DDR off
+	sta HA_data_cr
 	rts
                     
 CTSWait
-	lda $df02
+	lda HA_ctrl
 	bmi CTSWait
 	rts
                     
 	; Assuming this is some PIA twiddlery to handle the actual send to the bus
-Scf71
-	lda #$2c
-	sta $df01
-	lda $df00
-	lda #$3c
-	sta $df01
+SCSI_ACK
+	lda #$2c	; enable pulse on reading the bus
+	sta HA_data_cr
+	lda HA_data
+	lda #$3c	; back to normal (no pulse on read)
+	sta HA_data_cr
 	rts
                     
-Scf7f
-	jsr Scf58
-	jsr Scf88
+SCSI_Done
+	jsr HA_SetDatIn
+	jsr SCSI_GetStatus
 	and #$9f
 	tax
-Scf88
+
+SCSI_GetStatus
 	jsr CTSWait
-	lda $df00
+	lda HA_data
 	eor #$ff
 	tay
-	jsr Scf71
+	jsr SCSI_ACK
 	tya
 	rts
                     
