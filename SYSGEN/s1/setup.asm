@@ -1765,6 +1765,8 @@ SGLF_1	sei
 
 	cmp #$1a		;  check .A ($1a = fnam_LuChange)
 	bne L8d75		;   no match, skip to next check
+
+	;----------------------------------------------
 	; special handling for luchange.r is done here.
 	lda lutable_ok		; get flag from lutable_ok (FIXME: whats this)
 	beq L8d8e		;  zero? skip all this work
@@ -1777,21 +1779,24 @@ L8d6a	lda luchange_table,y	;  copy from our luchange table
 
 L8d75	cmp #$22		;check .A ($22 = fname_ScraMidn)
 	bne L8d8e		; no match, skip to writing the file to disk.
+
+	;----------------------------------------------
 	; special handling of scramidn.r is done here.
 	jsr $1000		; call it.
 	ldy #$00		; init index
 	; FIXME:  Will need to correctly disassemble and comment scramidn.asm 
 	;  to decypher the rest of this segment.  It's likely that scramidn
 	;  modifies itself when called.
-L8d7e	lda $1000,y		; Get count of bytes to change
-	tax			;  Store in counter
-	lda #$ea		; NOP
+L8d7e	lda $1000,y		; Run until we pick up an $ff (see inx:bne below)
+	tax			;  Keep the byte handy
+	lda #$ea		; Set up a NOP opcode
 	sta $1000,y		;  replace the byte in the file 
-	iny			;  point to next byte
+	iny			;  next byte
 	inx			;  increment counter
-	bne L8d7e		;  more to do?
+	bne L8d7e		;  are we at zero? (did we read $ff earlier?)  If not loop.
 	stx $11ff		; x is zero now
 
+	;----------------------------------------------
 	; all optional file handling has been done.  Lets check some integrity (FIXME: right?)
 L8d8e	lda #$00		; Seed our checksum with a 0
 	tay			;  clear index

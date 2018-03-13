@@ -1,5 +1,24 @@
 
-;scramidn.r.prg
+;**********************************************************
+;*
+;*                                _     __             
+;*    ___ ____ ____ ___ _ __ _   (_)___/ /___      ____
+;*   (_-</ __// __// _ `//  ' \ / // _  // _ \ _  / __/
+;*  /___/\__//_/   \_,_//_/_/_//_/ \_,_//_//_/(_)/_/   
+;*                                                     
+;* Scramidn.r has three sections:
+;*  1: Some init code that's called by setup.asm to obfuscate a copyright message and then overwritten with NOPs
+;*  2: Some code to deobfuscate the same copyright message at some other date
+;*  3: The copyright message
+
+; ****************************
+; * 
+; * VIM settings for David.
+; * 
+; * vim:syntax=a65:hlsearch:background=dark:ai:
+; * 
+; ****************************
+
         .include "../../include/ltk_dos_addresses.asm"
         .include "../../include/ltk_equates.asm"
 
@@ -10,16 +29,18 @@
 		; Previously it was disassembled to $93e0 (LTK_MiniSubExeArea).
 		; The file's original on-disk origin is $4000
  
+;**********************************************************
+;*
+;* Section 1:  Obfuscate the copyright message
+;*  This is called by setup.asm during sysgen.
+;*
+;*  It appears to use an 8bitx8byte rotation transorm
+;*   to hide the copyright message on disk.
+;*
+
 	; START gets called by setup.asm during SYSGEN.
 	; Ultimately scramidn.r gets loaded to sector $22.
 	; [ref: setup.asm:sg_LoadFile]
-
-	; Excerpt from setup.asm, after scramidn.r is loaded to $1000
-	; L8d75   cmp #$22                ;check .A ($22 = fname_ScraMidn)
-        	; bne L8d8e               ; no match, skip to writing the file to disk.
-        	; ; special handling of scramidn.r is done here.
-        	; jsr $1000               ; call it.
-
 START	lda #$14	; 20 groups (of 8 bytes, see below)
 	sta $31		; set up group counter
 
@@ -65,9 +86,17 @@ L102c	  sta $940c,y	; save scrambled byte to output.   :: becomes $1120; just be
 			;  beginning of scramidn.r to the first $ff with NOP's after executing it
 			;  but before writing it to disk.
 
-	; This section does not get called by setup.asm and may be used by the DOS.
-	; It looks at first glance like code to undo the rotation above.
+;**********************************************************
+;*
+;* Section 2:  deobfuscate the copyright message
+;*  This is probably called by the DOS to display the copyright message
+;*
+;*  It appears to undo the 8bitx8byte rotation transorm done above.
+;*   to reveal the copyright message on disk.
+;*
 	; FIXME:  Find out where this is loaded and run from so scramidn.r can be finished.
+	;  as this is selfmodifying code it will be difficult at best to re-source it until
+	;  its load address is known.
 
 L103e	lda #$14	; 
 	sta $9452	; 
@@ -97,6 +126,12 @@ L1050	lsr $9500,x	;
 	rts		; 
 	
 	.byte $00,$00 
+
+;**********************************************************
+;*
+;* Section 3: The copyright message
+;*
+
 str_CopyrightMessage	; $1074
 	.text "{Clr}{Return}copyright(c) 1985 fiscal information inc{Return}        "	; 1074
 	.text "designed and written by:{Return}{Return}           "			; 10a7
