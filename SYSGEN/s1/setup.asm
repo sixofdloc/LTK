@@ -151,6 +151,7 @@ L8035	ldx #$00		; And, we're all set.  Lets use our scsi disk!
 	lda #>Sec_buf1
 	sta BufPtrH		; to sector buffer 1
 	jsr SCSI_RD_And_Inc
+
 	lda Sec_buf1+$1e	; check flag in sector 1 offset 1e
 	beq L805e		; zero?
 	cmp #$ac
@@ -161,13 +162,14 @@ L8035	ldx #$00		; And, we're all set.  Lets use our scsi disk!
 L805e	lda #$ff
 	sta Sec_buf1+$1e	; set flag to FF
 	jsr SCSI_WR_And_Inc	; send block back to disk
+
 	ldy #$07		; 8-byte serial number
 	ldx #$00		;  unneeded.
 L806a	lda Serialno,y		;  get serial number from 18,18
 	cmp Sec_buf1+$1f4,y	;  compare with copy from rom?
 	bne L8077		;  fail: print warning
 	dey
-	bpl L806a		;  continueu checking
+	bpl L806a		;  continue checking
 	bmi SerialOK		; success, skip warning and continue.
 
 	;print warning about serial # on drive not matching sysgen disk
@@ -175,13 +177,13 @@ L8077	ldx #<str_SNMismatchWarning
 	ldy #>str_SNMismatchWarning
 	jsr printZTString
 	cli
-L807f
-	jsr GETIN
+L807f	jsr GETIN
 	tax
 	beq L807f		; wait for a key
 	sei
 	cmp #$59		; Y to continue?
 	beq SerialNotOk		;  got it, continue
+
 HA_Fail ;$808a
 	; We end up here if the host adapter can't be found.
 	; Copy a routine to the tape buffer that will
@@ -252,21 +254,21 @@ L80db	lda L841c,y		;  get byte from L841c
 	; 9*6=54 ($36) bytes in the table
 
 	; seems likely that sec buf 1 still has SYSTEMTRACK in it (FIXME)
-L80eb	lda #>$9d02		; 9d02 is the SYSTEMCONFIGFILE sector
+L80eb	lda #>$9d02		; 29d is the SYSTEMCONFIGFILE sector
 	sta LBA_ls
-	lda #<$9d02
+	lda #<$9d02		; the < and > are backwards because SCSI is opposite-endian
 	sta LBA_ms
-	jsr SCSI_RD_And_Inc	; read LBA $9d02 (SYSTEMCONFIGFILE) to buffer 2
+	jsr SCSI_RD_And_Inc	; read LBA $29d (SYSTEMCONFIGFILE) to buffer 2
 	ldy #$0f
-L80fa				; Check for the system config file's presense
-	lda Sec_buf2,y
+
+L80fa	lda Sec_buf2,y		; Check for the system config file's presense
 	cmp fname_SystemConfigFile,y
 	bne L8107		; Mismatch?  Set the flag at DOS_MISSING and sysgen. 
 	dey
 	bpl L80fa		; continue checking
 	bmi L810a		; perfect match.  Leave flag at DOS_MISSING clear and sysgen.
 
-L8107	dec DOS_MISSING
+L8107	dec DOS_MISSING		; tell SYSGEN that the DOS is missing and needs reinstalled.
 	;print message "Please Wait, SYSGEN in progress"
 L810a
 	ldx #<str_SYSGENInProgress
@@ -282,10 +284,10 @@ L810a
 	lda #<Sec_buf1
 	sta BufPtrL
 	lda #>Sec_buf1
-	sta BufPtrH		; to $9c00
+	sta BufPtrH		; to buffer 1
 	jsr SCSI_RD_And_Inc	; Get the SYSTEMTRACK sector
 	ldy #$37
-L812f	lda Drive1_Geometry,y	; copy the remaining drive's geometry
+L812f	lda Drive1_Geometry,y	; copy the remaining drives' geometry
 	sta Sec_buf1+$100,y	;  to sector offset $100
 	dey
 	bpl L812f
@@ -350,7 +352,6 @@ Offline_And_Reset ; $818f
 			; [2]         1   = ddr access [on]
 			; [10]         00 = cb1 ctrl   [disable, high]
 	jmp $fce2	; c64 kernal reset routine
-
 	.byte $00	; This byte must be present to signal the end of Offline_And_Reset.
 
 DetectAndRewrite ; $8198
@@ -361,8 +362,7 @@ DetectAndRewrite ; $8198
 	ldx #$08	; shift 8 times later
 	lda #$01	; set bit 1
 	sta HA_data	; the data port
-L819f
-	cmp HA_data	; same?
+L819f	cmp HA_data	; same?
 	bne L81b3	; No, check at de00.
 	clc		; 
 	rol HA_data	; 
@@ -371,16 +371,13 @@ L819f
 	bne L819f	; Repeat until zero.
 	lda #$df	; HA found at $df00.
 	bne L8223	;  Return to START [always taken]
-L81b0
-	jmp HA_Fail	;$808a	
+L81b0	jmp HA_Fail	;$808a	
 
 	; We didn't find it at DF00, check DE00.
-L81b3
-	ldx #$08	; See description earlier-
+L81b3	ldx #$08	; See description earlier-
 	lda #$01	;  this does the same at $de00.
 	sta $de00	
-L81ba
-	cmp $de00	
+L81ba	cmp $de00	
 	bne L81b0	; no host adapter found.  Fail out and reset.
 	clc
 	rol $de00	
@@ -414,39 +411,36 @@ RewriteLoop ;$81cf
 	cmp #$2c	; bit abs?
 	bne L8211	; none of the above; check next.
 
-L81f0			; Here, we check for DF00-DF04 operand.
-	jsr LDA_fb_Yinc ; Got a hit; get operand low byte
+			; Here, we check for DF00-DF04 operand.
+L81f0	jsr LDA_fb_Yinc ; Got a hit; get operand low byte
  	cmp #$04	;  is the target above $xx04?
  	bcs L8211	;  Yes, continue searching
  	jsr LDA_fb_Yinc	; Get operand high byte
  	cmp #$df	;  targeting DFxx?
  	bne L8211	;  No, check next.
+
  	lda #$de	;  Yes: set up for DExx
  	dey		;  back up one byte
  	sta ($fb),y	;  rewrite the program
-
  	lda $fb		; Get pointer
  	clc
  	adc #$03	;  skip to next opcode
  	sta $fb		;  save
  	bcc L820e	;  continue if no overflow
  	inc $fc		;  fix high byte
-L820e
-	clc
+L820e	clc
  	bcc RewriteLoop	;  and continue searching
-L8211
-	inc $fb		; incremnet high byte
+
+L8211	inc $fb		; incremnet high byte
  	bne L8217	;  and ocntinue searching
  	inc $fc		;  fix high byte
-L8217
-	lda $fc		; get high byte
+L8217	lda $fc		; get high byte
  	cmp #$a0	;  Above our program space?
  	bne RewriteLoop	;  No, continue searching.
  	lda $fb		; Check low byte
  	cmp #$00	
  	bcc RewriteLoop	;  continue searching
-L8223
-	rts		; done rewriting the program.
+L8223	rts		; done rewriting the program.
 
 LDA_fb_Yinc
 	; Get a byte via (fb),y and iny.
@@ -470,12 +464,11 @@ CHECKSUM
 	lda #<Sec_buf2
 	sta BufPtrL
 	lda #>Sec_buf2
-	sta BufPtrH	; buffer at $9e00
+	sta BufPtrH	; buffer #2
 	ldx #$01
 	stx TransCt	; one sector	
 	ldy #$00
-L823c
-	stx LBA_ls
+L823c	stx LBA_ls
 	sty LBA_ms
 	jsr SCSI_RD_And_Inc
 	lda #<Sec_buf2
@@ -484,8 +477,7 @@ L823c
 	sta $fc
 	ldy #$00
 	ldx #$02
-L8251
-	lda ($fb),y
+L8251	lda ($fb),y
 	pha
 	clc
 	adc L8005
@@ -504,8 +496,7 @@ L8251
 	inc L8007
 	bne L827a
 	inc L8008
-L827a
-	sta L800a
+L827a	sta L800a
 	iny
 	bne L8251
 	inc $fc
@@ -516,44 +507,36 @@ L827a
 	inx
 	bne L828f
 	iny
-L828f
-	tya
+L828f	tya
 	bne L82a1
 	cpx #$1a
 	bne L8297
 	inx
-L8297
-	cpx #$ee
+L8297	cpx #$ee
 	bne L82ad
 	ldx #$ef
 	ldy #$01
 	bne L82ad
-L82a1
-	cpy #$02
+L82a1	cpy #$02
 	bne L82ad
 	cpx #$9e
 	bne L82ad
 	ldx #$2e
 	ldy #$03
-L82ad
-	cpy Sec_buf1+$94
+L82ad	cpy Sec_buf1+$94
 	beq L82b5
-L82b2
-	jmp L823c
+L82b2	jmp L823c
 
-L82b5
-	cpx Sec_buf1+$95
+L82b5	cpx Sec_buf1+$95
 	bne L82b2
 	ldy #$05
-L82bc
-	lda L9bb1,y
+L82bc	lda L9bb1,y
 	cmp L8005,y
 	bne L82c8
 	dey
 	bpl L82bc
 	iny
-L82c8
-	rts
+L82c8	rts
 
 str_SYSGENInProgress ;$82c9
 	.text "{clr}{return}{rvs on}please wait...sysgen in process{return}{return}"
@@ -591,25 +574,25 @@ L841c	.byte $d0,$d0,$00,$c0,$50,$60	; 1 $1e,$40,$c8,$11,$00,$e6
 
 SYSGEN
 	lda #$ff
-	sta SCSI_RW_IncFlag ; increment LBA after work
+	sta SCSI_RW_IncFlag	; increment LBA after work
 	sta L8cf0
-	sta SGLF_NoMods	; modify files while loading by default
-	ldy Drive0_Heads ; mulitply drive0_heads by...
+	sta SGLF_NoMods		; modify files while loading by default
+	ldy Drive0_Heads	; mulitply drive0_heads by...
 	ldx #$00
-	stx Mul_o2l	; reset low byte of input
-	lda Drive0_Sectors ; ...drive0_sectors
-	jsr Multiply	; Multiply heads*sectors
-	sta L8ce4	; save lsb
+	stx Mul_o2l		; reset low byte of input
+	lda Drive0_Sectors	; ...drive0_sectors
+	jsr Multiply		; Multiply heads*sectors
+	sta L8ce4		; save lsb
 	ldy #$00
-	sty L963e	; clear divide operand
+	sty L963e		; clear divide operand
 	ldy #$08
-	jsr Divide	; divide
-	cpy #$00	; Set flags based on remainder
-	clc		; clear carry
-	beq L847e	; remainder=0?
-	sec		;  No, set carry
-L847e	adc #$03	; add 3
-	sta L8ce5	;  save to L8ce5
+	jsr Divide		; divide
+	cpy #$00		; Set flags based on remainder
+	clc			; clear carry
+	beq L847e		; remainder=0?
+	sec			;  No, set carry
+L847e	adc #$03		; add 3
+	sta L8ce5		;  save to L8ce5
 	lda #$00
 	sta L963e
 	lda #$f8
@@ -632,7 +615,7 @@ L84aa
 	sta Sec_buf1,x		; Copy 'DISCBITMAP' to sector
 	dex
 	bpl L84aa
-	lda L8ce6		
+	lda L8ce6
 	sta Sec_buf1+$13
 	lda L8ce5
 	sta Sec_buf1+$15
@@ -1782,6 +1765,8 @@ SGLF_1	sei
 
 	cmp #$1a		;  check .A ($1a = fnam_LuChange)
 	bne L8d75		;   no match, skip to next check
+
+	;----------------------------------------------
 	; special handling for luchange.r is done here.
 	lda lutable_ok		; get flag from lutable_ok (FIXME: whats this)
 	beq L8d8e		;  zero? skip all this work
@@ -1794,21 +1779,24 @@ L8d6a	lda luchange_table,y	;  copy from our luchange table
 
 L8d75	cmp #$22		;check .A ($22 = fname_ScraMidn)
 	bne L8d8e		; no match, skip to writing the file to disk.
+
+	;----------------------------------------------
 	; special handling of scramidn.r is done here.
 	jsr $1000		; call it.
 	ldy #$00		; init index
 	; FIXME:  Will need to correctly disassemble and comment scramidn.asm 
 	;  to decypher the rest of this segment.  It's likely that scramidn
 	;  modifies itself when called.
-L8d7e	lda $1000,y		; Get count of bytes to change
-	tax			;  Store in counter
-	lda #$ea		; NOP
+L8d7e	lda $1000,y		; Run until we pick up an $ff (see inx:bne below)
+	tax			;  Keep the byte handy
+	lda #$ea		; Set up a NOP opcode
 	sta $1000,y		;  replace the byte in the file 
-	iny			;  point to next byte
+	iny			;  next byte
 	inx			;  increment counter
-	bne L8d7e		;  more to do?
+	bne L8d7e		;  are we at zero? (did we read $ff earlier?)  If not loop.
 	stx $11ff		; x is zero now
 
+	;----------------------------------------------
 	; all optional file handling has been done.  Lets check some integrity (FIXME: right?)
 L8d8e	lda #$00		; Seed our checksum with a 0
 	tay			;  clear index
