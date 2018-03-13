@@ -34,6 +34,7 @@
 	.include "../../include/kernal.asm"
 	.include "../../include/zeropage.asm"
 	.include "../../include/ltk_equates.asm"
+	.include "../../include/ltk_hw_equates.asm"
 
 ; ****************************
 ; * 
@@ -44,26 +45,6 @@
 BASIC_LoadAddr	=$0801
 
 	; FIXME: Should we make an ltk_hwequates or add these to the ltk_equates file?
-HA_data    =$df00	; SCSI data port: port or ddr
-	; Control port bit map for port A (data):
-	; bit	use	likelyhood
-	; ca1
-	; ca2	ACK	90%
-HA_data_cr =$df01	; SCSI data port control reg
-HA_ctrl    =$df02	; SCSI control port
-        ; control port bit map: To be verifed (FIXME etc)
-	; bit	use	likelyhood
-        ;  0		
-        ;  1		
-        ;  2	C/D	60%	
-        ;  3	BSY	90%
-        ;  4	SEL	50%
-        ;  5		
-        ;  6	ATN	50%
-        ;  7	REQ	60%
-	; cb1
-	; cb2
-HA_ctrl_cr =$df03	; SCSI control port control reg
 
 Sec_buf1 =$9c00		; Sector buffer #1
 Sec_buf2 =$9e00		; Sector buffer #2
