@@ -8,7 +8,8 @@
 ;*
 ;* Scramidn.r has three sections:
 ;*  1: Runs at $1000 during sysgen.
-;*     Some init code that's called by setup.asm to obfuscate a copyright message and then overwritten with NOPs
+;*     Some init code that's called by setup.asm to obfuscate a copyright message.
+;*     After sysgen executes this code it overwrites the section from ENCODE to just before DECODE with NOPs.
 ;*  2: Runs at LTK_MiniSubExeArea during normal operation
 ;*     Some code to deobfuscate the same copyright message at some other date
 ;*  3: The copyright message.  This gets encoded by section 1 during sygen, and decoded by secion 2 during runtime.
@@ -25,7 +26,7 @@
 	.include "../../include/ltk_dos_addresses.asm"
 	.include "../../include/ltk_equates.asm"
 
-	; BIG NOTE: This file will currently fail binary comparison as the load
+	; FIXME: This file will currently fail binary comparison as the load
 	;  address is incorrect.  The rest was verified to match.
 
 	*=$1000 ; This program is executed from $1000 by setup.asm during sysgen.
@@ -40,10 +41,9 @@
 ;*  It appears to use an 8bitx8byte rotation transorm
 ;*   to hide the copyright message on disk.
 ;*
+;*  This section is overwritten with NOPs by setup.asm during SYSGEN.
+;*
 
-	; START gets called by setup.asm during SYSGEN.
-	; Ultimately scramidn.r gets loaded to sector $22.
-	; [ref: setup.asm:sg_LoadFile]
 ENCODE	lda #$14	; 20 groups (of 8 bytes, see below)
 	sta $31		; set up group counter
 
