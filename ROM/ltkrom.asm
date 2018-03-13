@@ -19,6 +19,7 @@
 ; ****************************
 
 	.include "../include/misc_equates.asm"
+	.include "../include/ltk_hw_equates.asm"
 	
 	
 	*= $8000
