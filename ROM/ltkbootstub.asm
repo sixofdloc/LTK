@@ -6,8 +6,9 @@
 ;*  | || |_ |   < | |_) || (_) || (_) || |_ \__ \| |_ | |_| || |_) |_| (_| |\__ \| | | | | |
 ;*  |_| \__||_|\_\|_.__/  \___/  \___/  \__||___/ \__| \__,_||_.__/(_)\__,_||___/|_| |_| |_|
 ;*                                                                                          
-
-
+;* This program initializes the host adapter, the disk at SCSI id 0, and
+;*  bootstraps the system.  There are a few sanity checks along the way too.
+;*
 
 
 ; ****************************
@@ -17,6 +18,13 @@
 ; * vim:syntax=a65:hlsearch:background=dark:ai:
 ; * 
 ; ****************************
+
+	.include "../include/relocate.asm"	; provides the #relocate and #endr macros.
+
+
+	; Set the assembler up to build ltkbootstub for execution at $cd00
+	#relocate $cd00	
+
 
 DOSSTART            
 	clc
@@ -120,9 +128,9 @@ Lcd98
 	bcc IOAddrRewrite_loop
 	lda #>IO1
 	
-	;so any needed changes from IO2->IO1 in our DOS are done now, and we carry on 
-NoRelocate
+NoRelocate		;so any needed changes from IO2->IO1 in our DOS are done now, and we carry on 
 	sta $0400	; Host adapter address high page gets stored at $0400
+
 	lda #$30
 			;0011 0000
 			;00	; irq off
@@ -158,9 +166,8 @@ NoRelocate
 
 	sta HA_data_cr
 	lda #$00
-	sta HA_data
+	sta HA_data	; set data port as input
 	lda #$34
-			;0011 0100
                         ;0011 0100
                         ;00     ; irq off
                         ;110    ; ca2 low
@@ -172,120 +179,118 @@ NoRelocate
 
 	lda #$7f
 	sta HA_data
-	lda #$60
+	lda #$60	;0110 0000 = ATN and (unknown, bit 6 FIXME etc)
 	sta HA_ctrl
 
 	ldx #$00
 Lcde0	inx
 	bne Lcde0
 Lcde3	inx
-	bne Lcde3
+	bne Lcde3	; a short delay.
 
-	lda #$40
-                        ;0010 0000
-                        ;00     ; irq off
-                        ;100    ; handshake [ca2: pulse low on read; cb2: go low on write]
-                        ;0      ; ddr on
-                        ;00     ; ca1 high
-
+	lda #$40	;0100 0000 = ATN only
 	sta HA_ctrl
 	lda #$30
 	sta $31
 	lda #$00
-	sta $32
-	beq Lcdf8
-Lcdf5
-	jsr Delay
-Lcdf8
-	lda HA_ctrl
-	and #$08
-	bne Lce04
-	jsr SCSI_ACK
-	bne Lcdf8
-Lce04
-	jsr SCSI_TEST_UNIT_READY
-	beq Lce13
+	sta $32		; $3000
+	beq Lcdf8	; always jumps (LDA #00 above)
+
+Lcdf5	jsr Delay
+
+	; read the bus until there's no more data to get (aka pretend to listen so they'll shut up)
+Lcdf8	lda HA_ctrl	; get bus status
+	and #$08	; check BUSY
+	bne Lce04	; bus is free, so proceed.
+	jsr SCSI_ACK	; send ack pulse to clear things up?
+	bne Lcdf8	; always jumps (SCSI_ACK always returns nonzero)
+
+Lce04	jsr SCSI_TEST_UNIT_READY
+	beq Lce13	; unit is ready
 	inc $32
-	bne Lcdf8
+	bne Lcdf8	; retry right away
 	dec $31
-	bne Lcdf5
-	beq Lce30
-Lce13
-	lda #$0f
+	bne Lcdf5	; delay a bit and retry
+	beq Lce30	; will always be taken (shutdown and reboot)
+
+Lce13	lda #$0f	; Drive tested ready
 	sta $31
 	jsr SCSI_REZERO_UNIT
 	lda #$00
 	sta $32
-	beq Lce23
-Lce20
-	jsr Delay
-Lce23
-	jsr SCSI_TEST_UNIT_READY
+	beq Lce23	; always taken (lda #0)
+
+Lce20	jsr Delay
+
+Lce23	jsr SCSI_TEST_UNIT_READY
 	beq Lce32
 	inc $32
 	bne Lce23
 	dec $31
 	bne Lce20
-Lce30               
-	beq ShutdownAndReboot
-Lce32
-	inc CDBBuffer+4  ;increment transfer length
+Lce30               beq ShutdownAndReboot
+
+Lce32	inc TransCt	;Transfer count =1
 	
-	lda #$e0    ; read operation destination is $91e0
+	lda #$e0	; read operation destination is $91e0
 	sta $31
 	lda #$91
 	sta $32
 	
 	lda #$34
-	sta HA_ctrl_cr
+			;0011 0100
+			;00	irq off
+			;110	cb2 low
+			;1	port register on
+			;00	cb1 high
+	sta HA_ctrl_cr	; set up SCSI port for read operation
 	
 	lda $0400	; dummy read: SCSI_READ immediately reloads .A
 	sta $9e43
-	jsr SCSI_READ	
+	jsr SCSI_READ	; read sector 0 (SYSTEMTRACK sector) to $91e0-$93df
 	
 	bne ShutdownAndReboot
 	
-	ldy #$0a
-	; This is where it checks the block it just read to see if it's LTK DOS
+	ldy #$0a	; Check for SYSTEMTRACK signature
 systrack_check_loop
 	lda sysTrackText,y
 	cmp $91e0,y
-	bne ShutdownAndReboot
+	bne ShutdownAndReboot	; Failed.
 	dey
 	bpl systrack_check_loop
 
-	; Here's the first serial # check
-	ldy #$07
+	ldy #$07	; Here's the first serial # check
 snumcheckloop
 	lda serialNumBuffer,y
-	sta $8fd4,y
-	cmp $93d4,y
-	bne lockUp
+	sta $8fd4,y	; check the copy from ROM
+	cmp $93d4,y	; against the copy from disk
+	bne lockUp	; failed match
 	dey
 	bpl snumcheckloop
                     
 	lda #$e0
 	sta $31
 	lda #$93
-	sta $32     ;read destination is $93e0
+	sta $32		;read destination is $93e0
 	
 	lda #$28
-	sta CDBBuffer+3
-	jsr SCSI_READ     ;Not sure what we're reading here, but it's at LBA 0x0028
-	inc $cf9a
+	sta LBA_lsb
+	jsr SCSI_READ	;Read LBA $000028 (convrtio.r) to $93e0-$95df
+	inc TransCt	; two blocks to read
 	lda #$0f
-	sta $cf99
+	sta LBA_lsb
 	
-	lda #$00    ;read destination is $0400
+	lda #$00	;read destination is $0400
 	sta $31
 	lda #$04
 	sta $32
 	
-	jsr SCSI_READ
-	jmp $0400
+	jsr SCSI_READ	;Read LBA $00000f (sysbootr.r) to $0400-07ff (two blocks)
+	jmp $0400	; STAGE ONE BOOTSTRAP COMPLETE.
                     
-                    ; This is where it goes if the serial #s don't match
-lockUp
+			; This is where it goes if the serial #s don't match
+
+lockUp			; make a rainbow to indicate serial number failure.
 	inc vBorderCol
 	bne lockUp
 	beq lockUp
@@ -334,16 +339,16 @@ SCSI_REZERO_UNIT
 	lda #SCSI_OPCODE_REZERO_UNIT
 	.byte $2c  ;bit used to negate the next lda
 SCSI_TEST_UNIT_READY
-	lda #$00
-	sta CDBBuffer
-	jsr SCSI_SELECT
-	bne Lcf0b
-	ldx #$06
-	ldy #$00
-	jsr SendCDB
-	jsr SCSI_Done
-	txa
-	rts
+	lda #$00	; test unit ready
+	sta CDBBuffer	; fill out the CDB
+	jsr SCSI_SELECT	; select id 0
+	bne Lcf0b	;  fail out if necessary
+	ldx #$06	; 6 bytes
+	ldy #$00	; start at beginning
+	jsr SendCDB	; send the command
+	jsr SCSI_Done	;  and get the status
+	txa		; status to .A
+	rts		; finished.
                     
                     ; Operation code for SCSI (8) is READ(6)
 SCSI_READ
@@ -461,7 +466,16 @@ SCSI_GetStatus
 	tya
 	rts
                     
-CDBBuffer
-	.byte  $00,$00,$00,$00,$00,$00 
+CDBBuffer	; cf96.  Labels are for READ(6) and WRITE(6) codes.
+	.byte $00	; SCSI opcode
+	.byte $00	; SCSI LBA mmsb
+	.byte $00	; SCSI LBA msb
+LBA_lsb	.byte $00	; SCSI LBA lsb
+TransCt	.byte $00	; SCSI transfer count
+	.byte $00	; SCSI control field
+
 sysTrackText
 	.screen "SYSTEMTRACK"
+
+	; reset the assembler back to normal
+	#endr
