@@ -1,30 +1,64 @@
-;sysbootr.r.prg
+;**************************************
+;*                    _                    _                            
+;*   ___  _   _  ___ | |__    ___    ___  | |_     __ _  ___  _ __ ___  
+;*  / __|| | | |/ __|| '_ \  / _ \  / _ \ | __|   / _` |/ __|| '_ ` _ \ 
+;*  \__ \| |_| |\__ \| |_) || (_) || (_) || |_  _| (_| |\__ \| | | | | |
+;*  |___/ \__, ||___/|_.__/  \___/  \___/  \__|(_)\__,_||___/|_| |_| |_|
+;*        |___/                                                         
+;*
+;* AKA sysbootr.r
+;*
+;* sysbootr.r is loaded to LBA $f and $10 (1024 bytes) by setup.asm during SYSGEN.
+;* ltkbootstub loads this program to $0400 after loading some other data and runs it.
+
+
+;**************************************
+;*
+;* Memory map when we're called to finish bootstrapping the system.
+;*
+;* Loc     size    Usage
+;* CD00            ltkbootstub.asm (bootstrap proc from rom)
+;* 91e0    512     SYSTEMTRACK (lba 0)
+;* 93e0    512     convrtio.r (lba $28)
+;* 0400    1024    sysbootr.r (lba $f,$10)
+
+
+; ****************************
+; * 
+; * VIM settings for David.
+; * 
+; * vim:syntax=a65:hlsearch:background=dark:ai:
+; * 
+; ****************************
+
 	.include "../../include/ltk_dos_addresses.asm"
+	.include "../../include/ltk_hw_equates.asm"
 	.include "../../include/ltk_equates.asm"
 	.include "../../include/kernal.asm"
 	*=$0400 ;$4000 for sysgen
 	
-START
-	lda $9e43
-	sta $04c3
-	cmp #$df
+START			; level TWO bootstrap
+	lda $9e43	; ltkbootstub.asm places the host adapter page byte here.
+	sta L04c3	; Save for our own use.
+	cmp #$df	; DF00?
 	beq clear_roms_boot_stub
 
 	lda #$00
 	sta $31
 	lda #$04
-	sta $32
+	sta $32		; start at $0400
 	lda #$00
 	sta $33
 	lda #$08
-	sta $34
-	jsr $93e0
+	sta $34		; end at $0800
+	jsr $93e0	; call convrtio.r (edit us to use a host adapter at DE00)
 
 clear_roms_boot_stub
-	ldx #$03
-	lda #$00
+	ldx #$03	; 3 pages
+	lda #$00	; set to 00
 	tay
-clearbootstubloop
+
+clearbootstubloop	; Zero out the area originally occupied by ltkbootstub at $cd00
 	sta $cd00,y
 	iny
 	bne clearbootstubloop
@@ -33,28 +67,43 @@ clearbootstubloop
 	bne clearbootstubloop
 
 	;copy kernal into shadow ram
-	ldx #$20
+	ldx #$20	; 8192 bytes to copy
 	ldy #$00
 L0432
 	lda #$3c
-	sta $df03	;set normal c64 mem at $e000
+			;0011 1010
+			;00	; irq off
+			;111	; cb2 high
+			;0	; DDR on
+			;10	; cb1 triggers on positive edge
+
+	sta HA_ctrl_cr	;set normal c64 mem at $e000
+L0439	=*+2		; high byte
 	lda $e000,y
 	pha
 	lda #$34
-	sta $df03	;set shadow ram at $e000
-	pla
-	sta $e000,y
-	iny
-	bne L0432
-	inc $0439
-	inc $0443
-	dex
-	bne L0432
+			;0011 0010
+			;00	; irq off
+			;110	; cb2 low
+			;0	; DDR on
+			;10	; cb1 triggers on positive edge
 
+	sta HA_ctrl_cr	;set shadow ram at $e000
+	pla
+L0443	=*+2		; high byte
+	sta $e000,y
+	iny		; next byte
+	bne L0432	;  continue
+	inc L0439	; increment high byte
+	inc L0443
+	dex		; decrement page count
+	bne L0432	; keep going until done.
+
+	; patch the kernal?
 	lda #$00
 	sta $31
 	lda #$80
-	sta $32
+	sta $32		; $8000
 	lda #$07
 	sta $07ab
 	lda #$01
@@ -100,6 +149,7 @@ L04b3
 	stx $9e43
 	lda #$ff
 	sta $9de0
+L04c3	=*+2		; High byte
 	lda $df04
 	and #$0f
 	pha
@@ -184,16 +234,16 @@ L0567
  	sta $fffb
 L0576
 	lda #$00
-	sta $df02
+	sta HA_ctrl
 L057b
 	sta $8004
 	jmp L07b7
                     
 L0581
 	lda #$3c
-	sta $df03
+	sta HA_ctrl_cr
 	lda #$40
-	sta $df02
+	sta HA_ctrl
 	lda #$00
 	beq L057b
 S058f
@@ -213,7 +263,7 @@ S058f
 L05a8
 	jsr $fc59
 	lda #$00
-	sta $df02
+	sta HA_ctrl
 	pla
 	plp
 	cli
@@ -227,7 +277,7 @@ L05bc
 	php
 	pha
 	lda #$40
-	sta $df02
+	sta HA_ctrl
 	pla
 	plp
 	rts
@@ -278,13 +328,13 @@ L05f4
 L05f7
 	jsr $f976
 L05fa
-	lda $df02
+	lda HA_ctrl
 	bmi L05fa
 	and #$04
 	beq L0634
 	ldx #$02
 L0605
-	lda $df00
+	lda HA_data
 	sta ($31),y
 	iny
 	bne L0605
@@ -294,15 +344,15 @@ L0605
 	beq L05fa
 	jsr $f976
 L0617
-	lda $df02
+	lda HA_ctrl
 	bmi L0617
 	and #$04
 	beq L0634
 	ldx #$02
 L0622
 	lda ($31),y
-	sta $df00
-	lda $df00
+	sta HA_data
+	lda HA_data
 	iny
 	bne L0622
 	inc $32
@@ -313,7 +363,7 @@ L0634
 	php
 	pha
 	lda #$40
-	sta $df02
+	sta HA_ctrl
 	sta $fc5f
 	pla
 	plp
@@ -323,7 +373,7 @@ L0641
 	php
 	pha
 	lda $fc5f
-	sta $df02
+	sta HA_ctrl
 	pla
 	plp
 	rts
@@ -354,12 +404,12 @@ L0664
 	inc $f9bd
 L0677
 	lda #$00
-	sta $df02
+	sta HA_ctrl
 	tay
 	lda #$00
 	sta ($ae),y
 	lda #$40
-	sta $df02
+	sta HA_ctrl
 L0686	
 	jmp L0686
                     
@@ -367,7 +417,7 @@ L0689
 	php
 	pha
 	lda #$00
-	sta $df02
+	sta HA_ctrl
 	pla
 	plp
 	rts
@@ -377,7 +427,7 @@ L0693
 	bcc L0697
 	sec
 L0697
-	bit $df02
+	bit HA_ctrl
 	bvc L06bf
 	pha
 	lda $8028
@@ -391,7 +441,7 @@ L0697
 	lda $802f
 	pha
 	lda #$00
-	sta $df02
+	sta HA_ctrl
 	lda #$fa
 	pha
 	lda #$06
@@ -414,7 +464,7 @@ L06ce
                     
 L06d1
 	lda #$40
-	sta $df02
+	sta HA_ctrl
 	pla
 	sta $802f
 	pla
@@ -451,13 +501,13 @@ S0702
 	ldy #$00
 	jsr S0769
 	lda #$2c
-	sta $df01
+	sta HA_data_cr
 L071d
-	lda $df02
+	lda HA_ctrl
 	bmi L071d
 	and #$04
 	beq L0732
-	lda $df00
+	lda HA_data
 	sta ($31),y
 	iny
 	bne L071d
@@ -472,15 +522,15 @@ L0736
 S0737
 	jsr S076c
 	lda #$fe
-	sta $df00
+	sta HA_data
 	lda #$50
-	sta $df02
+	sta HA_ctrl
 L0744
-	lda $df02
+	lda HA_ctrl
 	and #$08
 	bne L0744
 	ora #$40
-	sta $df02
+	sta HA_ctrl
 	lda #$00
 	rts
                     
@@ -488,7 +538,7 @@ S0753
 	jsr S077c
 	lda L07a7,y
 	eor #$ff
-	sta $df00
+	sta HA_data
 	jsr S0782
 	iny
 	dex
@@ -502,23 +552,23 @@ S0769
 S076c
 	ldx #$ff
 	lda #$38
-	sta $df01
-	stx $df00
+	sta HA_data_cr
+	stx HA_data
 	lda #$3c
-	sta $df01
+	sta HA_data_cr
 	rts
                     
 S077c
-	lda $df02
+	lda HA_ctrl
 	bmi S077c
 	rts
                     
 S0782
 	lda #$2c
-	sta $df01
-	lda $df00
+	sta HA_data_cr
+	lda HA_data
 	lda #$3c
-	sta $df01
+	sta HA_data_cr
 	rts
                     
 S0790
@@ -528,7 +578,7 @@ S0790
 	tax
 S0799
 	jsr S077c
-	lda $df00
+	lda HA_data
 	eor #$ff
 	tay
 	jsr S0782
