@@ -18,6 +18,13 @@
 ; * 
 ; ****************************
 
+	.include "../include/relocate.asm"
+
+
+	; Set the assembler up to build ltkbootstub for execution at $cd00
+	#relocate $cd00	
+
+
 DOSSTART            
 	clc
 	bcc STARTUP
@@ -465,3 +472,6 @@ CDBBuffer
 	.byte  $00,$00,$00,$00,$00,$00 
 sysTrackText
 	.screen "SYSTEMTRACK"
+
+	; reset the assembler back to normal
+	#endr
