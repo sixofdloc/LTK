@@ -255,7 +255,7 @@ L0567	lda $9bfe
 L0576	lda #$00	
 	sta HA_ctrl	
 L057b	sta $8004	; ltkernal.r+$04
-	jmp L07b7
+	jmp Exit	; exit to start the system up
 
 L0581	lda #$3c
 	sta HA_ctrl_cr
@@ -558,37 +558,36 @@ S0799	jsr S077c
 	tya
 	rts
 
-CDB_Buffer
-	.byte $00
+CDB_Buffer	.byte $00
 SCSI_mmsb	.byte $00
 SCSI_msb	.byte $00
 SCSI_lsb	.byte $00
-TransCt	.byte $00
-	.byte $00
+TransCt		.byte $00
+		.byte $00
 drive0_flags	.byte $00
 drive0_period	.byte $00
-	.byte $00
+		.byte $00
 drive0_heads	.byte $00
 drive0_cyl	.byte $00
-L07b2	.byte $00
+		.byte $00
 drive0_wpcomp	.byte $00
 drive0_unk	.byte $00
-	.byte $00
-	.byte $00 
+		.byte $00
+		.byte $00 
 	
-L07b7	lda #$fc
+Exit	lda #$fc	; Overwrites sysbootr.r likely to avoid having it seen by a debugger.
 	pha
-	lda #$e2
+	lda #$e2	; return address set to fce2 (reset)
 	pha
-	lda #$04
+	lda #$04	; with SR=$4 (interrupts disabled)
 	pha
-	lda #$40
+
+	lda #$40	; start filling memory with RTI's
 	ldy #$00
-L07c4	sta START,y
+L07c4	sta START,y	; from start
 	iny
 	bne L07c4
 	inc L07c4 + 2
-	bne L07c4
-	; This file is cut off like this on disk.
-	; It's probably a valid guess that continuing code is loaded later.
+	bne L07c4	; until we write over oureslves.
 
+	; and we disappear into the ether
