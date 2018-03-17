@@ -3,7 +3,7 @@
 	.include "../../include/ltk_dos_addresses.asm"
 	.include "../../include/ltk_equates.asm"
 
-	*=$c000 
+	*=$c000 ; $4000 for sysgen 
 Lc000
 	ldx $c8
 	bit LTK_Var_CPUMode

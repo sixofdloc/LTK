@@ -12,6 +12,7 @@ call build config
 call build configlu
 call build convrtio
 call build d
+call build di
 call build diag
 call build dir
 call build dosoverly
