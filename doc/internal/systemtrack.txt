@@ -1,0 +1,27 @@
+;*                    _                    _                      _    
+;*   ___  _   _  ___ | |_  ___  _ __ ___  | |_  _ __  __ _   ___ | | __
+;*  / __|| | | |/ __|| __|/ _ \| '_ ` _ \ | __|| '__|/ _` | / __|| |/ /
+;*  \__ \| |_| |\__ \| |_|  __/| | | | | || |_ | |  | (_| || (__ |   < 
+;*  |___/ \__, ||___/ \__|\___||_| |_| |_| \__||_|   \__,_| \___||_|\_\
+;*        |___/                                                        
+
+This document describes the general layout of the first block on scsi ID 0.
+
+SCSI id 0 also hosts LU 10, the DOS LU.
+
+all values are in hex unless otherwise noted
+
+start	size	name		usage
+0	b	systemtrack	"SYSTEMTRACK" magic identifier for a valid boot drive
+11	1			$ee (setup.asm near L859f)
+19	1	drive0_heads	Number of heads for drive 0
+16	2	drive0_cyl	Number of cylinders for drive 0 (big endian!)
+1d	1			$0a (setup.asm)
+28	1			$0a (setup.asm)
+12	1	drive0_flags	Flags byte from geometry table (the firs byte)
+13	1	drive0_period	Step period for drive 0
+1a	1	drive0_unk	unknown- copied from the geometry tables (setup.asm)
+15	1	drive0_wpcomp	write precompensation value for drive 0
+18	1			$01 (setup.asm)
+1f4	8	serialnumber	system serial number
+
