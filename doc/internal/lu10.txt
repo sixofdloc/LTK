@@ -1,0 +1,96 @@
+
+This document describes what's known about LU10, the DOS LU.
+
+LU 10 resides at the beginning of scsi drive ID 0, and contains the operating system for the Lt. Kernal DOS.
+
+
+All values below are in hex unless stated otherwise.
+
+The first 256 blocks are loaded by setup, detailed below.
+
+LBA	Block	
+Addr	Size	File name		Notes
+00	1	SYSTEMTRACK block
+01-07	7	ltkernal.r		C64 Kernal loaded to the HA at $8000
+08-0e	7	ltkrn128.r
+0f-10	2	sysbootr.r		C64 level2 bootstrap
+11	1	findfile.r
+12	1	loadrand.r
+13	1	errorhan.r
+14	1	loadcntg.r
+15	1	alocatrn.r
+16	1	alocatcn.r
+17	1	appendrn.r
+18	1	dealocrn.r
+19	1	dealoccn.r
+1a	1	luchange.r		This is modified when installed
+1b	1	alocexrn.r
+1c	1	expnrand.r
+1d	1	apndexrn.r
+1e	1	dealexrn.r
+1f	1	adjindex.r
+20	1	findfil2.r
+21	1	creditsb.r
+22	1	scramidn.r		This is executed and modified when installed
+23	1	subcallr.r
+24	1	catalogr.r
+25	1	subcl128.r
+26	1	loadrnd2.r
+27	1	loadrnd3.r
+28	1	convrtio.r		Contains a kernal patch as well as code to modify DOS to use a HA at $de00
+29	1	fileprot.r
+2a	1	gocpmode.r
+2b-2c	2	 * Unknown
+2d-2e	2	go64boot.r
+2f	1	altserch.r
+31-32	2	sysbt128.r
+33-3a	8	 * Unknown		
+3b-42	8	configlu.r
+43	1	 * Unknown
+44-47	4	relaexpn.r
+48-4b	4	openrela.r
+4c-4f	4	dosovrly.r
+50-53	4	openfile.r
+54-57	4	closefil.r
+58-5b	4	savetodv.r
+5c-5f	4	cmndchn1.r
+60-63	4	directry.r
+64-67	4	initc064.r
+68-69	2	 * Unknown
+6a-6d	4	commload.r
+6e-71	4	 * Unknown
+72-73	2	openrand.r
+74-7d	a	 * Unknown
+7e-81	4	indxmod1.r
+82-85	4	indxmod2.r
+86-89	4	indxmod3.r
+8a-8d	4	indxmod4.r
+8e-91	4	indxmod5.r
+92-95	4	indxmod6.r
+96-99	4	indxmod7.r
+9a-9d	4	dosov128.r
+9e-a1	4	openf128.r
+a2-a5	4	close128.r
+a6-a9	4	idxm1128.r
+aa-ad	4	idxm2128.r
+ae-b1	4	idxm3128.r
+b2-b5	4	idxm4128.r
+b6-b9	4	idxm5128.r
+ba-bd	4	idxm6128.r
+be-c1	4	idxm7128.r
+c2	1	autoupdt.r
+c3-c5	3	 * Unknown
+c6-c9	4	initc128.r
+ca-cd	4	cmndchn2.r
+ce-d1	4	indxmod0.r
+d2-d5	4	idxm0128.r
+d6-e5	10	 * Unknown
+e6-ed	8	messfile.r
+ee-ff	12	 * Unknown
+
+
+
+
+
+
+
