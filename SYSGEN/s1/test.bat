@@ -12,9 +12,11 @@ call test_file config config.r
 call test_file configlu configlu.r
 call test_file convrtio convrtio.r
 call test_file d d.r
+call test_file di di.r
 call test_file diag diag.r
 call test_file dir dir.r
 call test_file dosoverly dosovrly.r
+call test_file dump dump.r
 call test_file era era.r
 call test_file errorhan errorhan.r
 call test_file fastcopy fastcopy.r

@@ -12,9 +12,11 @@ call build config
 call build configlu
 call build convrtio
 call build d
+call build di
 call build diag
 call build dir
 call build dosoverly
+call build dump
 call build era
 call build errorhan
 call build fastcopy

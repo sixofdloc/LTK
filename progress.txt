@@ -14,9 +14,11 @@ config.r		$95e0		YES
 configlu.r		$c000		YES       
 convrtio.r 		$95e0		YES      
 d.r 			$95e0		YES             
+di.r          		$95e0		YES
 diag.r  		$95e0		YES         
 dir.r  			$c000		YES          
 dosovrly.r		$9530		YES       
+dump.r   		$c000		YES        
 era.r			$95e0		YES            
 errorhan.r		$93e0		YES       
 fileprot.r 		$9f00		YES      
@@ -63,8 +65,6 @@ change.r		$95e0		NO
 clear.r    		$95e0		NO      
 copy.r			$95e0		NO           
 del.r  			$c000		NO          
-di.r          		$95e0		NO   
-dump.r   		$c000		NO        
 
 
 UNKNOWN, STILL TO PROCESS
