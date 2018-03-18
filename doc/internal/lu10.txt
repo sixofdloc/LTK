@@ -86,7 +86,8 @@ ce-d1	4	indxmod0.r
 d2-d5	4	idxm0128.r
 d6-e5	10	 * Unknown
 e6-ed	8	messfile.r
-ee-ff	12	 * Unknown
+ee	*4	DISCBITMAP		Actual size isn't known
+f0		SYSTEMINDEX		Actual size isn't known
 
 
 
