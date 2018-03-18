@@ -103,11 +103,12 @@ L0443	=*+2		; high byte
 	inc L0443
 	dex		; decrement page count
 	bne L0432	; keep going until done.
+	; At this point, CB2 is still low, so shadow ram is still in place at $e000 (and likely $8000, see below)
 
-	; 
-	lda #$00
+	; Load ltkernal.r into shadow ram and set it up
+	lda #<LTK_Buf	; $00
 	sta $31
-	lda #$80
+	lda #>LTK_Buf	; $80
 	sta $32		; $8000
 	lda #$07	; TransCt matches setup.asm data
 	sta TransCt
@@ -117,14 +118,14 @@ L0443	=*+2		; high byte
 	lda HA_Page	; check the host adapter page
 	cmp #$df	; is it $df00?
 	beq L047f	;  Good, skip ahead
-	lda $8046	; 
+	lda LTK_Buf+$46	; $8046	; 
 	sta $31		; set start address for convrtio
 	sta $33		; set end address for convrtio
-	ldx $8047
+	ldx LTK_Buf+$47	; $8047
 	stx $32		; set start address for convrtio
 	inx
 	inx
-	stx $34		; set end address for convrtio
+	stx $34		; set end address for convrtio for two pages
 	jsr ConvrtIO	; edit ltkernal.r for $de00
 
 	; ltkernal.r is loaded and optionally converted for $de00 now.
@@ -175,27 +176,29 @@ L04c3	=*+2		; High byte is the target
 	sta SCSI_mmsb	
 
 	; All HW init should be done now.
-L04e4	pla		
-	clc		
-	adc #$9e	
-	sta SCSI_lsb	
-	lda #$02	
-	adc #$00	
-	sta SCSI_msb	
-	lda #$e0	
-	sta $31	
-	lda #$9b	
-	sta $32	
-	lda #$01	
-	sta TransCt	
-	jsr SCSI_READ	; Read LBA $00009e (OpenF128.r) to $9be0
-	lda $9bf9	; OpenF128+$19
+	; FIXME: the state of .A isn't fully understood yet.  It's pushed
+	;  to stack about 16 lines up.  Chances are it'll be 0 it seems.
+L04e4	pla		; Restore .A
+	clc		; 
+	adc #$9e	; add $9e
+	sta SCSI_lsb	; 
+	lda #$02	; 
+	adc #$00	; add carry to 2
+	sta SCSI_msb	; set msb
+	lda #$e0	; 
+	sta $31		; 
+	lda #$9b	; 
+	sta $32		; dest addr 9be0
+	lda #$01	; 
+	sta TransCt	; one block to transfer
+	jsr SCSI_READ	; Read LBA $00029d (SYSTEMCONFIGFILE+1) to $9be0
+	lda $9bf9	; systemconfigfile+$219
 	sta $d030	
-	sta $8038	
+	sta LTK_Buf+$38	; $8038	
 	lda $9bee	; +$e
-	sta $8029	
+	sta LTK_Buf+$29	; $8029	
 	lda $9be8	; +8
-	sta $802a	
+	sta LTK_Buf+$2a	; $802a	
 
 	; First kernal patch from sysbootr.r (that's this program)
 	ldx #$4c	; $4c (76) bytes
@@ -285,6 +288,7 @@ K_Patch4a
 	; Code segments copied to the kernal
 
 K_Patch1 ; copied to $fc3d.
+	; fc3d is in the middle of the casette write routine.
 	lda #$00	; 05ab -> fc3d
 	sta HA_ctrl	; fc3f
 	pla		; fc42
@@ -304,7 +308,7 @@ L05bc	sei		; fc4b
 	rts		; fc55
 
 L05c7	jsr $fc4e	; fc56
-	jmp ($800d)	; fc59
+	jmp ($800d)	; fc59 ; all K_Patch4 entries go through here.
 
 L05cd
 	.byte $40,$ff,$ea ; RTI?
@@ -325,6 +329,7 @@ L05eb	jmp L05eb	; fc7a
 	; end of K_Patch1
 
 K_Patch2 ; copied to $fa2c
+	; fa2c is in the middle of the casette read routine.
 	jsr $f976	; 
 L05fa	lda HA_ctrl	; 
 	bmi L05fa	; 

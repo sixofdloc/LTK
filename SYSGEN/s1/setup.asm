@@ -235,9 +235,9 @@ L80db	lda L841c,y		;  get byte from L841c
 	; 9*6=54 ($36) bytes in the table
 
 	; seems likely that sec buf 1 still has SYSTEMTRACK in it (FIXME)
-L80eb	lda #>$9d02		; 29d is the SYSTEMCONFIGFILE sector
+L80eb	lda #<$029d		; 29d is the SYSTEMCONFIGFILE sector
 	sta LBA_ls
-	lda #<$9d02		; the < and > are backwards because SCSI is opposite-endian
+	lda #>$029d		; the < and > are backwards because SCSI is opposite-endian
 	sta LBA_ms
 	jsr SCSI_RD_And_Inc	; read LBA $29d (SYSTEMCONFIGFILE) to buffer 2
 	ldy #$0f
@@ -777,25 +777,29 @@ L8636
 
 	lda #$00
 	sta SGLF_NoMods		; Don't modify these files while loading
+
 	lda #$07		;7 scsi blocks (14 pages, 3584 bytes)
 	sta TransCt
 	lda #$01
 	ldx #<fname_LtKernal	; 3168 bytes
 	ldy #>fname_LtKernal
 	jsr sg_LoadFile
+
 	lda #$08
 	ldx #<fname_LtKrn128 	; 3377 bytes
 	ldy #>fname_LtKrn128
 	jsr sg_LoadFile
+
 	lda #$ff
 	sta SGLF_NoMods		; Modify these files while loading
+
 	lda #$01
 	sta TransCt
 	lda #>Sec_buf1
 	sta BufPtrH
 	lda #<Sec_buf1
 	sta BufPtrL
-	lda #$ee
+	lda #$ee		; DISCBITMAP (From a hdd image)
 	sta LBA_ls
 	jsr SCSI_RD_And_Inc
 	jsr S979e
@@ -880,8 +884,9 @@ L872b	lda fname_Fastcopy_Modules,y ;$9104
 	lda #$0a
 	sta Sec_buf1+$1d
 	jsr SCSI_WR_And_Inc
-	jsr S8c4c
+	jsr Wr_Buf1
 
+	; Build SYSTEMCONFIGFILE sectors
 	jsr Zero_Sec_buf1
 	ldy #$0f
 L876d	lda fname_SystemConfigFile,y ;$90f4
@@ -903,20 +908,20 @@ L876d	lda fname_SystemConfigFile,y ;$90f4
 	sta BufPtrH
 	lda #$0a
 	sta Sec_buf1+$1d
-	jsr SCSI_WR_And_Inc
-	jsr S8c4c
-	lda #$00
-	jsr S8c44
+	jsr SCSI_WR_And_Inc	; Write sector 029d (FIXME) and prep for next write
+	jsr Wr_Buf1
+	lda #$00		; SYSTEMTRACK
+	jsr Rd_Buf1_ToA		; read LBA 0 to Buf1
 	beq L87ae
 	jmp Break
 
-L87ae	lda #$ee
-	jsr S8c44
+L87ae	lda #$ee		
+	jsr Rd_Buf1_ToA
 	beq L87b8
 	jmp Break
 
 L87b8	lda #$f0
-	jsr S8c44
+	jsr Rd_Buf1_ToA
 	beq L87c2
 	jmp Break
 
@@ -1537,19 +1542,20 @@ SCSI_MultiWrite_Last_ms	=*+1	;  (parameter from caller)
 	bne SCSI_MultiWrite	;   no, loop
 	rts			; all done, return.
 
-S8c44	sta LBA_ls
+Rd_Buf1_ToA
+	sta LBA_ls		; Set LBA to .A
 	lda #$00
 	sta LBA_ms
-S8c4c	lda #<Sec_buf1
+Wr_Buf1	lda #<Sec_buf1		; Set buffer to Buffer 1
 	sta BufPtrL
 	lda #>Sec_buf1
 	sta BufPtrH
-	lda #$01
+	lda #$01		; one sector.  LBA is prepared ahead of time.
 	sta TransCt
-	jsr SCSI_RD_And_Inc
+	jsr SCSI_RD_And_Inc	; read the sector and prepare for next read
 	ldy #$10
-L8c60	lda Sec_buf1,y
-	sta $c000,y
+L8c60	lda Sec_buf1,y		; Copy the name of the sector
+	sta $c000,y		; to $c000
 	dey
 	bpl L8c60
 	jsr S9179
@@ -1604,7 +1610,7 @@ SCSI_RD_And_Inc			;$8c96 - label added to improve readability
 	.byte $c0		; This never gets executed
 
 SCSI_WR_And_Inc			; $8c9e- label added to improve code readability
-S8c9e	jsr SCSI_WRITE		;$8c9e- label is for readability also.
+	jsr SCSI_WRITE		;
 	bcc SCSI_RW_Go		; write complete?  Proceed
 	jsr $c000		; apparently there's an error handler loaded to $c000
 SCSI_RW_Go
@@ -2189,7 +2195,7 @@ L924d	sta L924d,y	; This likely never overwrites itself.  It's done to satisfy t
 	lda #$0a
 	jsr Store_iny
 	inc Sec_buf2+$1c
-	jsr S8c9e
+	jsr SCSI_WR_And_Inc
 	lda Sec_buf2+$1c
 	cmp #$01
 	bne L92c4
@@ -2227,7 +2233,7 @@ S92e9	sta L9306
 	ldy L95a3
 	lda L9306
 	sta Sec_buf2+$22,y
-	jsr S8c9e
+	jsr SCSI_WR_And_Inc
 	rts
 
 L9306	.byte $00 
@@ -2263,7 +2269,7 @@ L932f	lda L944a
 	sta BufPtrH
 	lda #$01
 	sta TransCt
-	jsr S8c9e
+	jsr SCSI_WR_And_Inc
 	lda Sec_buf1+$1a
 	ldx Sec_buf1+$1b
 	cmp #$95
@@ -2288,7 +2294,7 @@ L9385	lda LBA_ls_tmp
 	sta BufPtrH
 	lda L944c
 	sta BufPtrL
-	jsr S8c9e
+	jsr SCSI_WR_And_Inc
 	inc L944b
 	inc L944b
 L93a6	inc L944a
@@ -2871,7 +2877,7 @@ L97e1	inc LBA_ls		; next sector
 	inc LBA_ms
 L97e9	lda #$00
 	sta L992f		; clear L992f
-	jsr SCSI_READ		; still reading to Buffer 2
+	jsr SCSI_READ		; still reading to Buffer 2 but sector $ef now
 	bcc L97f6
 	jsr $c000		; jump to error handler at $c000
 
@@ -2885,29 +2891,33 @@ L97f6	lda #>Sec_buf2
 	sta L9933		; FIXME: Is 9933 a count?
 L980c	lda #$00
 	sta L9935
-	ldy #$02		; start at 9e02
-L9813	iny
+	ldy #$02		; start at 9e03 (loop starts with iny)
+
+L9813	iny			; 
 	lda #$80
-	sta L9934
-	jsr LDA_Y		; get byte
-	cmp #$ff		; FF?
-	bne L9830		; Nope, skip ahead
-	lda #$08		; Get 8
+	sta L9934		; Precharge flag at L9934 with $80
+	jsr LDA_Y		; get bitmap byte
+	cmp #$ff		; FF = all 8 sectors for this byte taken?
+	bne L9830		;  Nope, skip ahead to find a free sector
+	lda #$08		; Add 8
 	clc
-	adc L9935		; and add to 9935
-	sta L9935		;  save it
-	cmp L9932		; check against 9932
-	bcc L9813		; lower? Loop.
+	adc L9935		; to L9935
+	sta L9935		; 
+	cmp L9932		; check against L9932
+	bcc L9813		; lower? Search again
 	bcs L9847		; Otherwise L9847.
-L9830	bit L9934
+
+	; .A contains the current byte from the bitmap at this point.
+L9830	bit L9934		; Check L9934
 	beq L988c
-L9835	inc L9935
+L9835	inc L9935		; Increment sector number
 	ldx L9935
-	cpx L9932
-	beq L9847
-	lsr L9934
-	bne L9830
-	beq L9813
+	cpx L9932		; have we hit the top?
+	beq L9847		;  Yes, exit this loop
+	lsr L9934		; Shift L9934 left
+	bne L9830		; Still more sectors to check? Loop
+	beq L9813		; otherwise load another byte to check.
+
 L9847	lda L992e		; get L992e
 	clc
 	adc LDA_Y + 1		; add it to our source pointer
@@ -2940,7 +2950,7 @@ L9877	dec L9933		; dec L9933
 L9889	jmp L97e1		; loop
 
 L988c	ora L9934
-L9890	=*+1		; target is operand
+L9890	=*+1		; target is operand low byte
 L988f	sta L988f,y	; label to satisfy assembler
 	pha		
 	tya		
