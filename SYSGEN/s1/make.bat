@@ -6,12 +6,13 @@ call build b
 call build build
 call build buildindex
 call build catalogr
-call build creditsb
 call build checksum
+call build clear
 call build config
 call build configlu
 call build convrtio
 call build copy
+call build creditsb
 call build d
 call build del
 call build di

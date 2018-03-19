@@ -6,12 +6,13 @@ call test_file b b
 call test_file build build.r
 call test_file buildindex buildindex.r
 call test_file catalogr catalogr.r
-call test_file creditsb creditsb.r
 call test_file checksum checksum.r
+call test_file clear clear.r
 call test_file config config.r
 call test_file configlu configlu.r
 call test_file convrtio convrtio.r
 call test_file copy copy.r
+call test_file creditsb creditsb.r
 call test_file d d.r
 call test_file del del.r
 call test_file di di.r
