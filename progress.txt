@@ -13,6 +13,7 @@ checksum.r 		$95e0		YES
 config.r		$95e0		YES
 configlu.r		$c000		YES       
 convrtio.r 		$95e0		YES      
+copy.r			$95e0		YES           
 d.r 			$95e0		YES             
 del.r  			$c000		YES          
 di.r          		$95e0		YES
@@ -64,7 +65,6 @@ KNOWN LOAD ADDRESS
 automove.r  		$c000		NO     
 change.r		$95e0		NO         
 clear.r    		$95e0		NO      
-copy.r			$95e0		NO           
 
 
 UNKNOWN, STILL TO PROCESS

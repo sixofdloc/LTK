@@ -11,6 +11,7 @@ call build checksum
 call build config
 call build configlu
 call build convrtio
+call build copy
 call build d
 call build del
 call build di
