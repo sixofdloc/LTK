@@ -2,6 +2,7 @@ call build activate
 call build adjindex
 call build autocopy
 call build autodel
+call build automove
 call build b
 call build build
 call build buildindex

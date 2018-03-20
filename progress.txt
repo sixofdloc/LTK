@@ -5,6 +5,7 @@ COMPLETES
 FILENAME		LOAD_ADDR	1st Pass Complete?
 autocopy.r 		$c000 		YES      
 autodel.r       	$c000		YES
+automove.r  		$c000		YES
 b			$0100		YES                
 build.r      		$c000		YES
 buildindex.r     	$95e0		YES
@@ -64,7 +65,6 @@ fastfd81.r		$1c20?		IN PROGRESS
 
 KNOWN LOAD ADDRESS
 ==============================================================================
-automove.r  		$c000		NO     
 
 
 UNKNOWN, STILL TO PROCESS

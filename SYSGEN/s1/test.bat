@@ -2,6 +2,7 @@ call test_file activate activate.r
 call test_file adjindex adjindex.r
 call test_file autocopy autocopy.r
 call test_file autodel autodel.r
+call test_file automove automove.r
 call test_file b b
 call test_file build build.r
 call test_file buildindex buildindex.r
