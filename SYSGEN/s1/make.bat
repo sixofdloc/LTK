@@ -6,6 +6,7 @@ call build b
 call build build
 call build buildindex
 call build catalogr
+call build change
 call build checksum
 call build clear
 call build config

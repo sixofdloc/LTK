@@ -9,6 +9,7 @@ b			$0100		YES
 build.r      		$c000		YES
 buildindex.r     	$95e0		YES
 catalogr.r		$93e0		YES      
+change.r		$95e0		YES         
 checksum.r 		$95e0		YES      
 clear.r    		$95e0		YES      
 config.r		$95e0		YES
@@ -64,7 +65,6 @@ fastfd81.r		$1c20?		IN PROGRESS
 KNOWN LOAD ADDRESS
 ==============================================================================
 automove.r  		$c000		NO     
-change.r		$95e0		NO         
 
 
 UNKNOWN, STILL TO PROCESS

@@ -6,6 +6,7 @@ call test_file b b
 call test_file build build.r
 call test_file buildindex buildindex.r
 call test_file catalogr catalogr.r
+call test_file change change.r
 call test_file checksum checksum.r
 call test_file clear clear.r
 call test_file config config.r
