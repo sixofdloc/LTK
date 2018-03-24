@@ -30,6 +30,7 @@ call test_file fetch fetch.r
 call test_file fileprot fileprot.r
 call test_file findfil2 findfil2.r
 call test_file go64boot go64boot.r
+call test_file indxmod0 indxmod0.r
 call test_file initc064 initc064.r
 call test_file l l.r
 call test_file ltkernal ltkernal.r
