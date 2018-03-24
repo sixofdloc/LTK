@@ -33,6 +33,7 @@ fastcpqd.r		$1c20		YES
 fetch.r          	$c000		YES
 go64boot.r 		$8000		YES      
 indxmod0.r   		$95e0		YES    
+indxmod1.r   		$95e0		YES    
 initc064.r 		$95e0		YES      
 l.r   			$95e0		YES           
 ltkernal.r		$8000		YES      
@@ -66,7 +67,6 @@ fastfd81.r		$1c20?		IN PROGRESS
 
 KNOWN LOAD ADDRESS
 ==============================================================================
-indxmod1.r   		$95e0		NO       
 indxmod2.r   		$95e0		NO       
 indxmod3.r   		$95e0		NO      
 indxmod4.r   		$95e0		NO       
