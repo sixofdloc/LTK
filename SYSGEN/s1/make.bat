@@ -33,6 +33,12 @@ call build go64boot_cd00
 call build go64boot
 call build indxmod0
 call build indxmod1
+call build indxmod2
+call build indxmod3
+call build indxmod4
+call build indxmod5
+call build indxmod6
+call build indxmod7
 call build initc064
 call build l
 call build ltkernal

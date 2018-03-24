@@ -32,6 +32,12 @@ call test_file findfil2 findfil2.r
 call test_file go64boot go64boot.r
 call test_file indxmod0 indxmod0.r
 call test_file indxmod1 indxmod1.r
+call test_file indxmod2 indxmod2.r
+call test_file indxmod3 indxmod3.r
+call test_file indxmod4 indxmod4.r
+call test_file indxmod5 indxmod5.r
+call test_file indxmod6 indxmod6.r
+call test_file indxmod7 indxmod7.r
 call test_file initc064 initc064.r
 call test_file l l.r
 call test_file ltkernal ltkernal.r
