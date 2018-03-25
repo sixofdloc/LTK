@@ -1,5 +1,12 @@
 call build activate
 call build adjindex
+call build alocatcn
+call build alocatrn		
+call build alocexrn
+call build altserch
+call build apndexrn
+call build appendrn
+call build autoupdt
 call build autocopy
 call build autodel
 call build automove
