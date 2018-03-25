@@ -13,6 +13,10 @@ catalogr.r		$93e0		YES
 change.r		$95e0		YES         
 checksum.r 		$95e0		YES      
 clear.r    		$95e0		YES      
+closefil.r		$95e0		YES
+cmndchn1.r		$95e0		YES
+cmndchn2.r		$95e0		YES
+commload.r		$95e0		YES
 config.r		$95e0		YES
 configlu.r		$c000		YES       
 convrtio.r 		$95e0		YES      
@@ -85,10 +89,6 @@ altserch.r
 apndexrn.r       
 appendrn.r       
 autoupdt.r    
-closefil.r       
-cmndchn1.r       
-cmndchn2.r       
-commload.r       
 dealexrn.r       
 dealoccn.r       
 dealocrn.r       

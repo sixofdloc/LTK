@@ -10,6 +10,10 @@ call build catalogr
 call build change
 call build checksum
 call build clear
+call build closefil
+call build cmndchn1
+call build cmndchn2
+call build commload
 call build config
 call build configlu
 call build convrtio

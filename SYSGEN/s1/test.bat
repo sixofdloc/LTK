@@ -10,6 +10,10 @@ call test_file catalogr catalogr.r
 call test_file change change.r
 call test_file checksum checksum.r
 call test_file clear clear.r
+call test_file closefil closefil.r
+call test_file cmndchn1 cmndchn1.r
+call test_file cmndchn2 cmndchn2.r
+call test_file commload commload.r
 call test_file config config.r
 call test_file configlu configlu.r
 call test_file convrtio convrtio.r
