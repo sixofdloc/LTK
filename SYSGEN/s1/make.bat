@@ -1,5 +1,12 @@
 call build activate
 call build adjindex
+call build alocatcn
+call build alocatrn		
+call build alocexrn
+call build altserch
+call build apndexrn
+call build appendrn
+call build autoupdt
 call build autocopy
 call build autodel
 call build automove
@@ -10,6 +17,10 @@ call build catalogr
 call build change
 call build checksum
 call build clear
+call build closefil
+call build cmndchn1
+call build cmndchn2
+call build commload
 call build config
 call build configlu
 call build convrtio
@@ -32,6 +43,13 @@ call build findfil2
 call build go64boot_cd00
 call build go64boot
 call build indxmod0
+call build indxmod1
+call build indxmod2
+call build indxmod3
+call build indxmod4
+call build indxmod5
+call build indxmod6
+call build indxmod7
 call build initc064
 call build l
 call build ltkernal

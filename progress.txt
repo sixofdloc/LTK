@@ -3,6 +3,13 @@ SYSGEN RE-SOURCE PROGRESS AS OF 2018-03-02
 COMPLETES
 ==============================================================================
 FILENAME		LOAD_ADDR	1st Pass Complete?
+alocatcn.r		$93e0		YES
+alocatrn.r		$93e0		YES		
+alocexrn.r		$93e0		YES
+altserch.r		$9be0		YES
+apndexrn.r		$93e0		YES
+appendrn.r		$93e0		YES
+autoupdt.r		$8de0		YES
 autocopy.r 		$c000 		YES      
 autodel.r       	$c000		YES
 automove.r  		$c000		YES
@@ -13,6 +20,10 @@ catalogr.r		$93e0		YES
 change.r		$95e0		YES         
 checksum.r 		$95e0		YES      
 clear.r    		$95e0		YES      
+closefil.r		$95e0		YES
+cmndchn1.r		$95e0		YES
+cmndchn2.r		$95e0		YES
+commload.r		$95e0		YES
 config.r		$95e0		YES
 configlu.r		$c000		YES       
 convrtio.r 		$95e0		YES      
@@ -33,6 +44,13 @@ fastcpqd.r		$1c20		YES
 fetch.r          	$c000		YES
 go64boot.r 		$8000		YES      
 indxmod0.r   		$95e0		YES    
+indxmod1.r   		$95e0		YES    
+indxmod2.r   		$95e0		YES       
+indxmod3.r   		$95e0		YES      
+indxmod4.r   		$95e0		YES       
+indxmod5.r   		$95e0		YES
+indxmod6.r   		$95e0		YES
+indxmod7.r   		$95e0		YES
 initc064.r 		$95e0		YES      
 l.r   			$95e0		YES           
 ltkernal.r		$8000		YES      
@@ -66,29 +84,11 @@ fastfd81.r		$1c20?		IN PROGRESS
 
 KNOWN LOAD ADDRESS
 ==============================================================================
-indxmod1.r   		$95e0		NO       
-indxmod2.r   		$95e0		NO       
-indxmod3.r   		$95e0		NO      
-indxmod4.r   		$95e0		NO       
-indxmod5.r   		$95e0		NO
-indxmod6.r   		$95e0		NO
-indxmod7.r   		$95e0		NO
 
 
 UNKNOWN, STILL TO PROCESS
 ==============================================================================
 adjindex.r
-alocatcn.r       
-alocatrn.r       
-alocexrn.r       
-altserch.r       
-apndexrn.r       
-appendrn.r       
-autoupdt.r    
-closefil.r       
-cmndchn1.r       
-cmndchn2.r       
-commload.r       
 dealexrn.r       
 dealoccn.r       
 dealocrn.r       
