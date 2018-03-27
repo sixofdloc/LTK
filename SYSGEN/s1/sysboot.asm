@@ -595,4 +595,4 @@ L07c4	sta START,y	; from start
 	inc L07c4 + 2
 	bne L07c4	; until we write over oureslves.
 
-	; and we disappear into the ether
+	; and we disappear into the ether via RTI
