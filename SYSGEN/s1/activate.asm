@@ -1,3 +1,24 @@
+
+; ****************************
+;*                _    _               _                 
+;*    __ _   ___ | |_ (_)__   __ __ _ | |_  ___     _ __ 
+;*   / _` | / __|| __|| |\ \ / // _` || __|/ _ \   | '__|
+;*  | (_| || (__ | |_ | | \ V /| (_| || |_|  __/ _ | |   
+;*   \__,_| \___| \__||_|  \_/  \__,_| \__|\___|(_)|_|   
+;*                                                       
+;*  "Activate" or format a LU's filesystem
+;*  
+
+; ****************************
+; * 
+; * VIM settings for David.
+; * 
+; * vim:syntax=a65:hlsearch:background=dark:ai:
+; * 
+; ****************************
+
+
+
 ;activate.r.prg
 	.include "../../include/ltk_dos_addresses.asm"
 	.include "../../include/ltk_equates.asm"
@@ -7,26 +28,26 @@
  	*=$c000 ;$4000 for sysgen
 START               
 	lda LTK_Var_ActiveLU
-	sta $c534
+	sta ActiveLU
 	lda LTK_Var_Active_User
-	sta $c535
-	jsr $9f03
+	sta ActiveUser
+	jsr LTK_GetPortNumber
 	beq Lc01e
 	ldx #<str_OnlyPort0 
 	ldy #>str_OnlyPort0 ;$c773
 	jsr LTK_Print
-	jsr Sc84e
-	jmp Lc417
+	jsr beep
+	jmp Exit
                     
 Lc01e
-	jsr Sc84e
-	ldx #$5e
-	ldy #$c5
-	jsr Sc427
-	bcs START
+	jsr beep
+	ldx #<t_erasewarning ;$5e
+	ldy #>t_erasewarning ;$c5
+	jsr GetNumber
+	bcs START		; invalid input, restart
 	cpy #$01
 	bne Lc031
-	jmp Lc417
+	jmp Exit
                     
 Lc031
 	sec
@@ -63,11 +84,11 @@ Lc065
 	jmp Lc47f
                     
 Lc074
-	ldx #$57
-	ldy #$c6
+	ldx #<t_invalidLU ;$57
+	ldy #>t_invalidLU ;$c6
 	jsr LTK_Print
-	jsr Sc84e
-	jmp Lc417
+	jsr beep
+	jmp Exit
                     
 Lc081
 	lda LTK_MiniSubExeArea+$06,y
@@ -76,9 +97,9 @@ Lc081
 	lda LTK_MiniSubExeArea+$07,y
 	sta $c533
 Lc08f
-	ldx #$7e
-	ldy #$c6
-	jsr Sc427
+	ldx #<q_aresure ;$7e
+	ldy #>q_aresure ;$c6
+	jsr GetNumber
 	bcs Lc0b4
 	cpy #$01
 	bne Lc09f
@@ -87,22 +108,22 @@ Lc08f
 Lc09f
 	cmp #$59
 	bne Lc0b4
-	ldx #$a8
-	ldy #$c6
-	jsr Sc427
+	ldx #<q_okproceed ;$a8
+	ldy #>q_okproceed ;$c6
+	jsr GetNumber
 	bcs Lc08f
 	cpy #$01
 	beq Lc08f
 	cmp #$59
 	beq Lc0b7
 Lc0b4
-	jmp Lc417
+	jmp Exit
                     
 Lc0b7
 	lda $c530
 	sta LTK_Var_ActiveLU
-	ldx #$d2
-	ldy #$c6
+	ldx #<t_inprogress ;$d2
+	ldy #>t_inprogress ;$c6
 	jsr LTK_Print
 	ldy $c531
 	lda LTK_MiniSubExeArea+$08,y
@@ -137,7 +158,7 @@ Lc0ec
 	jsr LTK_ClearHeaderBlock
 	ldx #$09
 Lc104
-	lda Lc539,x
+	lda t_discbitmap,x
 	sta LTK_FileHeaderBlock,x
 	dex
 	bpl Lc104
@@ -199,8 +220,8 @@ Lc179
 	sta $c52a
 Lc190
 	inc $c525
-	ldx #$0c
-	ldy #$c8
+	ldx #<t_asterisk ;$0c
+	ldy #>t_asterisk ;$c8
 	jsr LTK_Print
 	lda #$e0
 	sta $c52c
@@ -298,7 +319,7 @@ Lc261
 	jsr LTK_ClearHeaderBlock
 	ldx #$0a
 Lc26a
-	lda Lc543,x
+	lda t_systemindex,x
 	sta LTK_FileHeaderBlock,x
 	dex
 	bpl Lc26a
@@ -369,8 +390,8 @@ Lc2f2
 	bne Lc2fa
 	inc $c524
 Lc2fa
-	ldx #$0e
-	ldy #$c8
+	ldx #<t_dot ;$0e
+	ldy #>t_dot ;$c8
 	jsr LTK_Print
 	dec $c52e
 	bne Lc2e2
@@ -394,9 +415,9 @@ Lc314
 Lc32a
 	jsr Sc455
 Lc32d
-	ldx #$fc
-	ldy #$c6
-	jsr Sc427
+	ldx #<t_complete ;$fc
+	ldy #>t_complete ;$c6
+	jsr GetNumber
 	bcs Lc32d
 	cpy #$01
 	beq Lc32d
@@ -410,11 +431,11 @@ Lc343
 	ldx #$36
 	ldy #$c7
 	jsr LTK_Print
-	jsr Sc84e
+	jsr beep
 	jsr LTK_ClearHeaderBlock
 	ldx #$0f
 Lc356
-	lda Lc54e,x
+	lda t_ltkernal,x
 	sta LTK_FileHeaderBlock,x
 	dex
 	bpl Lc356
@@ -502,36 +523,36 @@ Lc407
 	ldy $c531
 	lda LTK_MiniSubExeArea+$06,y
 	sta LTK_LU_Param_Table+$02,y
-	ldx #$55
-	ldy #$c7
+	ldx #<t_luready ;$55
+	ldy #>t_luready ;$c7
 	jsr LTK_Print
-Lc417
-	lda $c534
+Exit	; Lc417
+	lda ActiveLU
 	sta LTK_Var_ActiveLU
-	lda $c535
+	lda ActiveUser
 	sta LTK_Var_Active_User
 	clc
 	jmp LTK_MemSwapOut
                     
-Sc427               
+GetNumber ; Sc427 - also used for a 'press return to continue'
 	jsr LTK_Print
 	ldy #$0a
-	jsr $803c
+	jsr LTK_KernalTrapRemove ;$803c
 	ldy #$00
 Lc431
-	jsr LTK_KernalCall
-	sta Lc445,y
+	jsr LTK_KernalCall	; key input? (function 0 in y?)
+	sta GetNumber_buf,y
 	iny
-	cpy #$03
+	cpy #$03		; max 3 bytes
 	bcs Lc444
-	cmp #$0d
+	cmp #$0d		; key is return?
 	bne Lc431
-	lda Lc445
-	clc
+	lda GetNumber_buf
+	clc			; clc=ok, sec=bad
 Lc444
 	rts
                     
-Lc445
+GetNumber_buf ;Lc445
 	.byte $00,$00,$00,$00 
 Sc449
 	sta LTK_FileHeaderBlock
@@ -566,9 +587,9 @@ Lc47e
 	rts
                     
 Lc47f
-	ldx #$a1
-	ldy #$c7
-	jsr Sc427
+	ldx #<q_clearcpm ;$a1
+	ldy #>q_clearcpm ;$c7
+	jsr GetNumber
 	bcs Lc4a4
 	cpy #$01
 	bne Lc48f
@@ -579,7 +600,7 @@ Lc48f
 	bne Lc4a4
 	ldx #$a8
 	ldy #$c6
-	jsr Sc427
+	jsr GetNumber
 	bcs Lc47f
 	cpy #$01
 	beq Lc47f
@@ -640,8 +661,8 @@ Lc4f8
 	pha
 	tya
 	pha
-	ldx #$0e
-	ldy #$c8
+	ldx #<t_dot ;$0e
+	ldy #>t_dot ;$c8
 	jsr LTK_Print
 	pla
 	tay
@@ -653,48 +674,54 @@ Lc50d
 	bne Lc4ee
 	cpx $c538
 	bne Lc4ee
-	ldx #$ef
-	ldy #$c7
+	ldx #<t_cpmcleared ;$ef
+	ldy #>t_cpmcleared ;$c7
 	jsr LTK_Print
 Lc51e
-	jmp Lc417
+	jmp Exit
                     
+Lc521	; label to assist disassembly
 	.byte $00,$00,$00,$00,$00,$00,$00,$00
 	.byte $00,$00,$00,$00,$00,$00,$00,$00
-	.byte $00,$00,$00,$00,$00,$00,$00,$00 
-Lc539
+	.byte $00,$00,$00
+ActiveLU ; c534
+	.byte $00
+ActiveUser ; c535
+	.byte $00,$00,$00,$00 
+t_discbitmap ; c539
 	.text "discbitmap"
-Lc543
+t_systemindex ; c543
 	.text "systemindex"
-Lc54e               
+
+t_ltkernal ;c54e               
 	.text "ltkernal"
-Lc556               
+t_dosimage ; Lc556              (seems unreferenced- ltkernaldosimage as a single string is all over the hdd images however)
 	.text "dosimage"
-Lc55e               
+t_erasewarning ; Lc55e               
 	.text "{clr}{return}{return}{rvs on}important{rvs off} - the purpose of this routine{return}            is to initialize a new or{return}            existing logical unit.{return}            activating an existing lu{return}            will {rvs on}remove{rvs off} all files from{return}            it !!!{return}{return}{return}enter lu number (0-9) or <cr> "
 	.byte $00 
-Lc657
+t_invalidLU ; Lc657
 	.text "{return}{return}invalid lu parameter(s) detected !!!"
 	.byte $00 
-Lc67e
+q_aresure ; Lc67e
 	.text "{return}{return}are you sure {rvs on} "
 	.byte $00 
-Lc690
+q_correctLU ; Lc690 FIXME: no ref found
 	.text " {rvs off} is the correct lu ? "
 	.byte $00 
-Lc6a8
+q_okproceed ; Lc6a8
 	.text "{return}{return}{return}last chance - ok to proceed(y or n) ? "
 	.byte $00 
-Lc6d2
+t_inprogress ; Lc6d2
 	.text "{clr}please wait . . . activation in process "
 	.byte $00 
-Lc6fc
+t_complete ; Lc6fc
 	.text "{return}{return}{rvs on}activation complete{return}{return}{return}install dos image file (y or n) "
 	.byte $00 
-Lc736
+t_copydos ; Lc736 FIXME: no ref found
 	.text "{return}{return}{rvs on}please wait, copying dos !!"
 	.byte $00 
-Lc755
+t_luready ; Lc755
 	.text "{return}{return}{rvs on}lu is now ready for use.{return}{return}"
 	.byte $00 
 
@@ -702,19 +729,19 @@ str_OnlyPort0 ;$c773
 	.text "{clr}{return}{return}sorry, only port{rvs on} 0 {rvs off}can activate an lu !{return}"
 	.byte $00 
 
-Lc7a1
+q_clearcpm ; Lc7a1
 	.text "{return}{return}warning - this is a {rvs on} cp/m {rvs off} lu !!!{return}{return}{return}are you sure you want it cleared ? n{left}"
 	.byte $00 
 
-Lc7ef
+t_cpmcleared ; Lc7ef
 	.text "{return}{return} your cp/m lu is cleared.{return}"
 	.byte $00 
 
-Lc80c
+t_asterisk ; Lc80c
 	.text "*"
 	.byte $00 
 
-Lc80e
+t_dot ; Lc80e
 	.text "."
 	.byte $00 
 
@@ -757,7 +784,7 @@ Lc84c
 Lc84d
 	.byte $00 
 
-Sc84e
+beep	; Sc84e
 	lda LTK_BeepOnErrorFlag
 	beq Lc88d
 	ldy #$18
