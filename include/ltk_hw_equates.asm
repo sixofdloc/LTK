@@ -29,3 +29,4 @@ HA_ctrl    =$df02	; SCSI control port
 	; cb1
 	; cb2
 HA_ctrl_cr =$df03	; SCSI control port control reg
+HA_Unknown_reg4 =$df04	; luchange.r references this.  Apparently the lower 4 bits are the port number.

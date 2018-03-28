@@ -1,8 +1,34 @@
+
+;****************************
+;*   _  _    _                              _          
+;*  | || |_ | | __ ___  _ __  _ __    __ _ | |    _ __ 
+;*  | || __|| |/ // _ \| '__|| '_ \  / _` || |   | '__|
+;*  | || |_ |   <|  __/| |   | | | || (_| || | _ | |   
+;*  |_| \__||_|\_\\___||_|   |_| |_| \__,_||_|(_)|_|   
+;*                                                     
+;* ltkernal.r.prg; side 1 of sysgen disks
+;*
+;* Re-source project by Six/DLOC (Oliver VieBrooks)
+;* Additional work by jbevren (David Wood)
+
 ;ltkernal.r.prg
 ;re-sourced and cleaned by Six/DLoC (Oliver VieBrooks)
 ;February 2018
 
+; ****************************
+; * 
+; * VIM settings for David.
+; * 
+; * vim:syntax=a65:hlsearch:background=dark:ai:
+; * 
+; ****************************
+
+
+
 	.include "../../include/ltk_equates.asm"
+	.include "../../include/ltk_hw_equates.asm"
+	; interesting note- $df03 (HA_ctrl_cr) is never referenced in this disassembly.
+
 	*=$8000 ;rewrite start address to $4000 for sysgen disk
 	
 ;=============================================================================
@@ -16,7 +42,9 @@ LTK_Var_ActiveLU 		;$8000 current active logical unit
 LTK_Var_Active_User 		;$8001 current active user
 	.byte $00 		;Default Active User = 0
 
-	.byte $00,$00,$00 	;Some unused/unknown space 
+asav	.byte $00		; $8002-$8004 are used by hdd_driver
+ysav	.byte $00
+xsav	.byte $00
 
 LTK_Var_OrigCR 			;$8005 original c.r. saved on initial entry from a trap *
 	.byte $ea
@@ -377,7 +405,7 @@ L819c
 	rts
                     
 L819e
-	jsr S81ab
+	jsr MulA5
 	lda LTK_LU_Param_Table,y
 	bmi L819c
 L81a6
@@ -385,14 +413,15 @@ L81a6
 	clc
 	rts
                     
-S81ab
-	sta $81b2
+MulA5	; y=a*5
+	sta L81b2	; save .A to add later
 	asl a
-	asl a
+	asl a		; multiply by 4
 	clc
-	adc #$00
-	tay
-	rts
+L81b2	=*+1
+	adc #$00	; add carry
+	tay		; put in .Y
+	rts		; return
                     
 S81b5
 	lda #$4c
@@ -573,15 +602,36 @@ L82b4
 	.byte $e1,$85,$0c 
 	.byte $0d,$83,$14 
 	.byte $15,$83,$16 
-	.byte $00,$00,$00 
-	.byte $00,$00,$00 
-	.byte $00,$00,$00 
-	.byte $a4,$85,$10 
-	.byte $1a,$83,$12 
-	.byte $00,$00,$00 
-	.byte $00,$00,$00 
-	.byte $01,$00,$00 
-	.byte $00,$00,$00
+	.byte $00
+L82d0	.byte $00
+L82d1	.byte $00 
+tp_mul_mmsb	.byte $00
+L82d3	.byte $00
+L82d4	.byte $00 
+L82d5	.byte $00
+L82d6	.byte $00
+L82d7	.byte $00 
+L82d8	.byte $a4
+L82d9	.byte $85
+L82da	.byte $10 
+L82db	.byte $1a
+L82dc	.byte $83
+L82dd	.byte $12 
+L82de	.byte $00
+L82df	.byte $00
+
+	; Seems likely that the CDB buffer starts here.
+SCSI_CMD	.byte $00 		;hdd_driver
+SCSI_mmsb	.byte $00
+SCSI_msb	.byte $00
+SCSI_lsb	.byte $00 
+SCSI_tc		.byte $01
+L82e5	.byte $00	; scsi control byte
+
+L82e6	.byte $00 
+L82e7	.byte $00
+L82e8	.byte $00
+L82e9	.byte $00
 	
 L82ea
 	jsr check_device_number
@@ -602,7 +652,7 @@ L82f0
 L8307
 	jsr S81bb
 	pla
-	jmp $95e3
+	jmp LTK_DOSOverlay+3	;$95e3
                     
 L830e
 	jsr check_device_number
@@ -613,261 +663,324 @@ L830e
 	jsr S8669
 	jsr S81bb
 L8321
-	jmp $95e0
+	jmp LTK_DOSOverlay	;$95e0
                     
+
+;**************************************
+;*
+;* hdd_driver: Lt. Kernal low level block device driver
+;*
+;*  Reads a given block within a target LU
+;*
+;*  INPUTS:
+;*  Carry flag	0=read; 1=write
+;*  .X	block address low
+;*  .Y	block address high
+;*  .A	
+;*
+;*  first byte after jsr  = target low
+;*  second byte after jsr = target high
+;*  third byte after jsr  = number of blocks to move
+;*
+;*  OUTPUTS:
+;*  Data read or written at base address for specified number of blocks
+;*
+
+;**************************************
+;* To help with disassembly some ltk_lu_param_table docs are here.
+;* 
+;* Entry size 5:
+;* offs	bits
+;* 0	abbcccdd	See below
+;* 1			Beginning Cyl Address (low)
+;* 2	eeeefggg	See below
+;* 3			Number of Cylinders (low)
+;* 4			Sectors per track
+;* 5	(next entry)
+;* 
+;* code	meaning
+;* a	"Active" LU flag (1=active)
+;* b	physical drive number (0-3) (FIXME: aka scsi LUN?)
+;* c	physical controller number (aka scsi id)
+;* d	High bits of beginning cylinder address
+;* e	Number of heads for the drive holding the LU
+;* f	DOS image flag (1=dos present in this LU)
+;* g	Number of cylinders, high bits
+;* 
+
 hdd_driver
-	and #$3f
-	stx $8004
-	stx $82e3
-	sty $8003
-	sty $82e2
-	ldx #$08
-	bcc L8338
-	ldx #$0a
-L8338
-	stx $82e0
+	and #$3f		; 0011 1111
+	stx xsav
+	stx SCSI_lsb
+	sty ysav
+	sty SCSI_msb
+	ldx #$08		; read(6)
+	bcc L8338		;  carry clear if block read
+	ldx #$0a		; write(6)
+L8338	stx SCSI_CMD		; Store SCSI command
 	ldx #$00
-	stx $82e1
-	stx $82d0
-	ldx #$fe
-	stx S846d + 1
+	stx SCSI_mmsb		; init SCSI_mmsb to 0
+	stx L82d0
+	ldx #$fe		; 1111 1110 = id0
+	stx SCSI_Target		; preset SCSI target to ID 0
+
+L8349	=*+1			; operand gets changed
 	ldx #$0a
-	sta $8002
-	sta $8349
-	cmp #$0a
-	bne L8378
-	tya
-	bne L83cd
-	ldy $8004
+	sta asav		; save .A for return
+	sta L8349		; set target LU
+	cmp #$0a		; did the caller request LU10?
+	bne L8378		; No, calculate LBA of block address
+	tya			; 
+	bne L83cd		;  msb !=0, just get the block
+	ldy xsav		; get block lsb
 	cpy #$11
-	bcc L83cd
+	bcc L83cd		; <11? Go get the block
 	cpy #$ee
-	bcs L83cd
-	dec $82d0
-	cpx #$0a
-	beq L83cd
+	bcs L83cd		; >EE? (discbitmap, filesystem probably starts here)
+	dec L82d0		;  requested block is in the DOS area
+	beq L83cd		;  yes, skip all the math, LU10's at a fixed 0 lba
 	txa
-	jsr S81ab
-	lda $80aa,y
-	and #$08
-	beq L83cd
+
+	jsr MulA5		; Multiply .A*5 and put in .Y
+	lda LTK_LU_Param_Table+2,y; Get LU parameters
+	and #$08		;  check DOS image flag
+	beq L83cd		;  dos not present!
 	txa
-	inc $82e2
-L8378
-	sta $8349
-	jsr S81ab
-	lda LTK_LU_Param_Table,y
+	inc SCSI_msb
+
+L8378	sta L8349
+	jsr MulA5
+	lda LTK_LU_Param_Table,y; Get LU flags
 	pha
-	pha
-	and #$1c
+	pha			; save a couple copies on the stack for later
+	and #$1c		; 0001 1100 = SCSI ID
 	lsr a
-	lsr a
-	tax
-	beq L8391
-L838a
-	sec
-	rol S846d + 1
+	lsr a			; shift right
+	tax			; move to .X
+	beq L8391		; ID 0? No need to shift the target variable, skip.
+
+L838a	sec			; shift Target until it aligns with our ID
+	rol SCSI_Target		; Increment scsi target
 	dex
 	bne L838a
-L8391
-	pla
-	and #$60
-	sta $82e1
-	pla
-	and #$03
-	tax
-	lda $80ac,y
-	sta $83b2
-	lda $80a9,y
+
+L8391	pla			; restore a copy of LTK_LU_Param_Table
+	and #$60		; 0110 0000 = phys drive number (according to sysdefs)
+	sta SCSI_mmsb		;  save
+	pla			; restore a copy of LTK_LU_Param_Table
+	and #$03		; 0000 0011 = High bits of beginning cylinder
+	tax			; save in .X
+	lda LTK_LU_Param_Table+4,y; Sectors per track
+	sta SPT
+	lda LTK_LU_Param_Table+1,y; low byte of first cylinder
 	pha
-	lda $80aa,y
+	lda LTK_LU_Param_Table+2,y
 	lsr a
 	lsr a
 	lsr a
-	lsr a
-	tay
-	pla
-	jsr tp_multiply
-	ldy #$00
-	jsr tp_multiply
-	clc
-	adc $82e3
-	sta $82e3
+	lsr a			; Number of heads in LU
+	tay			;  ...in .Y
+	pla			; restore low byte of first cyl
+
+	; Now lets calculate the first LBA address in the selected LU.
+	jsr tp_multiply		; multiply first cylinder in LU (.A, .X) * heads (.Y) to get base LBA of LU
+SPT	=*+1			; gets changed above
+	ldy #$00		; get sectors per track
+	jsr tp_multiply		; multiply previous result by sectors per track
+	clc			;  Result at SCSI_lsb is now base cylinder * heads * sectors
+
+	; ...and add to the caller supplied block number within the LU
+	adc SCSI_lsb		; add sector offset requested by caller
+	sta SCSI_lsb		; and make it the low LBA byte
 	txa
-	adc $82e2
-	sta $82e2
-	lda $82d2
-	adc $82e1
-	sta $82e1
-L83cd               
+	adc SCSI_msb
+	sta SCSI_msb		; more adding, make the middle LBA byte
+	lda tp_mul_mmsb		; highest byte of LBA
+	adc SCSI_mmsb
+	sta SCSI_mmsb		;  ...and make the high LBA byte
+
+L83cd   pla			; get return address
+	sta GetYInc + 1
 	pla
-	sta S8468 + 1
-	pla
-	sta S8468 + 2
+	sta GetYInc + 2		; and save it
 	lda $31
 	pha
-	lda $32
+	lda $32			; save 31, 32 on stack
 	pha
-	ldy #$01
-	jsr S8468
+	ldy #$01		; offset one beyond caller
+	jsr GetYInc
 	sta $31
-	jsr S8468
-	sta $32
-	jsr S8468
-	sta $82e4
-	tya
+	jsr GetYInc
+	sta $32			; get two bytes for target address
+	jsr GetYInc
+	sta SCSI_tc		; set transfer count
+	tya			; y=4
 	tax
-	jsr S8468
+	jsr GetYInc
 	cmp #$b2
 	bne L8404
-	jsr S8468
+	jsr GetYInc
 	cmp #$c2
 	bne L8404
-	jsr S8468
+	jsr GetYInc
 	cmp #$d2
 	beq L8412
-L8404
-	txa
+L8404	txa
 	tay
-	lda $82e0
-	cmp #$08
+	lda SCSI_CMD
+	cmp #$08		; scsi read
 	beq L8412
-	lda $82d0
-	bne L8442
-L8412
-	tya
+	lda L82d0
+	bne drv_die
+L8412	tya			; restore index
 	clc
-	adc S8468 + 1
-	sta S8468 + 1
+	adc GetYInc + 1
+	sta GetYInc + 1		; fix return address
 	bcc L841f
-	inc S8468 + 2
-L841f
-	jsr S849d
-	jsr S846d
-	bne L8442
-	ldx #$06
+	inc GetYInc + 2		; optionally fix return high byte
+
+L841f	jsr HA_DataOut
+	jsr SCSI_Select		; get target's attention
+	bne drv_die		;  or fail.
+
+	ldx #$06		; 6 bytes to send
+	ldy #$00		; from offset 0
+	jsr SendCDB		; send SCSI command to target
+
 	ldy #$00
-	jsr S8486
-	ldy #$00
-	lda $82e0
-	cmp #$08
-	beq L8445
+	lda SCSI_CMD
+	cmp #$08		; did we send a read?
+	beq L8445		; Yes, perform read.
+
+	; or perform write.  SCSI port is already set for output.
 	lda #$2c
-	sta $df01
-	jsr $fc65
+	sta HA_data_cr
+	jsr $fc65		; FIXME: This is inside the kernal patch code I think
 	jmp L8450
-                    
-L8442               
-	jsr LTK_FatalError
-L8445
-	jsr S849a
+drv_die	jsr LTK_FatalError
+
+L8445	jsr HA_DataIn
 	lda #$2c
-	sta $df01
-	jsr $fc62
-L8450
-	jsr S84c1
+	sta HA_data_cr
+	jsr $fc62		; FIXME: This is inside the kernal patch code I think
+	
+L8450	jsr SCSI_GetStatus	; Read or write is complete, get status from target
 	txa
-	bne L8442
-	pla
+	bne drv_die		; Nonzero? well crap.  Time to fail out
+	pla 
 	sta $32
 	pla
-	sta $31
-	lda $8002
-	ldx $8004
-	ldy $8003
-	jmp (S8468 + 1)
-                    
-S8468  
-	lda S8468,y
+	sta $31		; restore $31,$32
+	lda asav	; caller .A and $3f
+	ldx xsav
+	ldy ysav
+	jmp (GetYInc + 1) ; Simulate RTS
+
+GetYInc	lda GetYInc,y
 	iny
 	rts
+	;possibly the end of hdd_driver
                     
-S846d
-	lda #$fe
-	sta $df00
+SCSI_Select	;S846d
+SCSI_Target	=*+1	; target for SCSI Select
+	lda #$fe	; SCSI ID mask (must be inverted scsi ID bit)
+	sta HA_data	; set target ID
 L8472
-	lda #$50
-	sta $df02
-	lda $df02
-	and #$08
+	lda #$50	; 0101 0000 = ATN+SEL
+	sta HA_ctrl	; 
+	lda HA_ctrl
+	and #$08	; BSY
 	bne L8472
-	lda #$40
-	sta $df02
+	lda #$40	; de-assert SEL
+	sta HA_ctrl
 	lda #$00
 	rts
                     
-S8486
-	jsr S84ad
-	lda $82e0,y
+SendCDB
+	jsr SCSI_wait
+	lda SCSI_CMD,y
 	eor #$ff
-	sta $df00
-	jsr S84b3
+	sta HA_data
+	jsr SCSI_handshake
 	iny
 	dex
-	bne S8486
-	beq S84ad
-S849a
+	bne SendCDB
+	beq SCSI_wait
+HA_DataIn
 	ldx #$00
 	.byte $2c 
-S849d
+HA_DataOut
 	ldx #$ff
 	lda #$38
-	sta $df01
-	stx $df00
+	sta HA_data_cr
+	stx HA_data
 	lda #$3c
-	sta $df01
+	sta HA_data_cr
 	rts
                     
-S84ad
-	lda $df02
-	bmi S84ad
+SCSI_wait
+	lda HA_ctrl
+	bmi SCSI_wait
 	rts
                     
-S84b3
+SCSI_handshake
 	lda #$2c
-	sta $df01
-	lda $df00
+	sta HA_data_cr
+	lda HA_data
 	lda #$3c
-	sta $df01
+	sta HA_data_cr
 	rts
                     
-S84c1
-	jsr S849a
-	jsr S84ca
+SCSI_GetStatus
+	jsr HA_DataIn
+	jsr SCSI_GetTrueByte
 	and #$9f
 	tax
-S84ca
-	jsr S84ad
-	lda $df00
+
+SCSI_GetTrueByte
+	jsr SCSI_wait
+	lda HA_data
 	eor #$ff
 	tay
-	jsr S84b3
+	jsr SCSI_handshake
 	tya
 	rts
                     
+;* ****** tp_multiply *****
+;*
+;* Multiply routine used by hdd_driver
+;* .A .X * .Y -> .A .X tp_mul_mmsb WHERE:::
+;* .Y is an 8bit multiplicand, the first
+;* .A is the low byte of a second multipicand, the second
+;* .X is the middle byte of a second multiplicand, the second
+;* tp_mul_mmsb is the high byte of a second multiplicand, the second (initialized to zero)
+;* tl;dr 16x8->24bit multiply.
+;*
+;* Also likely used by transient tools as it's in the system jump table.
 tp_multiply
-	sta $84ea
-	stx $84ee
+			; .Y=Mul2
+	sta L84ea	; Mul1 low
+	stx L84ee	; Mul1 high
 	lda #$00
-	sta $82d2
-	tax
-	cpy #$00
-	beq L84f9
-L84e8
-	clc
-	adc #$00
-	pha
-	txa
-	adc #$00
-	tax
-	bcc L84f5
-	inc $82d2
-L84f5
-	pla
-	dey
-	bne L84e8
-L84f9
-	rts
+	sta tp_mul_mmsb	; init mmsb of accumulator
+	tax		; and keep a zero on hand for quick load.
+	cpy #$00	; is .Y 0?
+	beq L84f9	; don't bother.  result is 0.
+
+L84e8	clc		; Prep for add
+L84ea	=*+1
+	adc #$00	;  accumulate entry variable .A
+	pha		;  and save on stack
+	txa		; lda #0
+L84ee	=*+1
+	adc #$00	;  accumulate entry variable .X
+	tax		;  save in .x
+	bcc L84f5	; 
+	inc tp_mul_mmsb	;  optionally increment mmsb
+L84f5	pla		; restore first addition
+	dey		; decrement multiplicand
+	bne L84e8	;  more to do.
+L84f9	rts		; return.
                     
 ltkprint
 	stx L8505 + 1
@@ -887,7 +1000,7 @@ L8517
                     
 L8518
 	jsr S8564
-	stx $82e6
+	stx L82e6
 	lda $ba
 	sta $99
 	bcs L855a
@@ -902,15 +1015,15 @@ L8518
 	jsr S8564
 	lda $ba
 	sta $9a
-	lda $82e7
-	sta $82e8
-	stx $82e7
+	lda L82e7
+	sta L82e8
+	stx L82e7
 	cpx #$e0
 	beq L854b
 	bcs L855a
 L854b
-	lda $82e8
-	cmp $82e7
+	lda L82e8
+	cmp L82e7
 	beq L855a
 	cmp #$e0
 	bne L855a
@@ -969,7 +1082,7 @@ L85a5
 	lda $99
 	cmp LTK_HD_DevNum
 	bne L85df
-	ldx $82e6
+	ldx L82e6
 	lda $9df9,x
 	cmp #$0f
 	bne L85be
@@ -1033,7 +1146,7 @@ L8620
 	jmp sysret_lkrt_oldregs
                     
 L8623
-	ldx $82e7
+	ldx L82e7
 	stx $9de4
 	lda $9df9,x
 	cmp #$0f
@@ -1337,28 +1450,28 @@ L8869
 	lda $9a
 	cmp LTK_HD_DevNum
 	bne L8889
-	ldx $82e7
+	ldx L82e7
 	lda #$00
 	sta $9a
 	jsr S88a3
-	lda $82e7
+	lda L82e7
 	cmp #$e0
 	bne L8884
 	jsr S8669
 L8884
 	lda #$ff
-	sta $82e7
+	sta L82e7
 L8889
 	lda $99
 	cmp LTK_HD_DevNum
 	bne L88a0
-	ldx $82e6
+	ldx L82e6
 	lda #$ff
 	jsr S88a3
 	ldx #$00
 	stx $99
 	dex
-	stx $82e6
+	stx L82e6
 L88a0
 	jmp sysret_lkrt_oldregs
                     
@@ -1399,14 +1512,14 @@ L88de
 	jmp LTK_ErrorHandler
                     
 S88e6
-	ldx $82e6
-	stx $82d4
-	sty $82de
+	ldx L82e6
+	stx L82d4
+	sty L82de
 	lda #$0d
 	cpx #$fe
 	bcc L88ff
 	bne L88fc
-	inc $82e6
+	inc L82e6
 	lda #$c7
 L88fc
 	jmp L8ab3
@@ -1417,7 +1530,7 @@ L88ff
 	cmp #$24
 	bne L8910
 	jsr process_directory
-	ldx $82d4
+	ldx L82d4
 	jmp $95e0
                     
 L8910
@@ -1475,7 +1588,7 @@ L895a
 L8969
 	jsr S89cd
 L896c
-	bit $82de
+	bit L82de
 	bmi L8979
 	jsr S8a5e
 	lda $9dfc,x
@@ -1490,41 +1603,41 @@ S897d
 	sta $8a3a
 	sty $8a3b
 	lda $9def,x
-	sta $82d7
+	sta L82d7
 	clc
 	adc L8979 + 1
 	sta L8979 + 1
 	sta $8b5c
 	lda $9dee,x
-	sta $82d6
+	sta L82d6
 	and #$01
 	adc L8979 + 2
 	sta L8979 + 2
 	sta $8b5d
 	lda $9ded,x
-	sta $82d5
+	sta L82d5
 	ldy #$09
 L89b2
-	lsr $82d5
-	ror $82d6
-	ror $82d7
+	lsr L82d5
+	ror L82d6
+	ror L82d7
 	dey
 	bne L89b2
 	lda $9dea,x
 	ldy $9de9,x
-	cpy $82d6
+	cpy L82d6
 	bne L89cc
-	cmp $82d7
+	cmp L82d7
 L89cc
 	rts
                     
 S89cd
 	clc
 	jsr S8bf5
-	lda $82d7
+	lda L82d7
 	sta $8a5d
 	sta $9dea,x
-	lda $82d6
+	lda L82d6
 	sta $8a5c
 	sta $9de9,x
 	lda #$02
@@ -1559,14 +1672,14 @@ L89f8
 	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01
 L8a1e = * + 2       
 L8a1c               
-	ldx $82d4
+	ldx L82d4
 L8a1f
 	lda #$e0
 L8a21
 	ldy #$91
 	jsr S8a44
 L8a26
-	lda $82d7
+	lda L82d7
 	jsr S8a4b
 	sta $9deb,x
 	tya
@@ -1577,7 +1690,7 @@ L8a26
 	.byte $00,$00,$01
                     
 L8a3d
-	ldx $82d4
+	ldx L82d4
 	rts
                     
 L8a41
@@ -1663,14 +1776,14 @@ L8ab7
 	rts
                     
 S8ab9
-	sta $82e9
+	sta L82e9
 	tay
-	ldx $82e7
-	stx $82d4
+	ldx L82e7
+	stx L82d4
 	cpx #$fe
 	bcc L8ace
 	bne L8ab3
-	inc $82e7
+	inc L82e7
 	bne L8ab7
 L8ace
 	lda $9df9,x
@@ -1745,7 +1858,7 @@ L8b3c
 L8b55
 	jsr S8b6e
 L8b58
-	lda $82e9
+	lda L82e9
 	sta $8b5b
 	jsr S8a5e
 	lda #$40
@@ -1753,7 +1866,7 @@ L8b58
 	sta $9dfe,x
 	clc
 L8b6a
-	lda $82e9
+	lda L82e9
 	rts
                     
 S8b6e
@@ -1767,7 +1880,7 @@ S8b6e
 	jsr LTK_AppendBlocks
 	bcs L8bf2
 	txa
-	ldx $82d4
+	ldx L82d4
 	sta $9deb,x
 	tya
 	sta $9dec,x
@@ -1799,13 +1912,13 @@ S8bae
 swap_write_buffer
 	lda LTK_WriteChanFPTPtr
 	stx LTK_WriteChanFPTPtr
-	stx $82d4
+	stx L82d4
 	tax
 	cpx #$ff
 	beq L8bc8
 	jsr S8c4c
 L8bc8
-	ldx $82d4
+	ldx L82d4
 	lda #$e0
 	ldy #$8d
 L8bcf
@@ -1817,7 +1930,7 @@ L8bcf
 	.byte $00,$00,$01
                     
 L8bdf
-	ldx $82d4
+	ldx L82d4
 	rts
                     
 S8be3
@@ -1871,7 +1984,7 @@ L8c32
 	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01
 
 L8c48
-	ldx $82d4
+	ldx L82d4
 	rts
                     
 S8c4c
@@ -1883,5 +1996,5 @@ S8c4c
 	.byte <LTK_FileWriteBuffer,>LTK_FileWriteBuffer,$01
 	
 L8c5a   
-	ldx $82d4
+	ldx L82d4
 	rts

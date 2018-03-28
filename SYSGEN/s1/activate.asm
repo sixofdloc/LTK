@@ -27,77 +27,74 @@
 
  	*=$c000 ;$4000 for sysgen
 START               
-	lda LTK_Var_ActiveLU
-	sta ActiveLU
+	lda LTK_Var_ActiveLU	; Get the current active LU
+	sta ActiveLU		; save it so we can restore it later
 	lda LTK_Var_Active_User
-	sta ActiveUser
-	jsr LTK_GetPortNumber
-	beq Lc01e
-	ldx #<str_OnlyPort0 
+	sta ActiveUser		; same with active user
+	jsr LTK_GetPortNumber	; get our port number
+	beq Lc01e		; are we port 0? Proceed
+	ldx #<str_OnlyPort0 	; warn that only port 0 can activate LU's
 	ldy #>str_OnlyPort0 ;$c773
 	jsr LTK_Print
-	jsr beep
-	jmp Exit
+	jsr beep		; beep if beeps are on
+	jmp Exit		; kbye.
                     
-Lc01e
-	jsr beep
-	ldx #<t_erasewarning ;$5e
-	ldy #>t_erasewarning ;$c5
+Lc01e	jsr beep		; Port# passed, continue
+	ldx #<t_erasewarning ;$5e Print warning about erasure and
+	ldy #>t_erasewarning ;$c5   ask for LU number to activate
 	jsr GetNumber
 	bcs START		; invalid input, restart
-	cpy #$01
-	bne Lc031
-	jmp Exit
+	cpy #$01		; blank entry? (return only=1)
+	bne Lc031		;  no, continue
+	jmp Exit		; yes, exit
                     
-Lc031
-	sec
-	sta $c68f
-	sbc #$30
-	cmp #$0a
-	bcs START
-	sta $c530
+Lc031	sec			; we have a LU number from the user, continue
+	sta t_target_lu		; store our target LU
+	sbc #$30		; offset to binary
+	cmp #$0a		; compare with LU 10
+	bcs START		; Larger or equal? restart.
+	sta targetLU		; store binary target value.
 	lda #$00
-	sta LTK_BLKAddr_MiniSub
+	sta LTK_BLKAddr_MiniSub	; reset mini sub block addr to 0 (SYSTEMTRACK)
+
    	ldx #$05
-Lc045
-	clc
-	adc $c530
+Lc045	clc
+	adc targetLU
 	dex
-	bne Lc045
-	sta $c531
-	tay
-	lda #$f7
-	and LTK_LU_Param_Table+$02,y
+	bne Lc045		; multiply target LU by 5
+	sta targetLUx5	;c531	; save it for later use
+
+	tay			; init index to beginning of LU info
+	lda #$f7		; Set mask to remove 'active flag'
+	and LTK_LU_Param_Table+$02,y ; ..of the target LU
 	sta LTK_LU_Param_Table+$02,y
-	lda #$0a
-	ldx #$1a
-	ldy #$00
-	clc
-	jsr LTK_HDDiscDriver
-	.byte <LTK_MiniSubExeArea,>LTK_MiniSubExeArea,$01 ;$93e0 
-Lc065
-	ldy $c531
-	lda LTK_MiniSubExeArea+$04,y
-	bpl Lc081
-	cmp #$ff
-	beq Lc074
-	jmp Lc47f
+	lda #$0a		; A= LU #10
+	ldx #$1a		; 
+	ldy #$00		; xy= sector $001a
+	clc			; clear=read
+	jsr LTK_HDDiscDriver	;  Get block 001a from LU10 (00:00001a = luchange.r)
+	.word LTK_MiniSubExeArea ; $93e0
+	.byte $01		; one sector
+
+Lc065	ldy targetLUx5	;c531
+	lda LTK_MiniSubExeArea+$04,y; get LU info
+	bpl Lc081		;  inactive LU, proceed.
+	cmp #$ff		; invalid LU?
+	beq Lc074		;  Yes, tell the user
+	jmp IsCPM		; Not invalid, not inactive.  This is a CP/M LU.
                     
-Lc074
-	ldx #<t_invalidLU ;$57
+Lc074	ldx #<t_invalidLU ;$57
 	ldy #>t_invalidLU ;$c6
-	jsr LTK_Print
+	jsr LTK_Print		; invalid lu!
 	jsr beep
 	jmp Exit
                     
-Lc081
-	lda LTK_MiniSubExeArea+$06,y
+Lc081	lda LTK_MiniSubExeArea+$06,y
 	and #$07
 	sta $c532
 	lda LTK_MiniSubExeArea+$07,y
 	sta $c533
-Lc08f
-	ldx #<q_aresure ;$7e
+Lc08f	ldx #<q_aresure ;$7e
 	ldy #>q_aresure ;$c6
 	jsr GetNumber
 	bcs Lc0b4
@@ -105,8 +102,7 @@ Lc08f
 	bne Lc09f
 	jmp START
                     
-Lc09f
-	cmp #$59
+Lc09f	cmp #$59
 	bne Lc0b4
 	ldx #<q_okproceed ;$a8
 	ldy #>q_okproceed ;$c6
@@ -116,16 +112,14 @@ Lc09f
 	beq Lc08f
 	cmp #$59
 	beq Lc0b7
-Lc0b4
-	jmp Exit
+Lc0b4	jmp Exit
                     
-Lc0b7
-	lda $c530
+Lc0b7	lda targetLU
 	sta LTK_Var_ActiveLU
 	ldx #<t_inprogress ;$d2
 	ldy #>t_inprogress ;$c6
 	jsr LTK_Print
-	ldy $c531
+	ldy targetLUx5	;c531
 	lda LTK_MiniSubExeArea+$08,y
 	pha
 	lda LTK_MiniSubExeArea+$06,y
@@ -146,8 +140,7 @@ Lc0b7
 	clc
 	beq Lc0ec
 	sec
-Lc0ec
-	adc #$03
+Lc0ec	adc #$03
 	sta $c522
 	tay
 	ldx #$02
@@ -157,8 +150,7 @@ Lc0ec
 	sta $c523
 	jsr LTK_ClearHeaderBlock
 	ldx #$09
-Lc104
-	lda t_discbitmap,x
+Lc104	lda t_discbitmap,x
 	sta LTK_FileHeaderBlock,x
 	dex
 	bpl Lc104
@@ -178,8 +170,7 @@ Lc104
 	sta $91f9
 	ldx $c532
 	ldy $c533
-Lc13b
-	lda $c521
+Lc13b	lda $c521
 	clc
 	adc $9272
 	sta $9272
@@ -187,16 +178,14 @@ Lc13b
 	inc $9271
 	bne Lc14f
 	inc $9270
-Lc14f
-	dey
+Lc14f	dey
 	bne Lc13b
 	cpx #$00
 	beq Lc15a
 	dex
 	jmp Lc13b
                     
-Lc15a
-	ldx #$00
+Lc15a	ldx #$00
 	stx $c525
 	ldy #$00
 	sty $c524
@@ -208,8 +197,7 @@ Lc15a
 	sec
 	jsr LTK_HDDiscDriver
 	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ; LTK_FileHeaderBlock 
-Lc179
-	lda #$00
+Lc179	lda #$00
 	
 	sta $c526
 	sta $c527
@@ -218,8 +206,7 @@ Lc179
 	sta $c529
 	lda $c533
 	sta $c52a
-Lc190
-	inc $c525
+Lc190	inc $c525
 	ldx #<t_asterisk ;$0c
 	ldy #>t_asterisk ;$c8
 	jsr LTK_Print
@@ -230,8 +217,7 @@ Lc190
 	lda $c523
 	sta $c52d
 	jsr LTK_ClearHeaderBlock
-Lc1ad
-	lda $c52c
+Lc1ad	lda $c52c
 	sta Sc449 + 1
 	lda $c52b
 	sta Sc449 + 2
@@ -242,16 +228,13 @@ Lc1ad
 	lda $c528
 	jsr Sc449
 	clc
-Lc1cc
-	lda $c52c
+Lc1cc	lda $c52c
 	adc $c522
 Lc1d3 = * + 1       
-Lc1d2
-	sta $c52c
+Lc1d2	sta $c52c
 	bcc Lc1da
 	inc $c52b
-Lc1da
-	lda $c528
+Lc1da	lda $c528
 	clc
 	adc $c521
 	sta $c528
@@ -259,14 +242,12 @@ Lc1da
 	inc $c527
 	bne Lc1ee
 	inc $c526
-Lc1ee
-	dec $c52a
+Lc1ee	dec $c52a
 	bne Lc1fb
 	lda $c529
 	beq Lc212
 	dec $c529
-Lc1fb
-	dec $c52d
+Lc1fb	dec $c52d
 	bne Lc1ad
 	lda LTK_Var_ActiveLU
 	ldx $c525
@@ -274,11 +255,9 @@ Lc1fb
 	sec
 	jsr LTK_HDDiscDriver
 	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ; LTK_FileHeaderBlock 
-Lc20f
-	jmp Lc190
+Lc20f	jmp Lc190
                     
-Lc212
-	lda $c52b
+Lc212	lda $c52b
 	sta Sc449 + 2
 	lda $c52c
 	sta Sc449 + 1
@@ -478,7 +457,7 @@ Lc3a2
 	.byte <LTK_MiniSubExeArea,>LTK_MiniSubExeArea,$01 ;$93e0 
 	
 Lc3b2
-	ldy $c531
+	ldy targetLUx5	;c531
 	lda $c536
 	beq Lc3c5
 	lda #$f7
@@ -520,7 +499,7 @@ Lc3df
 	.byte <LTK_MiniSubExeArea,>LTK_MiniSubExeArea,$01, $b2, $c2, $d2 ;$93e0 b2 c2 d2 
 	
 Lc407
-	ldy $c531
+	ldy targetLUx5	;c531
 	lda LTK_MiniSubExeArea+$06,y
 	sta LTK_LU_Param_Table+$02,y
 	ldx #<t_luready ;$55
@@ -535,18 +514,18 @@ Exit	; Lc417
 	jmp LTK_MemSwapOut
                     
 GetNumber ; Sc427 - also used for a 'press return to continue'
-	jsr LTK_Print
+	jsr LTK_Print		; Print prepared message
 	ldy #$0a
-	jsr LTK_KernalTrapRemove ;$803c
+	jsr LTK_KernalTrapRemove ;$803c Remove input trap
 	ldy #$00
 Lc431
 	jsr LTK_KernalCall	; key input? (function 0 in y?)
-	sta GetNumber_buf,y
+	sta GetNumber_buf,y	; store keyin our buffer
 	iny
 	cpy #$03		; max 3 bytes
-	bcs Lc444
+	bcs Lc444		;  too many, exit with carry
 	cmp #$0d		; key is return?
-	bne Lc431
+	bne Lc431		;  No, get another key
 	lda GetNumber_buf
 	clc			; clc=ok, sec=bad
 Lc444
@@ -586,7 +565,7 @@ Lc470
 Lc47e
 	rts
                     
-Lc47f
+IsCPM
 	ldx #<q_clearcpm ;$a1
 	ldy #>q_clearcpm ;$c7
 	jsr GetNumber
@@ -601,9 +580,9 @@ Lc48f
 	ldx #$a8
 	ldy #$c6
 	jsr GetNumber
-	bcs Lc47f
+	bcs IsCPM
 	cpy #$01
-	beq Lc47f
+	beq IsCPM
 	cmp #$59
 	beq Lc4a7
 Lc4a4
@@ -623,7 +602,7 @@ Lc4b8
 	sta $90e0,y
 	iny
 	bne Lc4b8
-	ldy $c531
+	ldy targetLUx5	;c531
 	lda LTK_MiniSubExeArea+$07,y
 	pha
 	lda LTK_MiniSubExeArea+$08,y
@@ -644,7 +623,7 @@ Lc4b8
 	jsr LTK_TPMultiply
 	sta $c538
 	stx $c537
-	lda $c530
+	lda targetLU
 	ldx #$00
 	ldy #$00
 Lc4ee
@@ -682,7 +661,10 @@ Lc51e
                     
 Lc521	; label to assist disassembly
 	.byte $00,$00,$00,$00,$00,$00,$00,$00
-	.byte $00,$00,$00,$00,$00,$00,$00,$00
+	.byte $00,$00,$00,$00,$00,$00,$00
+targetLU
+	.byte $00
+targetLUx5
 	.byte $00,$00,$00
 ActiveLU ; c534
 	.byte $00
@@ -705,8 +687,9 @@ t_invalidLU ; Lc657
 	.byte $00 
 q_aresure ; Lc67e
 	.text "{return}{return}are you sure {rvs on} "
+t_target_lu	; This is changed according to user input at the beginning, combining c67e and c690 into one string.
 	.byte $00 
-q_correctLU ; Lc690 FIXME: no ref found
+q_correctLU ; Lc690
 	.text " {rvs off} is the correct lu ? "
 	.byte $00 
 q_okproceed ; Lc6a8
