@@ -63,26 +63,29 @@ Lc045	clc
 	dex
 	bne Lc045		; multiply target LU by 5
 	sta targetLUx5	;c531	; save it for later use
-	tay			; set index
+
+	tay			; init index to beginning of LU info
 	lda #$f7		; Set mask to remove 'active flag'
 	and LTK_LU_Param_Table+$02,y ; ..of the target LU
 	sta LTK_LU_Param_Table+$02,y
-	lda #$0a		; cmd=$a
-	ldx #$1a		; Dest=$1a00?
-	ldy #$00
+	lda #$0a		; A= LU #10
+	ldx #$1a		; 
+	ldy #$00		; xy= sector $001a
 	clc			; clear=read
-	jsr LTK_HDDiscDriver
-	.byte <LTK_MiniSubExeArea,>LTK_MiniSubExeArea,$01 ;$93e0 
+	jsr LTK_HDDiscDriver	;  Get block 001a from LU10 (00:00001a = luchange.r)
+	.word LTK_MiniSubExeArea ; $93e0
+	.byte $01		; one sector
+
 Lc065	ldy targetLUx5	;c531
-	lda LTK_MiniSubExeArea+$04,y
-	bpl Lc081
-	cmp #$ff
-	beq Lc074
-	jmp Lc47f
+	lda LTK_MiniSubExeArea+$04,y; get LU info
+	bpl Lc081		;  inactive LU, proceed.
+	cmp #$ff		; invalid LU?
+	beq Lc074		;  Yes, tell the user
+	jmp IsCPM		; Not invalid, not inactive.  This is a CP/M LU.
                     
 Lc074	ldx #<t_invalidLU ;$57
 	ldy #>t_invalidLU ;$c6
-	jsr LTK_Print
+	jsr LTK_Print		; invalid lu!
 	jsr beep
 	jmp Exit
                     
@@ -562,7 +565,7 @@ Lc470
 Lc47e
 	rts
                     
-Lc47f
+IsCPM
 	ldx #<q_clearcpm ;$a1
 	ldy #>q_clearcpm ;$c7
 	jsr GetNumber
@@ -577,9 +580,9 @@ Lc48f
 	ldx #$a8
 	ldy #$c6
 	jsr GetNumber
-	bcs Lc47f
+	bcs IsCPM
 	cpy #$01
-	beq Lc47f
+	beq IsCPM
 	cmp #$59
 	beq Lc4a7
 Lc4a4
