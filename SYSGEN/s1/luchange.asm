@@ -58,7 +58,7 @@ L941f	sta sb_ast
 	; set up port number
 	lda $9e43		; FIXME: Ltk HW page?
 	sta *+5			; Set high byte of LDA
-	lda HA_Unknown_reg4	; df04: apparently port number
+	lda HA_PortNumber	; df04: apparently port number
 	and #$0f
 	jsr ntoa
 	stx sb_port

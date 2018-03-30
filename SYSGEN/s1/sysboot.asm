@@ -159,10 +159,10 @@ L04b3	sta $9de0,y
 	lda #$ff	
 	sta $9de0
 L04c3	=*+2		; High byte is the target
-	lda $df04	
+	lda HA_PortNumber
 	and #$0f	
-	pha		
-	bne L04e4	
+	pha		; put our port number on the stack.
+	bne L04e4	;  Not port zero, dont send geometry to the hdd controller
 
 	bit $91f2	; Check high bit of drive flags
 	bmi L04e4	;  Intelligent drive?  Skip geometry send below
@@ -176,14 +176,12 @@ L04c3	=*+2		; High byte is the target
 	sta SCSI_mmsb	
 
 	; All HW init should be done now.
-	; FIXME: the state of .A isn't fully understood yet.  It's pushed
-	;  to stack about 16 lines up.  Chances are it'll be 0 it seems.
-L04e4	pla		; Restore .A
+L04e4	pla		; Restore our port number
 	clc		; 
 	adc #$9e	; add $9e
 	sta SCSI_lsb	; 
 	lda #$02	; 
-	adc #$00	; add carry to 2
+	adc #$00	; Add $200
 	sta SCSI_msb	; set msb
 	lda #$e0	; 
 	sta $31		; 
