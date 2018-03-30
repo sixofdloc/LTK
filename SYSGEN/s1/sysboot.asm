@@ -314,9 +314,12 @@ Lfc59	jsr Lfc4e	; fc59
 	jmp (LTK_Var_Kernel_Basin_Vec)	; fc5c ; all K_Patch4 entries go through here.
 
 L05cd
-Lfc5f	.byte $40,$ff,$ea ; RTI? ; fc5f
-	jmp Lf92c	; fc62
-	jmp Lf949	; fc65
+ha_ctrl_save		
+	.byte $40	; fc5f
+	.byte $ff	; fc60
+	NOP  		; fc61
+	jmp Lf92c	; fc62	; handle reads for ltkernal.asm:hd_driver
+	jmp Lf949	; fc65	; handle writes for ltkernal.asm:hd_driver
 	jmp Lf981	; fc68
 	jmp Lf989	; fc6b
 	jmp Lf991	; fc6e
@@ -334,47 +337,53 @@ LTK_NMI	jmp Lf9cb	; fc86
 K_Patch2 ; copied to $f92c
 	; f92c is in the middle of the casette read routine.
 	#relocate $f92c
-Lf92c	jsr Lf976	; 
-L05fa	lda HA_ctrl	; 
-	bmi L05fa	; 
-	and #$04	; 
-	beq Lf969	; 
-	ldx #$02	; 
-L0605	lda HA_data	; 
-	sta ($31),y	; 
-	iny		; 
+	; Handle reads for hd_driver (ltkernal.asm)
+Lf92c	jsr SetCtl	; Set up the control port
+L05fa	lda HA_ctrl	; get control port state
+	bmi L05fa	;  wait for REQ to clear
+	and #$04	; get C/D flag
+	beq Lf969	;  exit when drive leaves data mode
+	ldx #$02	; two pages (512 bytes)
+L0605	lda HA_data	;   get a byte from the drive
+	sta ($31),y	;   put it in the buffer
+	iny		;   increment index
+	bne L0605	;   256 bytes!
+	inc $32		;  increment pointer high byte
+	dex		;  and do two pages
 	bne L0605	; 
-	inc $32		; 
-	dex		; 
-	bne L0605	; 
-	beq L05fa	; 
-Lf949	jsr Lf976	; 
-L0617	lda HA_ctrl	; 
-	bmi L0617	; 
-	and #$04	; 
-	beq Lf969	; 
-	ldx #$02	; 
-L0622	lda ($31),y	; 
-	sta HA_data	; 
-	lda HA_data	; 
-	iny		; 
-	bne L0622	; 
-	inc $32		; 
-	dex		; 
-	bne L0622	; 
-	beq L0617	; 
-Lf969	php		; 
+	beq L05fa	; Loop for another 512 bytes.
+
+	; Handle writes for hd_driver (ltkernal.asm)
+Lf949	jsr SetCtl	; set scsi control port
+L0617	lda HA_ctrl	; get control port state
+	bmi L0617	;  wait for REQ to clear
+	and #$04	; 0000 0100 = c/d flag
+	beq Lf969	;  did target leave data mode? Exit.
+
+	ldx #$02	; two pages (512 bytes)
+L0622	lda ($31),y	;   get a byte from the buffer
+	sta HA_data	;   send it to drive
+	lda HA_data	;   poke the handshake lines
+	iny		;   increment index
+	bne L0622	;   keep going for 256 bytes
+	inc $32		;  increment buffer high
+	dex		;  increment page count
+	bne L0622	;  until done
+	beq L0617	; and repeat until target leaves data mode
+
+Lf969	php		; save regs
 	pha		; 
 	lda #$40	; 
 	sta HA_ctrl	; 
-	sta Lfc5f	; 
+	sta ha_ctrl_save; set control port back to normal
 	pla		; 
-	plp		; 
-	rts		; 
+	plp		; restore regs
+	rts		; and done.
+	; writes for hd_driver are done.
 
-Lf976	php		; 
+SetCtl	php		; 
 	pha		; 
-	lda Lfc5f	; 
+	lda ha_ctrl_save
 	sta HA_ctrl	; 
 	pla		; 
 	plp		; 

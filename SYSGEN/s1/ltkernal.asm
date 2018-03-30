@@ -42,9 +42,9 @@ LTK_Var_ActiveLU 		;$8000 current active logical unit
 LTK_Var_Active_User 		;$8001 current active user
 	.byte $00 		;Default Active User = 0
 
-asav	.byte $00		; $8002-$8004 are used by hdd_driver
-ysav	.byte $00
-xsav	.byte $00
+hd_areg	.byte $00		; $8002-$8004 are used by hdd_driver
+hd_yreg	.byte $00
+hd_xreg	.byte $00
 
 LTK_Var_OrigCR 			;$8005 original c.r. saved on initial entry from a trap *
 	.byte $ea
@@ -710,9 +710,9 @@ L8321
 
 hdd_driver
 	and #$3f		; 0011 1111
-	stx xsav
+	stx hd_xreg
 	stx SCSI_lsb
-	sty ysav
+	sty hd_yreg
 	sty SCSI_msb
 	ldx #$08		; read(6)
 	bcc L8338		;  carry clear if block read
@@ -726,13 +726,13 @@ L8338	stx SCSI_CMD		; Store SCSI command
 
 L8349	=*+1			; operand gets changed
 	ldx #$0a
-	sta asav		; save .A for return
+	sta hd_areg		; save .A for return
 	sta L8349		; set target LU
 	cmp #$0a		; did the caller request LU10?
 	bne L8378		; No, calculate LBA of block address
 	tya			; 
 	bne L83cd		;  msb !=0, just get the block
-	ldy xsav		; get block lsb
+	ldy hd_xreg		; get block lsb
 	cpy #$11
 	bcc L83cd		; <11? Go get the block
 	cpy #$ee
@@ -856,7 +856,7 @@ L841f	jsr HA_DataOut		; scsi data port = output
 	; or perform write.  SCSI port is already set for output.
 	lda #$2c
 	sta HA_data_cr
-	jsr $fc65		; FIXME: This is inside the kernal patch code I think
+	jsr $fc65		; Call ltk kernal patch to write data to disk
 	jmp L8450		; and clean up after writing.
 
 drv_die	jsr LTK_FatalError	; Lockup
@@ -865,7 +865,7 @@ drv_die	jsr LTK_FatalError	; Lockup
 L8445	jsr HA_DataIn
 	lda #$2c
 	sta HA_data_cr
-	jsr $fc62		; FIXME: This is inside the kernal patch code I think
+	jsr $fc62		; Call ltk kernal patch to read data from disk.
 	
 L8450	jsr SCSI_GetStatus	; Read or write is complete, get status from target
 	txa
@@ -874,9 +874,9 @@ L8450	jsr SCSI_GetStatus	; Read or write is complete, get status from target
 	sta $32
 	pla
 	sta $31		; restore $31,$32
-	lda asav	; caller .A and $3f
-	ldx xsav
-	ldy ysav
+	lda hd_areg	; caller .A and $3f
+	ldx hd_xreg
+	ldy hd_yreg
 	jmp (GetYInc + 1) ; Simulate RTS
 
 GetYInc	lda GetYInc,y	; selfmod routine
