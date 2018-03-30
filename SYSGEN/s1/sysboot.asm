@@ -35,6 +35,9 @@
 	.include "../../include/ltk_hw_equates.asm"
 	.include "../../include/ltk_equates.asm"
 	.include "../../include/kernal.asm"
+
+	.include "../../include/relocate.asm" ; utility for relocating code segments during assembly.
+
 	*=$0400 ;$4000 for sysgen
 
 LTK_Buf	=$8000		; ltkernal.r is initially loaded here.
@@ -159,10 +162,10 @@ L04b3	sta $9de0,y
 	lda #$ff	
 	sta $9de0
 L04c3	=*+2		; High byte is the target
-	lda $df04	
+	lda HA_PortNumber
 	and #$0f	
-	pha		
-	bne L04e4	
+	pha		; put our port number on the stack.
+	bne L04e4	;  Not port zero, dont send geometry to the hdd controller
 
 	bit $91f2	; Check high bit of drive flags
 	bmi L04e4	;  Intelligent drive?  Skip geometry send below
@@ -176,14 +179,12 @@ L04c3	=*+2		; High byte is the target
 	sta SCSI_mmsb	
 
 	; All HW init should be done now.
-	; FIXME: the state of .A isn't fully understood yet.  It's pushed
-	;  to stack about 16 lines up.  Chances are it'll be 0 it seems.
-L04e4	pla		; Restore .A
+L04e4	pla		; Restore our port number
 	clc		; 
 	adc #$9e	; add $9e
 	sta SCSI_lsb	; 
 	lda #$02	; 
-	adc #$00	; add carry to 2
+	adc #$00	; Add $200
 	sta SCSI_msb	; set msb
 	lda #$e0	; 
 	sta $31		; 
@@ -202,7 +203,7 @@ L04e4	pla		; Restore .A
 
 	; First kernal patch from sysbootr.r (that's this program)
 	ldx #$4c	; $4c (76) bytes
-	ldy #$00	
+	ldy #$00	;  start at 0
 L051b	lda K_Patch1,y	; from 05ab
 	sta $fc3d,y	;  to fc3d.
 	iny	
@@ -243,21 +244,21 @@ L0538	lda $93e4,y	; convrtio.r+4
 	lda #$fc
 	sta $ffff	; IRQ/BRK = $fcea
 
-	lda #$ea	; FIXME: I think these patch K_Patch1.
-	sta $fc44	
-	sta $fc4e	
+	lda #$ea	; these patch K_Patch1.
+	sta P_Nop1	;  'cli' patched out
+	sta P_Nop2	;  'cli' patched out
 
 L0567	lda $9bfe	
  	beq L0576	
 
- 	lda #$86	
+ 	lda #<LTK_NMI	; $86	
  	sta $fffa	
- 	lda #$fc	
+ 	lda #>LTK_NMI	; $fc	
  	sta $fffb	; NMI = $fc86
 
 L0576	lda #$00	
 	sta HA_ctrl	
-L057b	sta $8004	; ltkernal.r+$04
+L057b	sta $8004	; ltkernal.r+$04 (FIXME: What's this)
 	jmp Exit	; exit to start the system up
 
 L0581	lda #$3c
@@ -283,129 +284,144 @@ K_Patch4
 	rts
 
 K_Patch4a
-	jsr $fc59
+	jsr Lfc59
 
 	; Code segments copied to the kernal
 
 K_Patch1 ; copied to $fc3d.
 	; fc3d is in the middle of the casette write routine.
+	#relocate $fc3d
 	lda #$00	; 05ab -> fc3d
 	sta HA_ctrl	; fc3f
 	pla		; fc42
 	plp		; fc43
-	cli		; fc44 ; later patched to NOP (FIXME: verify)
-S05b3	jsr S05b3	; fc45
-	jsr $fc4e	; fc48
-	jmp ($800b)	; fc4a
+P_Nop1	cli		; fc44 ; later patched to NOP
+S05b3	jsr $05b3	; fc45 ; Direct address satisfies binary match requirement
+	jsr Lfc4e	; fc48
+	jmp (LTK_Var_Ext_RetVec)	; fc4b
 
-L05bc	sei		; fc4b
-	php		; fc4c
-	pha		; fc4d
-	lda #$40	; fc4e	; later patched to NOP (FIXME: verify)
-	sta HA_ctrl	; fc50
-	pla		; fc53
-	plp		; fc54
-	rts		; fc55
+P_Nop2
+Lfc4e	sei		; fc4e	; later patched to NOP
+	php		; fc4f
+	pha		; fc50
+	lda #$40	; fc51
+	sta HA_ctrl	; fc53
+	pla		; fc56
+	plp		; fc57
+	rts		; fc58
 
-L05c7	jsr $fc4e	; fc56
-	jmp ($800d)	; fc59 ; all K_Patch4 entries go through here.
+Lfc59	jsr Lfc4e	; fc59
+	jmp (LTK_Var_Kernel_Basin_Vec)	; fc5c ; all K_Patch4 entries go through here.
 
 L05cd
-	.byte $40,$ff,$ea ; RTI?
-	jmp $f92c	; fc5f
-	jmp $f949	; fc62
-	jmp $f981	; fc65
-	jmp $f989	; fc68
-	jmp $f991	; fc6b
-	jmp $f9be	; fc6e
-	jsr $fc4e	; fc71
-	jmp ($8009)	; fc74
-L05e8	jmp L05e8	; fc77
-L05eb	jmp L05eb	; fc7a
-	jmp $f999	; fc7d
-	jmp $f9c8	; fc80
-	jmp $f9cb	; fc83
-
+ha_ctrl_save		
+	.byte $40	; fc5f
+	.byte $ff	; fc60
+	NOP  		; fc61
+	jmp Lf92c	; fc62	; handle reads for ltkernal.asm:hd_driver
+	jmp Lf949	; fc65	; handle writes for ltkernal.asm:hd_driver
+	jmp Lf981	; fc68
+	jmp Lf989	; fc6b
+	jmp Lf991	; fc6e
+	jmp Lf9be	; fc71
+	jsr Lfc4e	; fc74
+	jmp (LTK_Var_BASIC_ExtVec)	; fc77
+L05e8	jmp $05e8	; fc7a ; Direct address satisfies binary match requirement
+L05eb	jmp $05eb	; fc7d ; Direct address satisfies binary match requirement
+	jmp Lf999	; fc80
+	jmp Lf9c8	; fc83
+LTK_NMI	jmp Lf9cb	; fc86
+	#endr
 	; end of K_Patch1
 
-K_Patch2 ; copied to $fa2c
-	; fa2c is in the middle of the casette read routine.
-	jsr $f976	; 
-L05fa	lda HA_ctrl	; 
-	bmi L05fa	; 
-	and #$04	; 
-	beq L0634	; 
-	ldx #$02	; 
-L0605	lda HA_data	; 
-	sta ($31),y	; 
-	iny		; 
+K_Patch2 ; copied to $f92c
+	; f92c is in the middle of the casette read routine.
+	#relocate $f92c
+	; Handle reads for hd_driver (ltkernal.asm)
+Lf92c	jsr SetCtl	; Set up the control port
+L05fa	lda HA_ctrl	; get control port state
+	bmi L05fa	;  wait for REQ to clear
+	and #$04	; get C/D flag
+	beq Lf969	;  exit when drive leaves data mode
+	ldx #$02	; two pages (512 bytes)
+L0605	lda HA_data	;   get a byte from the drive
+	sta ($31),y	;   put it in the buffer
+	iny		;   increment index
+	bne L0605	;   256 bytes!
+	inc $32		;  increment pointer high byte
+	dex		;  and do two pages
 	bne L0605	; 
-	inc $32		; 
-	dex		; 
-	bne L0605	; 
-	beq L05fa	; 
-	jsr $f976	; 
-L0617	lda HA_ctrl	; 
-	bmi L0617	; 
-	and #$04	; 
-	beq L0634	; 
-	ldx #$02	; 
-L0622	lda ($31),y	; 
-	sta HA_data	; 
-	lda HA_data	; 
-	iny		; 
-	bne L0622	; 
-	inc $32		; 
-	dex		; 
-	bne L0622	; 
-	beq L0617	; 
-L0634	php		; 
+	beq L05fa	; Loop for another 512 bytes.
+
+	; Handle writes for hd_driver (ltkernal.asm)
+Lf949	jsr SetCtl	; set scsi control port
+L0617	lda HA_ctrl	; get control port state
+	bmi L0617	;  wait for REQ to clear
+	and #$04	; 0000 0100 = c/d flag
+	beq Lf969	;  did target leave data mode? Exit.
+
+	ldx #$02	; two pages (512 bytes)
+L0622	lda ($31),y	;   get a byte from the buffer
+	sta HA_data	;   send it to drive
+	lda HA_data	;   poke the handshake lines
+	iny		;   increment index
+	bne L0622	;   keep going for 256 bytes
+	inc $32		;  increment buffer high
+	dex		;  increment page count
+	bne L0622	;  until done
+	beq L0617	; and repeat until target leaves data mode
+
+Lf969	php		; save regs
 	pha		; 
 	lda #$40	; 
 	sta HA_ctrl	; 
-	sta $fc5f	; 
+	sta ha_ctrl_save; set control port back to normal
 	pla		; 
-	plp		; 
-	rts		; 
+	plp		; restore regs
+	rts		; and done.
+	; writes for hd_driver are done.
 
-L0641	php		; 
+SetCtl	php		; 
 	pha		; 
-	lda $fc5f	; 
+	lda ha_ctrl_save
 	sta HA_ctrl	; 
 	pla		; 
 	plp		; 
 	rts		; 
 
-L064c	jsr $f9be	; 
+Lf981	jsr Lf9be	; 
 	lda ($22),y	; 
-	jmp $f969	; 
+	jmp Lf969	; 
 
-L0654	jsr $f9be	; 
+Lf989	jsr Lf9be	; 
 	sta ($31),y	; 
-	jmp $f969	; 
+	jmp Lf969	; 
 
-L065c	jsr $f9be	; 
+Lf991	jsr Lf9be	; 
 	lda ($31),y	; 
-	jmp $f969	; 
+	jmp Lf969	; 
 
-L0664	sta $f9b3	; 
+Lf999	sta Lf9b3	; 
 	pla		; 
-	sta $f9bc	; 
+	sta Lf9bc	; 
 	pla		; 
-	sta $f9bd	; 
-	inc $f9bc	; 
+	sta Lf9bd	; 
+	inc Lf9bc	; 
 	bne L0677	; 
-	inc $f9bd	; 
+	inc Lf9bd	; 
 L0677	lda #$00	; 
 	sta HA_ctrl	; 
 	tay		; 
+Lf9b3	=*+1
 	lda #$00	; 
 	sta ($ae),y	; 
 	lda #$40	; 
 	sta HA_ctrl	; 
-L0686	jmp L0686	; 
+Lf9bc	=*+1
+Lf9bd	=*+2
+L0686	jmp $0686	;  ; Direct address satisfies binary match requirement
 
-L0689	php		; 
+Lf9be	php		; 
 	pha		; 
 	lda #$00	; 
 	sta HA_ctrl	; 
@@ -413,21 +429,21 @@ L0689	php		;
 	plp		; 
 	rts		; 
 
-L0693	clc		; 
+Lf9c8	clc		; 
 	bcc L0697	; 
-	sec		; 
+Lf9cb	sec		; 
 L0697	bit HA_ctrl	; 
 	bvc L06bf	; 
 	pha		; 
-	lda $8028	; 
+	lda LTK_Var_CurRoutine	; 
 	pha		; 
-	lda $802c	; 
+	lda LTK_Save_Accu	; 
 	pha		; 
-	lda $802d	; 
+	lda LTK_Save_XReg	; 
 	pha		; 
-	lda $802e	; 
+	lda LTK_Save_YReg	; 
 	pha		; 
-	lda $802f	; 
+	lda LTK_Save_P	; 
 	pha		; 
 	lda #$00	; 
 	sta HA_ctrl	; 
@@ -438,30 +454,30 @@ L0697	bit HA_ctrl	;
 	lda #$04	; 
 	pha		; 
 L06bf	bcc L06c4	; 
-	jmp $fe43	; 
+	jmp $fe43	; stock NMI entry
 
 L06c4	bvs L06cb	; 
-	bit $fc60	; 
+	bit LTK_Krn_KeypadEnable	; 
 	bvs L06ce	; 
-L06cb	jmp $ff48	; 
+L06cb	jmp $ff48	; stock IRQ entry
 
-L06ce	jmp $fa2c	; 
+L06ce	jmp $fa2c	; patch from convrtio+4
 
 L06d1	lda #$40	; 
 	sta HA_ctrl	; 
 	pla		; 
-	sta $802f	; 
+	sta LTK_Save_P	; 
 	pla		; 
-	sta $802e	; 
+	sta LTK_Save_YReg	; 
 	pla		; 
-	sta $802d	; 
+	sta LTK_Save_XReg	; 
 	pla		; 
-	sta $802c	; 
+	sta LTK_Save_Accu	; 
 	pla		; 
-	sta $8028	; 
+	sta LTK_Var_CurRoutine	; 
 	pla		; 
 	rti		; 
-
+	#endr
 	; FIXME: Unless calculations are off
 	;  the first two instructions of
 	;  scsi_sendgeometry are also copied.

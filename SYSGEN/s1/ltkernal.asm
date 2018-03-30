@@ -42,9 +42,9 @@ LTK_Var_ActiveLU 		;$8000 current active logical unit
 LTK_Var_Active_User 		;$8001 current active user
 	.byte $00 		;Default Active User = 0
 
-asav	.byte $00		; $8002-$8004 are used by hdd_driver
-ysav	.byte $00
-xsav	.byte $00
+hd_areg	.byte $00		; $8002-$8004 are used by hdd_driver
+hd_yreg	.byte $00
+hd_xreg	.byte $00
 
 LTK_Var_OrigCR 			;$8005 original c.r. saved on initial entry from a trap *
 	.byte $ea
@@ -676,7 +676,7 @@ L8321
 ;*  Carry flag	0=read; 1=write
 ;*  .X	block address low
 ;*  .Y	block address high
-;*  .A	
+;*  .A	target LU
 ;*
 ;*  first byte after jsr  = target low
 ;*  second byte after jsr = target high
@@ -710,9 +710,9 @@ L8321
 
 hdd_driver
 	and #$3f		; 0011 1111
-	stx xsav
+	stx hd_xreg
 	stx SCSI_lsb
-	sty ysav
+	sty hd_yreg
 	sty SCSI_msb
 	ldx #$08		; read(6)
 	bcc L8338		;  carry clear if block read
@@ -726,18 +726,19 @@ L8338	stx SCSI_CMD		; Store SCSI command
 
 L8349	=*+1			; operand gets changed
 	ldx #$0a
-	sta asav		; save .A for return
+	sta hd_areg		; save .A for return
 	sta L8349		; set target LU
 	cmp #$0a		; did the caller request LU10?
 	bne L8378		; No, calculate LBA of block address
 	tya			; 
 	bne L83cd		;  msb !=0, just get the block
-	ldy xsav		; get block lsb
+	ldy hd_xreg		; get block lsb
 	cpy #$11
 	bcc L83cd		; <11? Go get the block
 	cpy #$ee
 	bcs L83cd		; >EE? (discbitmap, filesystem probably starts here)
 	dec L82d0		;  requested block is in the DOS area
+	cpx #$0a		; LU 10?
 	beq L83cd		;  yes, skip all the math, LU10's at a fixed 0 lba
 	txa
 
@@ -802,7 +803,7 @@ SPT	=*+1			; gets changed above
 L83cd   pla			; get return address
 	sta GetYInc + 1
 	pla
-	sta GetYInc + 2		; and save it
+	sta GetYInc + 2		; and save it for reference
 	lda $31
 	pha
 	lda $32			; save 31, 32 on stack
@@ -814,8 +815,8 @@ L83cd   pla			; get return address
 	sta $32			; get two bytes for target address
 	jsr GetYInc
 	sta SCSI_tc		; set transfer count
-	tya			; y=4
-	tax
+	tya			; Save offset after caller's JSR
+	tax			;  in .X
 	jsr GetYInc
 	cmp #$b2
 	bne L8404
@@ -823,23 +824,25 @@ L83cd   pla			; get return address
 	cmp #$c2
 	bne L8404
 	jsr GetYInc
-	cmp #$d2
-	beq L8412
-L8404	txa
-	tay
-	lda SCSI_CMD
-	cmp #$08		; scsi read
-	beq L8412
-	lda L82d0
-	bne drv_die
-L8412	tya			; restore index
+	cmp #$d2		; Was there a $b2c2d2 signature?
+	beq L8412		;  Yes, skip
+
+L8404	txa			;
+	tay			;
+	lda SCSI_CMD		; restore our scsi command
+	cmp #$08		;  are we reading?
+	beq L8412		;   Go handle the data
+	lda L82d0		; We're writing.  Check for dos area flag
+	bne drv_die		;  writing to dos area is a critical error!
+
+L8412	tya
 	clc
 	adc GetYInc + 1
 	sta GetYInc + 1		; fix return address
 	bcc L841f
 	inc GetYInc + 2		; optionally fix return high byte
 
-L841f	jsr HA_DataOut
+L841f	jsr HA_DataOut		; scsi data port = output
 	jsr SCSI_Select		; get target's attention
 	bne drv_die		;  or fail.
 
@@ -855,14 +858,16 @@ L841f	jsr HA_DataOut
 	; or perform write.  SCSI port is already set for output.
 	lda #$2c
 	sta HA_data_cr
-	jsr $fc65		; FIXME: This is inside the kernal patch code I think
-	jmp L8450
-drv_die	jsr LTK_FatalError
+	jsr $fc65		; Call ltk kernal patch to write data to disk
+	jmp L8450		; and clean up after writing.
 
+drv_die	jsr LTK_FatalError	; Lockup
+
+	; perform read.  SCSI port needs set as input.
 L8445	jsr HA_DataIn
 	lda #$2c
 	sta HA_data_cr
-	jsr $fc62		; FIXME: This is inside the kernal patch code I think
+	jsr $fc62		; Call ltk kernal patch to read data from disk.
 	
 L8450	jsr SCSI_GetStatus	; Read or write is complete, get status from target
 	txa
@@ -871,15 +876,14 @@ L8450	jsr SCSI_GetStatus	; Read or write is complete, get status from target
 	sta $32
 	pla
 	sta $31		; restore $31,$32
-	lda asav	; caller .A and $3f
-	ldx xsav
-	ldy ysav
+	lda hd_areg	; caller .A and $3f
+	ldx hd_xreg
+	ldy hd_yreg
 	jmp (GetYInc + 1) ; Simulate RTS
 
-GetYInc	lda GetYInc,y
+GetYInc	lda GetYInc,y	; selfmod routine
 	iny
 	rts
-	;possibly the end of hdd_driver
                     
 SCSI_Select	;S846d
 SCSI_Target	=*+1	; target for SCSI Select
@@ -945,6 +949,8 @@ SCSI_GetTrueByte
 	jsr SCSI_handshake
 	tya
 	rts
+
+	; END OF HD_DRIVER.  Note that tp_multiply below is directly called from hd_driver.
                     
 ;* ****** tp_multiply *****
 ;*
