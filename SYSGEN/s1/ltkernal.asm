@@ -676,7 +676,7 @@ L8321
 ;*  Carry flag	0=read; 1=write
 ;*  .X	block address low
 ;*  .Y	block address high
-;*  .A	
+;*  .A	target LU
 ;*
 ;*  first byte after jsr  = target low
 ;*  second byte after jsr = target high
@@ -802,7 +802,7 @@ SPT	=*+1			; gets changed above
 L83cd   pla			; get return address
 	sta GetYInc + 1
 	pla
-	sta GetYInc + 2		; and save it
+	sta GetYInc + 2		; and save it for reference
 	lda $31
 	pha
 	lda $32			; save 31, 32 on stack
@@ -814,8 +814,8 @@ L83cd   pla			; get return address
 	sta $32			; get two bytes for target address
 	jsr GetYInc
 	sta SCSI_tc		; set transfer count
-	tya			; y=4
-	tax
+	tya			; Save offset after caller's JSR
+	tax			;  in .X
 	jsr GetYInc
 	cmp #$b2
 	bne L8404
@@ -823,23 +823,24 @@ L83cd   pla			; get return address
 	cmp #$c2
 	bne L8404
 	jsr GetYInc
-	cmp #$d2
-	beq L8412
-L8404	txa
-	tay
-	lda SCSI_CMD
-	cmp #$08		; scsi read
-	beq L8412
-	lda L82d0
-	bne drv_die
-L8412	tya			; restore index
+	cmp #$d2		; Was there a $b2c2d2 signature?
+	beq L8412		;  Yes, skip
+
+L8404	txa			;
+	lda SCSI_CMD		; restore our scsi command
+	cmp #$08		;  are we reading?
+	beq L8412		;   Go handle the data
+	lda L82d0		; We're writing.  Check for dos area flag
+	bne drv_die		;  writing to dos area is a critical error!
+
+L8412	tya
 	clc
 	adc GetYInc + 1
 	sta GetYInc + 1		; fix return address
 	bcc L841f
 	inc GetYInc + 2		; optionally fix return high byte
 
-L841f	jsr HA_DataOut
+L841f	jsr HA_DataOut		; scsi data port = output
 	jsr SCSI_Select		; get target's attention
 	bne drv_die		;  or fail.
 
@@ -856,9 +857,11 @@ L841f	jsr HA_DataOut
 	lda #$2c
 	sta HA_data_cr
 	jsr $fc65		; FIXME: This is inside the kernal patch code I think
-	jmp L8450
-drv_die	jsr LTK_FatalError
+	jmp L8450		; and clean up after writing.
 
+drv_die	jsr LTK_FatalError	; Lockup
+
+	; perform read.  SCSI port needs set as input.
 L8445	jsr HA_DataIn
 	lda #$2c
 	sta HA_data_cr
@@ -876,10 +879,9 @@ L8450	jsr SCSI_GetStatus	; Read or write is complete, get status from target
 	ldy ysav
 	jmp (GetYInc + 1) ; Simulate RTS
 
-GetYInc	lda GetYInc,y
+GetYInc	lda GetYInc,y	; selfmod routine
 	iny
 	rts
-	;possibly the end of hdd_driver
                     
 SCSI_Select	;S846d
 SCSI_Target	=*+1	; target for SCSI Select
@@ -945,6 +947,8 @@ SCSI_GetTrueByte
 	jsr SCSI_handshake
 	tya
 	rts
+
+	; END OF HD_DRIVER.  Note that tp_multiply below is directly called from hd_driver.
                     
 ;* ****** tp_multiply *****
 ;*
