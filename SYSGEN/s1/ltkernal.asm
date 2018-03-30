@@ -738,6 +738,7 @@ L8349	=*+1			; operand gets changed
 	cpy #$ee
 	bcs L83cd		; >EE? (discbitmap, filesystem probably starts here)
 	dec L82d0		;  requested block is in the DOS area
+	cpx #$0a		; LU 10?
 	beq L83cd		;  yes, skip all the math, LU10's at a fixed 0 lba
 	txa
 
@@ -827,6 +828,7 @@ L83cd   pla			; get return address
 	beq L8412		;  Yes, skip
 
 L8404	txa			;
+	tay			;
 	lda SCSI_CMD		; restore our scsi command
 	cmp #$08		;  are we reading?
 	beq L8412		;   Go handle the data
