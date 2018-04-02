@@ -27,10 +27,14 @@ call build convrtio
 call build copy
 call build creditsb
 call build d
+call build dealexrn
+call build dealoccn
+call build dealocrn
 call build del
 call build di
 call build diag
 call build dir
+call build directry
 call build dosoverly
 call build dump
 call build era

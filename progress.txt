@@ -29,10 +29,14 @@ configlu.r		$c000		YES
 convrtio.r 		$95e0		YES      
 copy.r			$95e0		YES           
 d.r 			$95e0		YES             
+dealexrn.r		$93e0		YES       
+dealoccn.r		$93e0		YES              
+dealocrn.r		$93e0		YES              
 del.r  			$c000		YES          
 di.r          		$95e0		YES
 diag.r  		$95e0		YES         
 dir.r  			$c000		YES          
+directry.r 		$95e0		YES             
 dosovrly.r		$9530		YES       
 dump.r   		$c000		YES        
 era.r			$95e0		YES            
@@ -89,10 +93,6 @@ KNOWN LOAD ADDRESS
 UNKNOWN, STILL TO PROCESS
 ==============================================================================
 adjindex.r
-dealexrn.r       
-dealoccn.r       
-dealocrn.r       
-directry.r       
 expnrand.r       
 fastcp1a.r       
 fastcp2a.r       

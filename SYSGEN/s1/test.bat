@@ -27,8 +27,12 @@ call test_file convrtio convrtio.r
 call test_file copy copy.r
 call test_file creditsb creditsb.r
 call test_file d d.r
+call test_file dealexrn dealexrn.r
+call test_file dealoccn dealoccn.r
+call test_file dealocrn dealocrn.r
 call test_file del del.r
 call test_file di di.r
+call test_file directry directry.r
 call test_file diag diag.r
 call test_file dir dir.r
 call test_file dosoverly dosovrly.r
