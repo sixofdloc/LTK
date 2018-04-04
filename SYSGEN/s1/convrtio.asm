@@ -25,7 +25,7 @@
 L93e0               
 	jmp convrtio
                     
-	.byte $af ; size of patch below
+	.byte <end_patch-Lfa2c+1;$af ; size of patch below
 	; relocate to fa2c
 	#relocate $fa2c
 Lfa2c
@@ -121,12 +121,13 @@ Lfab6
 	jsr $eb42
 	jmp $ea81
                     
-	#endr
 L9479                                          
 	.byte $00,$1b,$10,$00,$3b,$0b,$18,$38
 	.byte $00,$28,$2b,$00,$01,$13,$20,$08
 	.byte $00,$23,$2c,$87,$07,$82,$02,$00 
 	.byte $00
+end_patch
+	#endr
 
 convrtio
 	ldy #$00
