@@ -88,7 +88,7 @@ d6-e5	10	 * Unknown
 e6-ed	8	messfile.r
 ee	*4	DISCBITMAP		Actual size isn't known
 f0		SYSTEMINDEX		Actual size isn't known
-
+29e	16?	defaults.r		Defaults, per-port [lu.asm adds port offset to 29e before loading]
 
 
 
