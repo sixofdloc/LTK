@@ -337,81 +337,77 @@ load_registers
 	plp
 	rts
                     
-set_lu_active
-	tax
-	bpl L8196
+set_lu_active		; set active LU to .A
+	tax		; save caller argument
+	bpl get_active_lu;  high bit set? Return active LU instead
 L8155
-	lda #$1a
-	.byte $2c
+	lda #$1a	; luchange.r
+	.byte $2c	;  BIT opcode (skip two bytes)
 L8158
-	lda #$23
-	.byte $2c
+	lda #$23	; subcallr.r
+	.byte $2c	;  BIT opcode (skip two bytes)
 find_file
-	lda #$11
-	.byte $2c
+	lda #$11	; findfile.r
+	.byte $2c	;  BIT opcode (skip two bytes)
 load_rand_file
-	lda #$12
-	.byte $2c
+	lda #$12	; loadrand.r
+	.byte $2c	;  BIT opcode (skip two bytes)
 error_handler
-	lda #$13
-	.byte $2c
+	lda #$13	; errorhan.r
+	.byte $2c	;  BIT opcode (skip two bytes)
 load_contig_file
-	lda #$14
-	.byte $2c
+	lda #$14	; loadcntg.r
+	.byte $2c	;  BIT opcode (skip two bytes)
 allocate_random_blocks
-	lda #$15
-	.byte $2c
+	lda #$15	; alocatrn.r
+	.byte $2c	;  BIT opcode (skip two bytes)
 allocat_contig_blocks
-	lda #$16
-	.byte $2c
+	lda #$16	; alocatcn.r
+	.byte $2c	;  BIT opcode (skip two bytes)
 append_blocks
-	lda #$17
-	.byte $2c
+	lda #$17	; appendrn.r
+	.byte $2c	;  BIT opcode (skip two bytes)
 deallocate_random_blocks
-	lda #$18
-	.byte $2c
+	lda #$18	; dealocrn.r
+	.byte $2c	;  BIT opcode (skip two bytes)
 deallocate_contig_blocks
-	lda #$19
+	lda #$19	; dealoccn.r
 	
-exe_ext_minisub               
-	cmp LTK_BLKAddr_MiniSub
-	beq L8193
-L817a
-	sta LTK_BLKAddr_MiniSub
-	txa
-	pha
-	tya
-	pha
-	lda #$0a
-	ldx LTK_BLKAddr_MiniSub
-	ldy #$00
-	clc
-	jsr hdd_driver
-	.byte <LTK_MiniSubExeArea,>LTK_MiniSubExeArea,$01 
-L818f
-	pla
-	tay
-	pla
+
+exe_ext_minisub		; LtK Extended Mini Sub dispatch
+	cmp LTK_BLKAddr_MiniSub	; Is the requested minisub already loaded?
+	beq L8193		;  yes, skip loading and just run it.
+L817a	sta LTK_BLKAddr_MiniSub	; Set current minisub variable
+	txa			; 
+	pha			;  save caller argument
+	 tya
+	 pha			; save .Y on stack
+	  lda #$0a		; LU 10
+	  ldx LTK_BLKAddr_MiniSub; Block for minisub being called
+	  ldy #$00		; high block always 0
+	  clc			; clc = load
+	  jsr hdd_driver	; load <Minisub block>
+	  .word LTK_MiniSubExeArea; to LTK_MiniSubExeArea
+	  .byte $01		; one block
+L818f	 pla			; restore .Y
+	 tay
+	pla			; restore caller arg
 	tax
-L8193
-	jmp LTK_MiniSubExeArea
+L8193	jmp LTK_MiniSubExeArea	; jump to mini sub (BUG: No error handling!)
                     
-L8196
-	cmp #$0a
-	beq L81a6
-	bcc L819e
-L819c
-	sec
-	rts
+get_active_lu
+	cmp #$0a		; LU 10?
+	beq L81a6		;  Yes, skip some math
+	bcc L819e		;  less than 10 is ok
+L819c	sec			;  more is NOT.
+	rts			; return with error
                     
-L819e
-	jsr MulA5
-	lda LTK_LU_Param_Table,y
-	bmi L819c
-L81a6
-	stx LTK_Var_ActiveLU
-	clc
-	rts
+L819e	jsr MulA5		; Mutiply .A*5
+	lda LTK_LU_Param_Table,y; Get LU table state
+	bmi L819c		;  LU invalid.
+L81a6	stx LTK_Var_ActiveLU	; Set active LU up
+	clc			; no problem
+	rts			; return
                     
 MulA5	; y=a*5
 	sta L81b2	; save .A to add later
@@ -425,22 +421,22 @@ L81b2	=*+1
                     
 S81b5
 	lda #$4c
-	.byte $2c 
+	.byte $2c 	; BIT opcode (skip two bytes)
 S81b8
 	lda #$50
-	.byte $2c 
+	.byte $2c 	; BIT opcode (skip two bytes)
 S81bb
 	lda #$54
-	.byte $2c 
+	.byte $2c 	; BIT opcode (skip two bytes)
 S81be
 	lda #$58
-	.byte $2c 
+	.byte $2c 	; BIT opcode (skip two bytes)
 cmd_channel_process
 	lda #$5c
-	.byte $2c 
+	.byte $2c 	; BIT opcode (skip two bytes)
 process_directory
 	lda #$60
-	.byte $2c 
+	.byte $2c 	; BIT opcode (skip two bytes)
 S81c7
 	lda #$6a
 	ldx #$03
@@ -912,7 +908,7 @@ SendCDB
 	beq SCSI_wait
 HA_DataIn
 	ldx #$00
-	.byte $2c 
+	.byte $2c 	; BIT opcode (skip two bytes)
 HA_DataOut
 	ldx #$ff
 	lda #$38
@@ -1259,10 +1255,10 @@ L86d3
 	bne L86d3
 L86e7
 	ldy #$46
-	.byte $2c 
+	.byte $2c 	; BIT opcode (skip two bytes)
 L86ea
 	ldy #$1e
-	.byte $2c
+	.byte $2c	; BIT opcode (skip two bytes)
 L86ed
 	ldy #$40
 	jsr LTK_ErrorHandler

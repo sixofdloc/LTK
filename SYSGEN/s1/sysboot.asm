@@ -121,15 +121,15 @@ L0443	=*+2		; high byte
 	lda HA_Page	; check the host adapter page
 	cmp #$df	; is it $df00?
 	beq L047f	;  Good, skip ahead
-	lda LTK_Buf+$46	; $8046	; 
+	lda LTK_Buf+$46	; $8046	; hdd_driver starting address
 	sta $31		; set start address for convrtio
 	sta $33		; set end address for convrtio
-	ldx LTK_Buf+$47	; $8047
+	ldx LTK_Buf+$47	; $8047 ; hdd_driver starting address
 	stx $32		; set start address for convrtio
 	inx
 	inx
 	stx $34		; set end address for convrtio for two pages
-	jsr ConvrtIO	; edit ltkernal.r for $de00
+	jsr ConvrtIO	; edit hdd_driver for $de00
 
 	; ltkernal.r is loaded and optionally converted for $de00 now.
 	; Copy some necessary data from the bootblock...
@@ -154,13 +154,13 @@ L047f	lda SysTrk+$12	; drive0 flags
 	ldx HA_Page	; save the HA page byte
 	lda #$00	; 
 	tay		; 
-L04b3	sta $9de0,y	
+L04b3	sta LTK_FileParamTable,y ;$9de0	
 	iny		
 	bne L04b3	; clear 9de0-9edf
 	stx HA_Page	; restore the HA page byte
 
 	lda #$ff	
-	sta $9de0
+	sta LTK_FileParamTable ;$9de0
 L04c3	=*+2		; High byte is the target
 	lda HA_PortNumber
 	and #$0f	
@@ -186,20 +186,21 @@ L04e4	pla		; Restore our port number
 	lda #$02	; 
 	adc #$00	; Add $200
 	sta SCSI_msb	; set msb
-	lda #$e0	; 
+	lda #<LTK_FileReadBuffer ;$e0	; 
 	sta $31		; 
-	lda #$9b	; 
+	lda #>LTK_FileReadBuffer ;$9b	; 
 	sta $32		; dest addr 9be0
 	lda #$01	; 
 	sta TransCt	; one block to transfer
-	jsr SCSI_READ	; Read LBA $00029d (SYSTEMCONFIGFILE+1) to $9be0
-	lda $9bf9	; systemconfigfile+$219
-	sta $d030	
-	sta LTK_Buf+$38	; $8038	
-	lda $9bee	; +$e
-	sta LTK_Buf+$29	; $8029	
-	lda $9be8	; +8
-	sta LTK_Buf+$2a	; $802a	
+	jsr SCSI_READ	; Read LBA $00029d (defaults.r+port#)
+
+	lda LTK_FileReadBuffer+$19 ; systemconfigfile+$19 
+	sta $d030	;  c128: Speed register
+	sta LTK_Default_CPU_Speed
+	lda LTK_FileReadBuffer+$e ; +$e
+	sta LTK_BeepOnErrorFlag
+	lda LTK_FileReadBuffer+$8 ; +8
+	sta LTK_HD_DevNum
 
 	; First kernal patch from sysbootr.r (that's this program)
 	ldx #$4c	; $4c (76) bytes
