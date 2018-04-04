@@ -63,7 +63,7 @@ L9620	; .Y comes from caller
 	jsr HexToVal		; convert hex digits to binary
 	txa			; save low byte
 	bcc L962f		;  conversion was ok, proceed to change LU.
-	lda LTK_MiscWorkspace+$d; $8ffd FIXME: Whats this?
+	lda LTK_MiscWorkspace+$1d; $8ffd FIXME: Whats this?
 	and #$0f
 L962f
 	cmp LTK_Var_ActiveLU	; $8000 ; Check against current LU
