@@ -50,10 +50,10 @@
 ;	5	low byte,  number of cylinders
 ;	6	write precomp in cylinders
 ;	7	unknown, always zero
-               99999999
-               bbbbbbbb
-               aaaaaaab
-	       9abcdef0 
+;               99999999
+;               bbbbbbbb
+;               aaaaaaab
+;	       9abcdef0 
 serial	.text "87000999"					; 9ba9
 	.byte $00,$a7,$87,$6b,$00,$68				; 9bb1
 d1parm	.byte $c0,$00,$11,$04,$02,$64,$00,$00 ; SCSI ID 0	; 9bb7
