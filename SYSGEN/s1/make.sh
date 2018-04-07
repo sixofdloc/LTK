@@ -1,6 +1,8 @@
+#!/bin/bash
+
 for file in *.asm
 do
-	tmpx $file -o output/${file%.asm}.prg -l lst/${file%.asm}.lst
+	./build.sh $file 
 done
 
 

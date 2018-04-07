@@ -57,7 +57,10 @@ indxmod6.r   		$95e0		YES
 indxmod7.r   		$95e0		YES
 initc064.r 		$95e0		YES      
 l.r   			$95e0		YES           
+loadcntg.r       	$93e0		YES       
+loadrand.r       	$93e0		YES       
 loadrnd2.r       	$93e0		YES
+loadrnd3.r       	$93e0		YES       
 ltkernal.r		$8000		YES      
 lu.r			$95e0		YES             
 luchange.r		$93e0		YES       
@@ -104,9 +107,6 @@ fastcpy2.r
 fastfdos.r       
 findfile.r       
 gocpmode.r       
-loadcntg.r       
-loadrand.r       
-loadrnd3.r       
 openfile.r       
 openrela.r       
 relaexpn.r       
