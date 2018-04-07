@@ -1,5 +1,5 @@
 
-; ****************************
+;*****************************
 ;*                _    _               _                 
 ;*    __ _   ___ | |_ (_)__   __ __ _ | |_  ___     _ __ 
 ;*   / _` | / __|| __|| |\ \ / // _` || __|/ _ \   | '__|
@@ -68,12 +68,12 @@ Lc045	clc
 	lda #$f7		; Set mask to remove 'active flag'
 	and LTK_LU_Param_Table+$02,y ; ..of the target LU
 	sta LTK_LU_Param_Table+$02,y
-	lda #$0a		; A= LU #10
+	lda #$0a		; LU #10
 	ldx #$1a		; 
-	ldy #$00		; xy= sector $001a
+	ldy #$00		; sector $001a
 	clc			; clear=read
 	jsr LTK_HDDiscDriver	;  Get block 001a from LU10 (00:00001a = luchange.r)
-	.word LTK_MiniSubExeArea ; $93e0
+	.word LTK_MiniSubExeArea; $93e0
 	.byte $01		; one sector
 
 Lc065	ldy targetLUx5	;c531
@@ -91,9 +91,9 @@ Lc074	ldx #<t_invalidLU ;$57
                     
 Lc081	lda LTK_MiniSubExeArea+$06,y
 	and #$07
-	sta $c532
+	sta Lc532
 	lda LTK_MiniSubExeArea+$07,y
-	sta $c533
+	sta Lc533
 Lc08f	ldx #<q_aresure ;$7e
 	ldy #>q_aresure ;$c6
 	jsr GetNumber
@@ -113,25 +113,27 @@ Lc09f	cmp #$59
 	cmp #$59
 	beq Lc0b7
 Lc0b4	jmp Exit
-                    
+
+                   			; NOTE:  Look at ltkernal.asm to understand some of this 
+					;  specifically subtract 4 from offsets (+6->+2, contains heads)
 Lc0b7	lda targetLU
 	sta LTK_Var_ActiveLU
 	ldx #<t_inprogress ;$d2
 	ldy #>t_inprogress ;$c6
 	jsr LTK_Print
-	ldy targetLUx5	;c531
-	lda LTK_MiniSubExeArea+$08,y
+	ldy targetLUx5	;c531		; Pre-index for target LU
+	lda LTK_MiniSubExeArea+$08,y	; Number of sectors per track
 	pha
 	lda LTK_MiniSubExeArea+$06,y
 	lsr a
 	lsr a
 	lsr a
-	lsr a
-	tay
-	ldx #$00
-	pla
-	jsr LTK_TPMultiply
-	sta $c521
+	lsr a				; Number of heads
+	tay				; y=mul1
+	ldx #$00			; x=mul2h
+	pla				; a=mul2l
+	jsr LTK_TPMultiply		; returns number of sectors per cylinder
+	sta Sec_Per_Cyl			; a=result low (FIXME: only the low byte is stored!)
 	ldy #$00
 	sty Lc84a
 	ldy #$08
@@ -141,43 +143,43 @@ Lc0b7	lda targetLU
 	beq Lc0ec
 	sec
 Lc0ec	adc #$03
-	sta $c522
+	sta Lc522
 	tay
 	ldx #$02
 	lda #$00
 	sta Lc84a
 	jsr Sc810
-	sta $c523
-	jsr LTK_ClearHeaderBlock
+	sta Lc523
+	jsr LTK_ClearHeaderBlock	; empty header block out
 	ldx #$09
 Lc104	lda t_discbitmap,x
-	sta LTK_FileHeaderBlock,x
+	sta LTK_FileHeaderBlock,x	; build DISCBITMAP block
 	dex
 	bpl Lc104
-	lda $c523
-	sta $91f3
-	lda $c522
-	sta $91f5
+	lda Lc523
+	sta $91f3	; LTK_FileHeaderBlock @91e0
+	lda Lc522
+	sta $91f5	; LTK_FileHeaderBlock @91e0
 	lda #$11
-	sta $91f1
-	lda $c533
-	sta $91f7
-	lda $c532
-	sta $91f6
+	sta $91f1	; LTK_FileHeaderBlock @91e0
+	lda Lc533
+	sta $91f7	; LTK_FileHeaderBlock @91e0
+	lda Lc532
+	sta $91f6	; LTK_FileHeaderBlock @91e0
 	lda #$01
-	sta $91f8
-	lda $c521
-	sta $91f9
-	ldx $c532
-	ldy $c533
-Lc13b	lda $c521
+	sta $91f8	; LTK_FileHeaderBlock @91e0
+	lda Sec_Per_Cyl
+	sta $91f9	; LTK_FileHeaderBlock @91e0
+	ldx Lc532
+	ldy Lc533
+Lc13b	lda Sec_Per_Cyl
 	clc
-	adc $9272
-	sta $9272
+	adc $9272	; LTK_FileHeaderBlock @91e0
+	sta $9272	; LTK_FileHeaderBlock @91e0
 	bcc Lc14f
-	inc $9271
+	inc $9271	; LTK_FileHeaderBlock @91e0
 	bne Lc14f
-	inc $9270
+	inc $9270	; LTK_FileHeaderBlock @91e0
 Lc14f	dey
 	bne Lc13b
 	cpx #$00
@@ -186,87 +188,87 @@ Lc14f	dey
 	jmp Lc13b
                     
 Lc15a	ldx #$00
-	stx $c525
+	stx Lc525
 	ldy #$00
-	sty $c524
+	sty Lc524
 	lda #$ff
-	sta $9276
-	sta $9277
+	sta $9276	; LTK_FileHeaderBlock @91e0
+	sta $9277	; LTK_FileHeaderBlock @91e0
 	lda LTK_Var_ActiveLU
-	sta $91fd
+	sta $91fd	; LTK_FileHeaderBlock @91e0
 	sec
 	jsr LTK_HDDiscDriver
 	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ; LTK_FileHeaderBlock 
 Lc179	lda #$00
 	
-	sta $c526
-	sta $c527
-	sta $c528
-	lda $c532
-	sta $c529
-	lda $c533
-	sta $c52a
-Lc190	inc $c525
+	sta Lc526
+	sta Lc527
+	sta Lc528
+	lda Lc532
+	sta Lc529
+	lda Lc533
+	sta Lc52a
+Lc190	inc Lc525
 	ldx #<t_asterisk ;$0c
 	ldy #>t_asterisk ;$c8
 	jsr LTK_Print
 	lda #$e0
-	sta $c52c
-	lda #$91
-	sta $c52b
-	lda $c523
-	sta $c52d
+	sta Lc52c
+	lda #$91	; LTK_FileHeaderBlock @91e0
+	sta Lc52b
+	lda Lc523
+	sta Lc52d
 	jsr LTK_ClearHeaderBlock
-Lc1ad	lda $c52c
+Lc1ad	lda Lc52c
 	sta Sc449 + 1
-	lda $c52b
+	lda Lc52b
 	sta Sc449 + 2
-	lda $c526
+	lda Lc526
 	jsr Sc449
-	lda $c527
+	lda Lc527
 	jsr Sc449
-	lda $c528
+	lda Lc528
 	jsr Sc449
 	clc
-Lc1cc	lda $c52c
-	adc $c522
+Lc1cc	lda Lc52c
+	adc Lc522
 Lc1d3 = * + 1       
-Lc1d2	sta $c52c
+Lc1d2	sta Lc52c
 	bcc Lc1da
-	inc $c52b
-Lc1da	lda $c528
+	inc Lc52b
+Lc1da	lda Lc528
 	clc
-	adc $c521
-	sta $c528
+	adc Sec_Per_Cyl
+	sta Lc528
 	bcc Lc1ee
-	inc $c527
+	inc Lc527
 	bne Lc1ee
-	inc $c526
-Lc1ee	dec $c52a
+	inc Lc526
+Lc1ee	dec Lc52a
 	bne Lc1fb
-	lda $c529
+	lda Lc529
 	beq Lc212
-	dec $c529
-Lc1fb	dec $c52d
+	dec Lc529
+Lc1fb	dec Lc52d
 	bne Lc1ad
 	lda LTK_Var_ActiveLU
-	ldx $c525
+	ldx Lc525
 	ldy #$00
 	sec
 	jsr LTK_HDDiscDriver
 	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ; LTK_FileHeaderBlock 
 Lc20f	jmp Lc190
                     
-Lc212	lda $c52b
+Lc212	lda Lc52b
 	sta Sc449 + 2
-	lda $c52c
+	lda Lc52c
 	sta Sc449 + 1
 	lda #$ff
 	jsr Sc449
 	jsr Sc449
 	jsr Sc449
 	lda LTK_Var_ActiveLU
-	ldx $c525
+	ldx Lc525
 	ldy #$00
 	sec
 	jsr LTK_HDDiscDriver
@@ -274,9 +276,9 @@ Lc212	lda $c52b
 	
 Lc238
 	lda #$12
-	sta $c525
+	sta Lc525
 	lda #$00
-	sta $c524
+	sta Lc524
 	lda LTK_Var_ActiveLU
 	ldx #$00
 	ldy #$00
@@ -293,7 +295,7 @@ Lc250
 	jsr LTK_HDDiscDriver
 	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ; LTK_FileHeaderBlock 
 Lc261
-	lda $91fe
+	lda $91fe	; LTK_FileHeaderBlock @91e0
 	pha
 	jsr LTK_ClearHeaderBlock
 	ldx #$0a
@@ -303,13 +305,13 @@ Lc26a
 	dex
 	bpl Lc26a
 	ldx #$ff
-	stx $91f1
+	stx $91f1	; LTK_FileHeaderBlock @91e0
 	dex
-	stx $c52e
+	stx Lc52e
 	ldx #$01
-	stx $91f8
+	stx $91f8	; LTK_FileHeaderBlock @91e0
 	ldx #$11
-	stx $9201
+	stx $9201	; LTK_FileHeaderBlock @91e0
 	pla
 	ldy #$ac
 	cmp #$af
@@ -318,10 +320,10 @@ Lc26a
 	bne Lc293
 	ldy #$af
 Lc293
-	sty $91fe
-	dec $9237
+	sty $91fe	; LTK_FileHeaderBlock @91e0
+	dec $9237	; LTK_FileHeaderBlock @91e0
 	lda LTK_Var_ActiveLU
-	sta $91fd
+	sta $91fd	; LTK_FileHeaderBlock @91e0
 	ldy #$00
 	sec
 	jsr LTK_HDDiscDriver
@@ -330,11 +332,11 @@ Lc293
 Lc2a8
 	jsr LTK_AllocContigBlks
 	lda #$10
-	sta $c52f
+	sta Lc52f
 	jsr LTK_ClearHeaderBlock
 	lda #$fd
 	sta Lc2c1 + 1
-	lda #$91
+	lda #$91	; 
 	sta Lc2c1 + 2
 Lc2bd	
 	ldx #$03
@@ -354,25 +356,25 @@ Lc2cc
 	bcc Lc2dd
 	inc Lc2c1 + 2
 Lc2dd
-	dec $c52f
+	dec Lc52f
 	bne Lc2bd
 Lc2e2
 	lda LTK_Var_ActiveLU
-	ldx $c525
-	ldy $c524
+	ldx Lc525
+	ldy Lc524
 	sec
 	jsr LTK_HDDiscDriver
 	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ; LTK_FileHeaderBlock 
 	
 Lc2f2
-	inc $c525
+	inc Lc525
 	bne Lc2fa
-	inc $c524
+	inc Lc524
 Lc2fa
 	ldx #<t_dot ;$0e
 	ldy #>t_dot ;$c8
 	jsr LTK_Print
-	dec $c52e
+	dec Lc52e
 	bne Lc2e2
 	lda LTK_Var_ActiveLU
 	ldx #$00
@@ -419,14 +421,14 @@ Lc356
 	dex
 	bpl Lc356
 	lda #$01
-	sta $91f8
+	sta $91f8	; LTK_FileHeaderBlock @91e0
 	lda #$de
-	sta $91f1
+	sta $91f1	; LTK_FileHeaderBlock @91e0
 	jsr LTK_AllocContigBlks
 	jsr Sc455
 	lda LTK_Var_ActiveLU
-	ldx $9201
-	ldy $9200
+	ldx $9201	; LTK_FileHeaderBlock @91e0
+	ldy $9200	; LTK_FileHeaderBlock @91e0
 	sec
 	jsr LTK_HDDiscDriver
 	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ; LTK_FileHeaderBlock 
@@ -454,7 +456,7 @@ Lc3a2
 	sty LTK_BLKAddr_MiniSub
 	clc
 	jsr LTK_HDDiscDriver
-	.byte <LTK_MiniSubExeArea,>LTK_MiniSubExeArea,$01 ;$93e0 
+	.byte <LTK_MiniSubExeArea,>LTK_MiniSubExeArea,$01 ;$93e0 	; 
 	
 Lc3b2
 	ldy targetLUx5	;c531
@@ -472,11 +474,11 @@ Lc3c5
 Lc3cd
 	lda #$e0
 	sta $c3e1
-	lda #$93
+	lda #$93	; 
 	sta $c3e2
 	lda #$00
 	tay
-	sta $95df
+	sta $95df	; 
 	ldx #$02
 Lc3df
 	clc
@@ -486,17 +488,17 @@ Lc3df
 	inc $c3e2
 	dex
 	bne Lc3df
-	sta $95df
+	sta $95df	; 
 	sec
 	lda #$1a
 	tax
-	sbc $95df
-	sta $95df
+	sbc $95df	; 
+	sta $95df	; 
 	lda #$0a
 	ldy #$00
 	sec
 	jsr LTK_HDDiscDriver
-	.byte <LTK_MiniSubExeArea,>LTK_MiniSubExeArea,$01, $b2, $c2, $d2 ;$93e0 b2 c2 d2 
+	.byte <LTK_MiniSubExeArea,>LTK_MiniSubExeArea,$01, $b2, $c2, $d2 ;$93e0 b2 c2 d2 	; 
 	
 Lc407
 	ldy targetLUx5	;c531
@@ -599,7 +601,7 @@ Lc4b2
 	iny
 	bne Lc4b2
 Lc4b8
-	sta $90e0,y
+	sta $90e0,y	; 
 	iny
 	bne Lc4b8
 	ldy targetLUx5	;c531
@@ -659,13 +661,27 @@ Lc50d
 Lc51e
 	jmp Exit
                     
-Lc521	; label to assist disassembly
-	.byte $00,$00,$00,$00,$00,$00,$00,$00
-	.byte $00,$00,$00,$00,$00,$00,$00
+Sec_Per_Cyl	.byte $00
+Lc522	.byte $00
+Lc523	.byte $00
+Lc524	.byte $00
+Lc525	.byte $00
+Lc526	.byte $00
+Lc527	.byte $00
+Lc528	.byte $00
+Lc529	.byte $00
+Lc52a	.byte $00
+Lc52b	.byte $00
+Lc52c	.byte $00
+Lc52d	.byte $00
+Lc52e	.byte $00
+Lc52f	.byte $00
 targetLU
 	.byte $00
 targetLUx5
-	.byte $00,$00,$00
+	.byte $00
+Lc532	.byte $00
+Lc533	.byte $00
 ActiveLU ; c534
 	.byte $00
 ActiveUser ; c535

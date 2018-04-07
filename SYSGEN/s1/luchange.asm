@@ -23,10 +23,12 @@
 	
 START               jmp prg_start
                     
-L93e3   ; Partition (LU) table.  Activate reads this
-	.byte $ff,$00,$1e,$40,$c8,$11,$00,$e6
-	.byte $40,$c8,$11,$01,$ae,$40,$a6,$11 
-	.repeat $23,$ff
+L93e3   ; Partition (LU) table	  five bytes per entry.
+	.byte $ff,$00,$1e,$40	; 
+	.byte $c8,$11,$00,$e6	; 
+	.byte $40,$c8,$11,$01	; 
+	.byte $ae,$40,$a6,$11 	; 
+	.repeat $23,$ff		; empty for the rest 
 	
 prg_start
 	; set asterisk
