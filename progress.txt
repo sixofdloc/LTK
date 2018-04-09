@@ -76,6 +76,7 @@ sb2   			$0810		YES
 scramidn.r		$93e0		YES       
 setup 			$8000		YES           
 ship.r			$95e0		YES           
+subcallr.r		$93e0		YES
 sysbootr.r		$0400		YES       
 type.r           	$c000		YES
 user.r			$95e0		YES			           
@@ -92,7 +93,6 @@ fastfd81.r		$1c20?		IN PROGRESS
 
 KNOWN LOAD ADDRESS
 ==============================================================================
-
 
 UNKNOWN, STILL TO PROCESS
 ==============================================================================
@@ -111,7 +111,7 @@ openfile.r
 openrela.r       
 relaexpn.r       
 savetodv.r       
-subcallr.r       
+       
 
 128 FILES
 ==============================================================================
