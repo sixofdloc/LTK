@@ -3,7 +3,7 @@
 	.include "../../include/ltk_dos_addresses.asm"
 	.include "../../include/ltk_equates.asm"
 
-	*=LTK_MiniSubExeArea 
+	*=LTK_MiniSubExeArea ;$93e0, $4000 for sysgen
  
 L93e0
 	ldx $91fb
