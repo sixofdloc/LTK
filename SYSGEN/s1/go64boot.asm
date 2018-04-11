@@ -139,7 +139,7 @@ L80e1
 L80e9
 	rts
 
-	.binary "output\go64boot_cd00.prg",2
+	.binary "output/go64boot_cd00.prg",2
 L8254
 	.text "copyright 1985, fii lt. kernal dos"
 L8276
