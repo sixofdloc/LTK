@@ -41,6 +41,7 @@ dosovrly.r		$9530		YES
 dump.r   		$c000		YES        
 era.r			$95e0		YES            
 errorhan.r		$93e0		YES       
+expnrand.r       	$93e0		YES
 fileprot.r 		$9f00		YES      
 findfil2.r		$93e0		YES       
 fastcopy.r		$95e0		YES       
@@ -97,7 +98,6 @@ KNOWN LOAD ADDRESS
 UNKNOWN, STILL TO PROCESS
 ==============================================================================
 adjindex.r
-expnrand.r       
 fastcp1a.r       
 fastcp2a.r       
 fastcpdd.r       
