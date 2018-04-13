@@ -58,12 +58,12 @@ L941f	sta sb_ast
 	sta sb_dev+1
 
 	; set up port number
-	lda $9e43		; FIXME: Ltk HW page?
+	lda LTK_HardwarePage
 	sta *+5			; Set high byte of LDA
-	lda HA_PortNumber	; df04: apparently port number
-	and #$0f
-	jsr ntoa
-	stx sb_port
+	lda HA_PortNumber	; Get HW port number
+	and #$0f		; mask off high bits
+	jsr ntoa		; convert to ascii number
+	stx sb_port		; update the prompt
 	sta sb_port+1
 
 	ldx #<str_C64
