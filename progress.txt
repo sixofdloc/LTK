@@ -70,6 +70,7 @@ luchange.r		$93e0		YES
 merge.r          	$c000		YES
 new.r 			$95e0		YES
 openrand.r		$95e0		YES       
+openrela.r       	$95e0		YES
 oops.r           	$95e0		YES
 query.r          	$95e0		YES
 recover.r  		$95e0		YES
@@ -108,7 +109,6 @@ fastcpy1.r
 fastcpy2.r       
 fastfdos.r       
 openfile.r       
-openrela.r       
 relaexpn.r       
 savetodv.r       
        
