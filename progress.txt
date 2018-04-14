@@ -49,6 +49,7 @@ fastcopy.r		$95e0		YES
 fastcpqd.r		$1c20		YES       
 fetch.r          	$c000		YES
 go64boot.r 		$8000		YES      
+gocpmode.r       	$93e0		YES
 indxmod0.r   		$95e0		YES    
 indxmod1.r   		$95e0		YES    
 indxmod2.r   		$95e0		YES       
@@ -106,7 +107,6 @@ fastcprm.r
 fastcpy1.r       
 fastcpy2.r       
 fastfdos.r       
-gocpmode.r       
 openfile.r       
 openrela.r       
 relaexpn.r       
