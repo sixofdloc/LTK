@@ -1,3 +1,20 @@
+;**************************************
+;*   _         _  _          ___    __    _  _                           
+;*  (_) _ __  (_)| |_  ___  / _ \  / /_  | || |     __ _  ___  _ __ ___  
+;*  | || '_ \ | || __|/ __|| | | || '_ \ | || |_   / _` |/ __|| '_ ` _ \ 
+;*  | || | | || || |_| (__ | |_| || (_) ||__   _|_| (_| |\__ \| | | | | |
+;*  |_||_| |_||_| \__|\___| \___/  \___/    |_| (_)\__,_||___/|_| |_| |_|
+;*                                                                       
+;*
+
+; ****************************
+; * 
+; * VIM settings for David.
+; * 
+; * vim:syntax=a65:hlsearch:background=dark:ai:
+; * 
+; ****************************
+
 ;initc064.r.prg
 	.include "../../include/ltk_dos_addresses.asm"
 	.include "../../include/ltk_equates.asm"
@@ -5,7 +22,7 @@
 
 	*=LTK_DOSOverlay ;$95e0, $4000 for sysgen 
 L95e0               
-	jmp L960a
+	jmp start
                    
 DisparageAndLockup               
 	lda #<LOCKUP
@@ -16,41 +33,41 @@ DisparageAndLockup
 	sta COLDSTART_HI
                     
 	;Loads the disparaging message about skipping the SN check in the ROM to $8fe0
-	lda #$0a
+	lda #$0a		; LU 10
 	ldx #$ed
-	ldy #$00
-	clc
+	ldy #$00		; block 00ed
+	clc			; read
 	jsr LTK_HDDiscDriver
-	.byte <LTK_MiscWorkspace,>LTK_MiscWorkspace,$01 ;$e0, $8f,$01
+	.word LTK_MiscWorkspace
+	.byte $01 		; one block
 	
 L9600               
-	ldx #$e0
-	ldy #$8f
+	ldx #<LTK_MiscWorkspace	; $e0
+	ldy #>LTK_MiscWorkspace	; $8f
 	jsr LTK_Print ;print the disparaging message
                     
 LOCKUP ; $9607               
 	jmp LOCKUP
                     
 	;Oh look, another SN check
-L960a
-	ldy #$07
-L960c
-	lda $8fd4,y
-	cmp $93d4,y
-	bne DisparageAndLockup
+start	ldy #$07
+L960c	lda $8fd4,y		; check hardware serial number
+	cmp $93d4,y		;  against the serial on disk
+	bne DisparageAndLockup	;  did a client that spent HUNDREDS on my LtK Suffer a corrupt sector?  Insult their asses.
 	dey
-	bpl L960c
-	lda $9e43
-	cmp #$df
-	beq L963d
-	lda #$0a
+	bpl L960c		;  keep checking until it passes
+
+	lda $9e43		; get our hardware page
+	cmp #$df		;  df00?
+	beq L963d		;  Yep, skip ahead
+	lda #$0a		; LU 10
 	ldx #$28
-	ldy #$00
-	clc
+	ldy #$00		; sector 28 (convrtio.r)
+	clc			; read
 	jsr LTK_HDDiscDriver
-	.byte <LTK_MiniSubExeArea,>LTK_MiniSubExeArea,$01
-L962b               
-	lda #$e0
+	.word LTK_MiniSubExeArea
+	.byte $01		; one sector
+L962b	lda #$e0
 	sta $31
 	sta $33
 	lda #$95
@@ -58,29 +75,28 @@ L962b
 	clc
 	adc #$06
 	sta $34
-	jsr $93e0
-L963d
-	lda #$0a
-	ldx #$11
+	jsr $93e0		; rewrite the DOS for $de00
+
+L963d	lda #$0a		; LU 10
+	ldx #$11		; sector 11 (findfile.r)
 	ldy #$00
-L9643               
-	clc
+L9643	clc			; read
 	jsr LTK_HDDiscDriver
-	.byte <LTK_MiscWorkspace,>LTK_MiscWorkspace,$01
-L964a               
-	pha
+	.word LTK_MiscWorkspace
+	.byte $01		; one sector
+L964a	pha
 	txa
 	pha
 	tya
-	pha
+	pha			; save our regs
 	jsr S97f5
 	pla
 	tay
 	pla
 	tax
-	pla
+	pla			; restore our regs
 	inx
-	dec $9850
+	dec L9850		; retry (FIXME)?
 	bne L9643
 	lda $9be2
 	ldx #$04
@@ -113,7 +129,7 @@ L9687
 L9698
 	lda #$00
 	sta $990e
-	lda $9851
+	lda L9851
 	asl a
 	asl a
 	asl a
@@ -146,7 +162,7 @@ L9698
 L96e5
 	sec
 	ror $9895
-	dec $9851
+	dec L9851
 	bpl L9698
 	lda $920a
 	beq $9709
@@ -334,7 +350,9 @@ L9843
 	sta $df03
 	jmp $fce2
                     
-	.byte $1a,$06
+L9850	.byte $1a
+L9851	.byte $06
+
 S9852               
 	ldx #$00
 	lda $9a

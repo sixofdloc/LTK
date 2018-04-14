@@ -89,6 +89,7 @@ LTK_ExeExtMiniSub	=	$809c ;entry point for calling an extended mini-sub
 LTK_CmdChnPosition	=	$809f ;entry point for command channel position command **       
 LTK_SwapWriteBuffer	=	$80a2 ;entry point for swap 'write' buffer routine **            
 LTK_FatalError		=	$80a5 ;entry point for fatal error handler routine               
+LTK_HardwarePage	=	$9e43 ;high byte of LTK hardware address (DE/DF)
 LTK_GetPortNumber	=	$9f03 ;address of the get port number routine                       
  ;                                                                         
  ;                                                                         
