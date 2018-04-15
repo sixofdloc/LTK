@@ -75,6 +75,7 @@ openrela.r       	$95e0		YES
 oops.r           	$95e0		YES
 query.r          	$95e0		YES
 recover.r  		$95e0		YES
+relaexpn.r		$95e0		YES       
 renum.r          	$c000		YES
 s.r  			$95e0		YES	            
 sb2   			$0810		YES           
@@ -109,7 +110,6 @@ fastcprm.r
 fastcpy1.r       
 fastcpy2.r       
 fastfdos.r       
-relaexpn.r       
 savetodv.r       
        
 
