@@ -3,6 +3,7 @@ SYSGEN RE-SOURCE PROGRESS AS OF 2018-03-02
 COMPLETES
 ==============================================================================
 FILENAME		LOAD_ADDR	1st Pass Complete?
+adjindex.r		$93e0		YES
 alocatcn.r		$93e0		YES
 alocatrn.r		$93e0		YES		
 alocexrn.r		$93e0		YES
@@ -103,7 +104,6 @@ KNOWN LOAD ADDRESS
 
 UNKNOWN, STILL TO PROCESS
 ==============================================================================
-adjindex.r
 fastcp1a.r       
 fastcp2a.r       
 fastcpdd.r       
