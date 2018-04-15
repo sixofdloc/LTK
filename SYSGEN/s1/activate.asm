@@ -50,7 +50,7 @@ Lc01e	jsr beep		; Port# passed, continue
                     
 Lc031	sec			; we have a LU number from the user, continue
 	sta t_target_lu		; store our target LU
-	sbc #$30		; offset to binary
+	sbc #$30		; offset to binary by subtracting ascii '0'
 	cmp #$0a		; compare with LU 10
 	bcs START		; Larger or equal? restart.
 	sta targetLU		; store binary target value.
@@ -89,12 +89,12 @@ Lc074	ldx #<t_invalidLU ;$57
 	jsr beep
 	jmp Exit
                     
-Lc081	lda LTK_MiniSubExeArea+$06,y
-	and #$07
-	sta Lc532
-	lda LTK_MiniSubExeArea+$07,y
-	sta Lc533
-Lc08f	ldx #<q_aresure ;$7e
+Lc081	lda LTK_MiniSubExeArea+$06,y ; 6-4= offset 2 in LU table
+	and #$07		; mask off high order cylinders
+	sta HiCyls
+	lda LTK_MiniSubExeArea+$07,y ; =offset 3 (low cylinder count)
+	sta LoCyls
+Lc08f	ldx #<q_aresure ;$7e	; as if user is sure
 	ldy #>q_aresure ;$c6
 	jsr GetNumber
 	bcs Lc0b4
@@ -102,7 +102,7 @@ Lc08f	ldx #<q_aresure ;$7e
 	bne Lc09f
 	jmp START
                     
-Lc09f	cmp #$59
+Lc09f	cmp #$59		; confirm once more
 	bne Lc0b4
 	ldx #<q_okproceed ;$a8
 	ldy #>q_okproceed ;$c6
@@ -117,27 +117,27 @@ Lc0b4	jmp Exit
                    			; NOTE:  Look at ltkernal.asm to understand some of this 
 					;  specifically subtract 4 from offsets (+6->+2, contains heads)
 Lc0b7	lda targetLU
-	sta LTK_Var_ActiveLU
+	sta LTK_Var_ActiveLU		; set up target LU as active
 	ldx #<t_inprogress ;$d2
 	ldy #>t_inprogress ;$c6
-	jsr LTK_Print
+	jsr LTK_Print			; let user know we started
 	ldy targetLUx5	;c531		; Pre-index for target LU
-	lda LTK_MiniSubExeArea+$08,y	; Number of sectors per track
+	lda LTK_MiniSubExeArea+$08,y	; 4=Number of sectors per track
 	pha
-	lda LTK_MiniSubExeArea+$06,y
+	lda LTK_MiniSubExeArea+$06,y	; 2
 	lsr a
 	lsr a
 	lsr a
-	lsr a				; Number of heads
-	tay				; y=mul1
-	ldx #$00			; x=mul2h
-	pla				; a=mul2l
+	lsr a				; a=Number of heads
+	tay				; y=mul1	#heads
+	ldx #$00			; x=mul2h	=0
+	pla				; a=mul2l	#cylinders
 	jsr LTK_TPMultiply		; returns number of sectors per cylinder
-	sta Sec_Per_Cyl			; a=result low (FIXME: only the low byte is stored!)
+	sta Sec_Per_Cyl			; a=result low (Sectors per cylinder)
 	ldy #$00
-	sty Lc84a
+	sty Lc84a			; init Lc84a
 	ldy #$08
-	jsr Sc810
+	jsr Sc810			;a=sect/cylinder low, x=sect/cylinder high, y=8
 	cpy #$00
 	clc
 	beq Lc0ec
@@ -147,7 +147,7 @@ Lc0ec	adc #$03
 	tay
 	ldx #$02
 	lda #$00
-	sta Lc84a
+	sta Lc84a			; init Lc84a
 	jsr Sc810
 	sta Lc523
 	jsr LTK_ClearHeaderBlock	; empty header block out
@@ -156,34 +156,36 @@ Lc104	lda t_discbitmap,x
 	sta LTK_FileHeaderBlock,x	; build DISCBITMAP block
 	dex
 	bpl Lc104
+
 	lda Lc523
-	sta $91f3	; LTK_FileHeaderBlock @91e0
+	sta LTK_FileHeaderBlock+$13	; 91f3	
 	lda Lc522
-	sta $91f5	; LTK_FileHeaderBlock @91e0
+	sta LTK_FileHeaderBlock+$15	; 91f5	
 	lda #$11
-	sta $91f1	; LTK_FileHeaderBlock @91e0
-	lda Lc533
-	sta $91f7	; LTK_FileHeaderBlock @91e0
-	lda Lc532
-	sta $91f6	; LTK_FileHeaderBlock @91e0
+	sta LTK_FileHeaderBlock+$11	; 91f1	
+	lda LoCyls
+	sta LTK_FileHeaderBlock+$17	; 91f7	
+	lda HiCyls
+	sta LTK_FileHeaderBlock+$16	; 91f6	
 	lda #$01
-	sta $91f8	; LTK_FileHeaderBlock @91e0
+	sta LTK_FileHeaderBlock+$18	; 91f8	
 	lda Sec_Per_Cyl
-	sta $91f9	; LTK_FileHeaderBlock @91e0
-	ldx Lc532
-	ldy Lc533
+	sta LTK_FileHeaderBlock+$19	; 91f9	
+
+	ldx HiCyls
+	ldy LoCyls			; get Lo/Hi cylinders into yx
 Lc13b	lda Sec_Per_Cyl
 	clc
-	adc $9272	; LTK_FileHeaderBlock @91e0
-	sta $9272	; LTK_FileHeaderBlock @91e0
-	bcc Lc14f
-	inc $9271	; LTK_FileHeaderBlock @91e0
-	bne Lc14f
-	inc $9270	; LTK_FileHeaderBlock @91e0
+	adc LTK_FileHeaderBlock+$92	; 9272	add sectors/cylinder to +$92
+	 sta LTK_FileHeaderBlock+$92	; 9272	
+	 bcc Lc14f
+	 inc LTK_FileHeaderBlock+$91	; 9271	
+	 bne Lc14f
+	 inc LTK_FileHeaderBlock+$90	; 9270	optionally fix overflows
 Lc14f	dey
 	bne Lc13b
 	cpx #$00
-	beq Lc15a
+	beq Lc15a			; continue adding until we're out of cylinders.
 	dex
 	jmp Lc13b
                     
@@ -192,21 +194,22 @@ Lc15a	ldx #$00
 	ldy #$00
 	sty Lc524
 	lda #$ff
-	sta $9276	; LTK_FileHeaderBlock @91e0
-	sta $9277	; LTK_FileHeaderBlock @91e0
+	sta LTK_FileHeaderBlock+$96	; 9276	
+	sta LTK_FileHeaderBlock+$97	; 9277	
 	lda LTK_Var_ActiveLU
-	sta $91fd	; LTK_FileHeaderBlock @91e0
+	sta LTK_FileHeaderBlock+$1d	; 91fd	
 	sec
-	jsr LTK_HDDiscDriver
-	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ; LTK_FileHeaderBlock 
+	jsr LTK_HDDiscDriver		; xy=sector 0, a=target LU, sec=write
+	.word LTK_FileHeaderBlock
+	.byte $01 			; one sector
+
 Lc179	lda #$00
-	
 	sta Lc526
 	sta Lc527
 	sta Lc528
-	lda Lc532
+	lda HiCyls
 	sta Lc529
-	lda Lc533
+	lda LoCyls
 	sta Lc52a
 Lc190	inc Lc525
 	ldx #<t_asterisk ;$0c
@@ -214,7 +217,7 @@ Lc190	inc Lc525
 	jsr LTK_Print
 	lda #$e0
 	sta Lc52c
-	lda #$91	; LTK_FileHeaderBlock @91e0
+	lda #$91
 	sta Lc52b
 	lda Lc523
 	sta Lc52d
@@ -256,7 +259,8 @@ Lc1fb	dec Lc52d
 	ldy #$00
 	sec
 	jsr LTK_HDDiscDriver
-	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ; LTK_FileHeaderBlock 
+	.word LTK_FileHeaderBlock
+	.byte $01 
 Lc20f	jmp Lc190
                     
 Lc212	lda Lc52b
@@ -272,7 +276,8 @@ Lc212	lda Lc52b
 	ldy #$00
 	sec
 	jsr LTK_HDDiscDriver
-	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ; LTK_FileHeaderBlock 
+	.word LTK_FileHeaderBlock
+	.byte $01 
 	
 Lc238
 	lda #$12
@@ -284,7 +289,8 @@ Lc238
 	ldy #$00
 	clc
 	jsr LTK_HDDiscDriver
-	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ; LTK_FileHeaderBlock 
+	.word LTK_FileHeaderBlock
+	.byte $01 
 	
 Lc250   
 	jsr LTK_AllocContigBlks
@@ -293,9 +299,10 @@ Lc250
 	ldy #$00
 	clc
 	jsr LTK_HDDiscDriver
-	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ; LTK_FileHeaderBlock 
+	.word LTK_FileHeaderBlock
+	.byte $01 
 Lc261
-	lda $91fe	; LTK_FileHeaderBlock @91e0
+	lda LTK_FileHeaderBlock+$1e	; 91fe	
 	pha
 	jsr LTK_ClearHeaderBlock
 	ldx #$0a
@@ -305,13 +312,13 @@ Lc26a
 	dex
 	bpl Lc26a
 	ldx #$ff
-	stx $91f1	; LTK_FileHeaderBlock @91e0
+	stx LTK_FileHeaderBlock+$11	; 91f1	
 	dex
 	stx Lc52e
 	ldx #$01
-	stx $91f8	; LTK_FileHeaderBlock @91e0
+	stx LTK_FileHeaderBlock+$18	; 91f8	
 	ldx #$11
-	stx $9201	; LTK_FileHeaderBlock @91e0
+	stx LTK_FileHeaderBlock+$21	; 9201	
 	pla
 	ldy #$ac
 	cmp #$af
@@ -320,14 +327,15 @@ Lc26a
 	bne Lc293
 	ldy #$af
 Lc293
-	sty $91fe	; LTK_FileHeaderBlock @91e0
-	dec $9237	; LTK_FileHeaderBlock @91e0
+	sty LTK_FileHeaderBlock+$1e	; 91fe	
+	dec LTK_FileHeaderBlock+$57	; 9237	
 	lda LTK_Var_ActiveLU
-	sta $91fd	; LTK_FileHeaderBlock @91e0
+	sta LTK_FileHeaderBlock+$1d	; 91fd	
 	ldy #$00
 	sec
 	jsr LTK_HDDiscDriver
-	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ; LTK_FileHeaderBlock 
+	.word LTK_FileHeaderBlock
+	.byte $01 
 	
 Lc2a8
 	jsr LTK_AllocContigBlks
@@ -364,7 +372,8 @@ Lc2e2
 	ldy Lc524
 	sec
 	jsr LTK_HDDiscDriver
-	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ; LTK_FileHeaderBlock 
+	.word LTK_FileHeaderBlock
+	.byte $01 
 	
 Lc2f2
 	inc Lc525
@@ -381,7 +390,8 @@ Lc2fa
 	ldy #$00
 	clc
 	jsr LTK_HDDiscDriver
-	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ; LTK_FileHeaderBlock 
+	.word LTK_FileHeaderBlock
+	.byte $01 
 	
 Lc314	
 	lda #$00
@@ -392,7 +402,8 @@ Lc314
 	ldy #$00
 	clc
 	jsr LTK_HDDiscDriver
-	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ; LTK_FileHeaderBlock 
+	.word LTK_FileHeaderBlock
+	.byte $01 
 Lc32a
 	jsr Sc455
 Lc32d
@@ -421,17 +432,18 @@ Lc356
 	dex
 	bpl Lc356
 	lda #$01
-	sta $91f8	; LTK_FileHeaderBlock @91e0
+	sta LTK_FileHeaderBlock+$18	; 91f8	
 	lda #$de
-	sta $91f1	; LTK_FileHeaderBlock @91e0
+	sta LTK_FileHeaderBlock+$11	; 91f1	
 	jsr LTK_AllocContigBlks
 	jsr Sc455
 	lda LTK_Var_ActiveLU
-	ldx $9201	; LTK_FileHeaderBlock @91e0
-	ldy $9200	; LTK_FileHeaderBlock @91e0
+	ldx LTK_FileHeaderBlock+$21	; 9201	
+	ldy LTK_FileHeaderBlock+$20	; 9200	
 	sec
 	jsr LTK_HDDiscDriver
-	.byte <LTK_FileHeaderBlock,>LTK_FileHeaderBlock,$01 ; LTK_FileHeaderBlock 
+	.word LTK_FileHeaderBlock
+	.byte $01 
 	
 Lc37f
 	lda #$31
@@ -456,7 +468,8 @@ Lc3a2
 	sty LTK_BLKAddr_MiniSub
 	clc
 	jsr LTK_HDDiscDriver
-	.byte <LTK_MiniSubExeArea,>LTK_MiniSubExeArea,$01 ;$93e0 	; 
+	.word LTK_MiniSubExeArea
+	.byte $01 ;$93e0 	; 
 	
 Lc3b2
 	ldy targetLUx5	;c531
@@ -498,7 +511,9 @@ Lc3df
 	ldy #$00
 	sec
 	jsr LTK_HDDiscDriver
-	.byte <LTK_MiniSubExeArea,>LTK_MiniSubExeArea,$01, $b2, $c2, $d2 ;$93e0 b2 c2 d2 	; 
+	.word LTK_MiniSubExeArea
+	.byte $01
+	.byte $b2, $c2, $d2 
 	
 Lc407
 	ldy targetLUx5	;c531
@@ -557,13 +572,16 @@ Sc45f
 	ldy #$00
 	clc
 	jsr LTK_HDDiscDriver
-	.byte $00,$1e,$00 
+	.word $1e00
+	.byte $00
 Lc470
 	lda LTK_Var_ActiveLU
 	iny
 	sec
 	jsr LTK_HDDiscDriver
-	.byte $00,$1e,$00,$b2,$c2,$d2 
+	.word $1e00
+	.byte 00
+	.byte $b2,$c2,$d2 
 Lc47e
 	rts
                     
@@ -631,7 +649,9 @@ Lc4b8
 Lc4ee
 	sec
 	jsr LTK_HDDiscDriver
-	.byte <LTK_MiscWorkspace,>LTK_MiscWorkspace,$01, $b2, $c2, $d2 ;$8fe0
+	.word LTK_MiscWorkspace
+	.byte $01
+	.byte $b2, $c2, $d2 ;$8fe0
 	
 Lc4f8
 	inx
@@ -680,8 +700,8 @@ targetLU
 	.byte $00
 targetLUx5
 	.byte $00
-Lc532	.byte $00
-Lc533	.byte $00
+HiCyls	.byte $00
+LoCyls	.byte $00
 ActiveLU ; c534
 	.byte $00
 ActiveUser ; c535
@@ -744,44 +764,39 @@ t_dot ; Lc80e
 	.text "."
 	.byte $00 
 
-Sc810
-	sta Lc84c
-	stx Lc84b
-	sty Lc84d
-	lda #$00
-	ldx #$18
-Lc81d
-	clc
-	rol Lc84c
-	rol Lc84b
-	rol Lc84a
-	rol a
-	bcs Lc82f
-	cmp Lc84d
-	bcc Lc83f
-Lc82f
-	sbc Lc84d
-	inc Lc84c
-	bne Lc83f
-	inc Lc84b
-	bne Lc83f
-	inc Lc84a
-Lc83f
-	dex
-	bne Lc81d
+Sc810			;a=sect/cylinder low, x=sect/cylinder high, y=8
+	sta Lc84c	; (example) a=sect/cyl low
+	stx Lc84b	; x=sect/cyl high
+	sty Lc84d	; y=8
+	lda #$00	; clear .A
+	ldx #$18	; 18 times
+
+Lc81d	clc		; clear carry so first rol=asl (TODO: Optimize by just using asl?)
+	rol Lc84c	; low
+	rol Lc84b	; mid
+	rol Lc84a	; high
+	rol a		; multiply Lc84c by two (.a is part of this 32-bit number)
+	bcs  Lc82f	; overflow -> subtract
+	cmp Lc84d	; <.Y?
+	bcc  Lc83f	;  yes, no need to subtract
+Lc82f	sbc Lc84d	; subtract .Y 
+	inc Lc84c	; increment low byte
+	bne  Lc83f	;  no overflow, skip to loop
+	inc Lc84b	; increment mid byte
+	bne  Lc83f	;  no overflow, skip to loop
+	inc Lc84a	; increment high byte
+Lc83f	dex		; shifted 18 times?
+	bne Lc81d	;  no, loop
+
 	tay
 	ldx Lc84b
 	lda Lc84c
 	rts
-                    
-Lc84a
-	.byte $00 
-Lc84b
-	.byte $00 
-Lc84c
-	.byte $00 
-Lc84d
-	.byte $00 
+
+Lc84a	.byte $00 
+Lc84b	.byte $00 
+Lc84c	.byte $00 
+Lc84d	.byte $00 
 
 beep	; Sc84e
 	lda LTK_BeepOnErrorFlag
