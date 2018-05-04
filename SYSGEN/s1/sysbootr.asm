@@ -297,6 +297,11 @@ K_Patch1 ; copied to $fc3d.
 	pla		; fc42
 	plp		; fc43
 P_Nop1	cli		; fc44 ; later patched to NOP
+
+			; fc45 is modified by these routines:
+			;  ltkernal.asm:
+			;   kernel_trap_remove
+			;   sysret_abs_jmp
 S05b3	jsr $05b3	; fc45 ; Direct address satisfies binary match requirement
 	jsr Lfc4e	; fc48
 	jmp (LTK_Var_Ext_RetVec)	; fc4b
