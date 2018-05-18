@@ -43,6 +43,7 @@ dump.r   		$c000		YES
 era.r			$95e0		YES            
 errorhan.r		$93e0		YES       
 expnrand.r       	$93e0		YES
+fastcp1a.r       	$c000		YES
 fileprot.r 		$9f00		YES      
 findfil2.r		$93e0		YES       
 findfile.r       	$93e0		YES
@@ -104,7 +105,6 @@ KNOWN LOAD ADDRESS
 
 UNKNOWN, STILL TO PROCESS
 ==============================================================================
-fastcp1a.r       
 fastcp2a.r       
 fastcpdd.r       
 fastcprm.r       
@@ -130,3 +130,4 @@ ltkrn128.r
 openf128.r       
 subcl128.r       
 sysbt128.r       
+
