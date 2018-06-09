@@ -1034,7 +1034,7 @@ Lc90e
 	.text "  "
 	.byte $00
 Lc911
-	.text "{22}{del}"
+	.text "{$22}{del}"
 	.byte $00
 Lc914
 	.text ">"

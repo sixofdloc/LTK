@@ -575,7 +575,7 @@ Lc42e
 	.text "{Clr}{Return}{Return}{Rvs On}"
 	.byte $00
 Lc433
-	.text "{Uppercase}"
+	.text "{$8e}"
 	.byte $00
 Sc435
 	ldx #$2d
@@ -682,10 +682,10 @@ Lc4d1
 	jmp Sc498
 	
 Lc4d8
-	.text "{uppercase}copying    {$1b}q{rvs on}{lowercase}"
+	.text "{$8e}copying    {$1b}q{rvs on}{$0e}"
 	.byte $00
 Lc4e9
-	.text "{uppercase}verifying  {$1b}q{rvs on}{lowercase}"
+	.text "{$8e}verifying  {$1b}q{rvs on}{$0e}"
 	.byte $00
 Lc4fa
 	.text "{Clr}"
