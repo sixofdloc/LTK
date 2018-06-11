@@ -19,15 +19,20 @@ do
 	filename=$(basename -- "$pathandfile")
 	filename="${filename%.*}"
 	if \
-		[ "$filename" = "b" ] \
-		|| [ "$filename" == "sb2" ] \
-		|| [ "$filename" == "setup" ] \
-		|| [ "$filename" == "sysboot" ]
-	then
-		test_file $pathandfile original/${pathandfile##*/}
-	else
-		test_file $pathandfile original/$filename.r.prg
-	fi
+		[ "$filename" != "sector18-18" ] \
+		&& [ "$filename" != "go64boot_cd00" ]
+		then
+			if \
+				[ "$filename" == "b" ] \
+				|| [ "$filename" == "sb2" ] \
+				|| [ "$filename" == "setup" ] \
+				|| [ "$filename" == "sysboot" ]
+			then
+				test_file $pathandfile original/${pathandfile##*/}
+			else
+				test_file $pathandfile original/$filename.r.prg
+			fi
+		fi
 done
 
 
