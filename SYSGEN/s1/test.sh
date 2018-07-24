@@ -20,13 +20,14 @@ do
 	filename="${filename%.*}"
 	if \
 		[ "$filename" != "sector18-18" ] \
-		&& [ "$filename" != "go64boot_cd00" ]
+		&& [ "$filename" != "go64boot_cd00" ] \
+		&& [ "$filename" != "driveside_fastfdos" ]
 		then
 			if \
 				[ "$filename" == "b" ] \
 				|| [ "$filename" == "sb2" ] \
 				|| [ "$filename" == "setup" ] \
-				|| [ "$filename" == "sysboot" ]
+				|| [ "$filename" == "sysboot" ] 
 			then
 				test_file $pathandfile original/${pathandfile##*/}
 			else

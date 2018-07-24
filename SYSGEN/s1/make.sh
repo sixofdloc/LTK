@@ -1,5 +1,9 @@
 #!/bin/bash
 
+#pre-build housekeeping 
+rm output/*
+./build.sh go64boot_cd00
+
 # Call with 'check' to stop building when an error is encountered.
 
 for file in *.asm
