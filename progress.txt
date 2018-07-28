@@ -114,6 +114,7 @@ initc128.r          $95e0       YES
 openf128.r          $95e0       YES
 subcl128.r          $93e0       YES   
 sysbt128.r          $0b00       YES       
+ltkrn128.r          $8000       YES
 
 
 
@@ -123,7 +124,6 @@ activate.r		    $c000		YES  - REVISIT THIS ONE
 creditsb.r		    UNKNOWN		YES, excluding load address       
 messfile.r 		    UNKNOWN		YES, excluding load address      
 fastcpdd.r          IN PROGRESS
-ltkrn128.r          STILL TO PROCESS
 
 
        
