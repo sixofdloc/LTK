@@ -1,6 +1,7 @@
 ;Out-of-DOS routines
 LTK_GetPortNumber	=	$9f03 ;address of the get port number routine                       
 
+LTK_HardwarePage = $9e43 
 
 ;Buffers and Work Areas
 LTK_CMDChannelBuffer	=	$8db6 ;location of command channel buffer                           

@@ -2,132 +2,130 @@ SYSGEN RE-SOURCE PROGRESS AS OF 2018-03-02
 
 COMPLETES
 ==============================================================================
-FILENAME		LOAD_ADDR	1st Pass Complete?
-adjindex.r		$93e0		YES
-alocatcn.r		$93e0		YES
-alocatrn.r		$93e0		YES		
-alocexrn.r		$93e0		YES
-altserch.r		$9be0		YES
-apndexrn.r		$93e0		YES
-appendrn.r		$93e0		YES
-autoupdt.r		$8de0		YES
-autocopy.r 		$c000 		YES      
-autodel.r       	$c000		YES
-automove.r  		$c000		YES
-b			$0100		YES                
-build.r      		$c000		YES
-buildindex.r     	$95e0		YES
-catalogr.r		$93e0		YES      
-change.r		$95e0		YES         
-checksum.r 		$95e0		YES      
-clear.r    		$95e0		YES      
-closefil.r		$95e0		YES
-cmndchn1.r		$95e0		YES
-cmndchn2.r		$95e0		YES
-commload.r		$95e0		YES
-config.r		$95e0		YES
-configlu.r		$c000		YES       
-convrtio.r 		$95e0		YES      
-copy.r			$95e0		YES           
-d.r 			$95e0		YES             
-dealexrn.r		$93e0		YES       
-dealoccn.r		$93e0		YES              
-dealocrn.r		$93e0		YES              
-del.r  			$c000		YES          
-di.r          		$95e0		YES
-diag.r  		$95e0		YES         
-dir.r  			$c000		YES          
-directry.r 		$95e0		YES             
-dosovrly.r		$9530		YES       
-dump.r   		$c000		YES        
-era.r			$95e0		YES            
-errorhan.r		$93e0		YES       
+FILENAME		    LOAD_ADDR	1st Pass Complete?
+adjindex.r		    $93e0		YES
+alocatcn.r		    $93e0		YES
+alocatrn.r		    $93e0		YES		
+alocexrn.r		    $93e0		YES
+altserch.r		    $9be0		YES
+apndexrn.r		    $93e0		YES
+appendrn.r		    $93e0		YES
+autoupdt.r		    $8de0		YES
+autocopy.r 		    $c000 		YES      
+autodel.r           $c000		YES
+automove.r  	    $c000		YES
+b			        $0100		YES                
+build.r      	    $c000		YES
+buildindex.r        $95e0		YES
+catalogr.r		    $93e0		YES      
+change.r		    $95e0		YES         
+checksum.r 		    $95e0		YES      
+clear.r    		    $95e0		YES      
+closefil.r		    $95e0		YES
+cmndchn1.r		    $95e0		YES
+cmndchn2.r		    $95e0		YES
+commload.r		    $95e0		YES
+config.r		    $95e0		YES
+configlu.r		    $c000		YES       
+convrtio.r 		    $95e0		YES      
+copy.r			    $95e0		YES           
+d.r 			    $95e0		YES             
+dealexrn.r		    $93e0		YES       
+dealoccn.r		    $93e0		YES              
+dealocrn.r		    $93e0		YES              
+del.r  			    $c000		YES          
+di.r          	    $95e0		YES
+diag.r  		    $95e0		YES         
+dir.r  			    $c000		YES          
+directry.r 		    $95e0		YES             
+dosovrly.r		    $9530		YES       
+dump.r   		    $c000		YES        
+era.r			    $95e0		YES            
+errorhan.r		    $93e0		YES       
 expnrand.r       	$93e0		YES
 fastcp1a.r       	$c000		YES
-fileprot.r 		$9f00		YES      
-findfil2.r		$93e0		YES       
+fastcprm.r          $6c00       YES       
+fastcpy1.r          $c000       YES
+fastcpy2.r          $c000       YES
+fastfd81.r		    $1c20       YES		       
+fastfdos.r          $1c20       YES
+fastcp2a.r          $c000       YES
+fileprot.r 		    $9f00		YES      
+findfil2.r		    $93e0		YES       
 findfile.r       	$93e0		YES
-fastcopy.r		$95e0		YES       
-fastcpqd.r		$1c20		YES       
+fastcopy.r		    $95e0		YES       
+fastcpdd.r          $c000       YES
+fastcpqd.r		    $1c20		YES       
 fetch.r          	$c000		YES
-go64boot.r 		$8000		YES      
-gocpmode.r       	$93e0		YES
-indxmod0.r   		$95e0		YES    
-indxmod1.r   		$95e0		YES    
-indxmod2.r   		$95e0		YES       
+go64boot.r 		    $8000		YES      
+gocpmode.r     	    $93e0		YES
+indxmod0.r   	    $95e0		YES    
+indxmod1.r   	    $95e0		YES    
+indxmod2.r   	    $95e0		YES       
 indxmod3.r   		$95e0		YES      
 indxmod4.r   		$95e0		YES       
 indxmod5.r   		$95e0		YES
 indxmod6.r   		$95e0		YES
 indxmod7.r   		$95e0		YES
-initc064.r 		$95e0		YES      
-l.r   			$95e0		YES           
+initc064.r 		    $95e0		YES      
+l.r   			    $95e0		YES           
 loadcntg.r       	$93e0		YES       
 loadrand.r       	$93e0		YES       
 loadrnd2.r       	$93e0		YES
 loadrnd3.r       	$93e0		YES       
-ltkernal.r		$8000		YES      
-lu.r			$95e0		YES             
-luchange.r		$93e0		YES       
+ltkernal.r		    $8000		YES      
+lu.r			    $95e0		YES             
+luchange.r		    $93e0		YES       
 merge.r          	$c000		YES
-new.r 			$95e0		YES
+new.r 			    $95e0		YES
 openfile.r       	$95e0		YES
-openrand.r		$95e0		YES       
+openrand.r		    $95e0		YES       
 openrela.r       	$95e0		YES
 oops.r           	$95e0		YES
 query.r          	$95e0		YES
-recover.r  		$95e0		YES
-relaexpn.r		$95e0		YES       
+recover.r  		    $95e0		YES
+relaexpn.r		    $95e0		YES       
 renum.r          	$c000		YES
-s.r  			$95e0		YES	            
+s.r  			    $95e0		YES	            
 savetodv.r       	$95e0		YES
-sb2   			$0810		YES           
-scramidn.r		$93e0		YES       
-setup 			$8000		YES           
-ship.r			$95e0		YES           
-subcallr.r		$93e0		YES
-sysbootr.r		$0400		YES       
+sb2   			    $0810		YES           
+scramidn.r		    $93e0		YES       
+setup 			    $8000		YES           
+ship.r			    $95e0		YES           
+subcallr.r		    $93e0		YES
+sysbootr.r		    $0400		YES       
 type.r           	$c000		YES
-user.r			$95e0		YES			           
+user.r			    $95e0		YES			           
 validate.r  		$c000		YES
-
-
-IN PROGRESS OR KNOWN ISSUES
-==============================================================================
-activate.r		$c000		YES  - REVISIT THIS ONE     
-creditsb.r		UNKNOWN		YES, excluding load address       
-messfile.r 		UNKNOWN		YES, excluding load address      
-fastfd81.r		$1c20?		IN PROGRESS       
-
-
-KNOWN LOAD ADDRESS
-==============================================================================
-
-UNKNOWN, STILL TO PROCESS
-==============================================================================
-fastcp2a.r       
-fastcpdd.r       
-fastcprm.r       
-fastcpy1.r       
-fastcpy2.r       
-fastfdos.r       
-       
 
 128 FILES
 ==============================================================================
-close128.r       
-dosov128.r       
-idxm0128.r       
-idxm1128.r       
-idxm2128.r       
-idxm3128.r       
-idxm4128.r       
-idxm5128.r       
-idxm6128.r       
-idxm7128.r       
-initc128.r       
-ltkrn128.r       
-openf128.r       
-subcl128.r       
-sysbt128.r       
+FILENAME		LOAD_ADDR	1st Pass Complete?
+close128.r          $95e0       YES
+dosov128.r          $95e0       YES
+idxm0128.r          $95e0       YES
+idxm1128.r          $95e0       YES
+idxm2128.r          $95e0       YES
+idxm3128.r          $95e0       YES
+idxm4128.r          $95e0       YES
+idxm5128.r          $95e0       YES
+idxm6128.r          $95e0       YES
+idxm7128.r          $95e0       YES
+initc128.r          $95e0       YES
+openf128.r          $95e0       YES
+subcl128.r          $93e0       YES   
+sysbt128.r          $0b00       YES       
+ltkrn128.r          $8000       YES
+
+
+
+STILL TO PROCESS, IN PROGRESS, OR KNOWN ISSUES
+==============================================================================
+activate.r		    $c000		YES  - REVISIT THIS ONE     
+creditsb.r		    UNKNOWN		YES, excluding load address       
+messfile.r 		    UNKNOWN		YES, excluding load address      
+
+
+       
+
 
