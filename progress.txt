@@ -54,6 +54,7 @@ fileprot.r 		    $9f00		YES
 findfil2.r		    $93e0		YES       
 findfile.r       	$93e0		YES
 fastcopy.r		    $95e0		YES       
+fastcpdd.r          $c000       YES
 fastcpqd.r		    $1c20		YES       
 fetch.r          	$c000		YES
 go64boot.r 		    $8000		YES      
@@ -123,7 +124,6 @@ STILL TO PROCESS, IN PROGRESS, OR KNOWN ISSUES
 activate.r		    $c000		YES  - REVISIT THIS ONE     
 creditsb.r		    UNKNOWN		YES, excluding load address       
 messfile.r 		    UNKNOWN		YES, excluding load address      
-fastcpdd.r          IN PROGRESS
 
 
        
