@@ -27,37 +27,36 @@
 	.include "../../include/ltk_equates.asm"
 	.include "../../include/sid_regs.asm"
 	*=LTK_DOSOverlay ;$95e0, $4000 for sysgen disk 
-START
-	ldx #<str_Checksumming
+
+START	ldx #<str_Checksumming
 	ldy #>str_Checksumming
 	jsr LTK_Print		; print Checksumming note
 	
 	lda #$0a		; LU 10
 	ldx #$00		
-	ldy #$00		; block 0
+	ldy #$00		; block 0 (SYSTEMTRACK)
 	clc			; read
 	jsr LTK_HDDiscDriver	;  READ block to the file header area
 	.word LTK_FileHeaderBlock 
 	.byte $01		; one block
-L95f4
+
 	inx			; next block
-L95f5
-	lda #$0a		; LU 10
+
+nxt_blk	lda #$0a		; LU 10
 	stx lba_hi
 	sty lba_lo		; Save current block
 	clc			; read
 	jsr LTK_HDDiscDriver	;  READ block to LTK Workspace area
 	.word LTK_MiscWorkspace
 	.byte $01		; one block
-L9604
 	lda #<LTK_MiscWorkspace
 	sta $31
 	lda #>LTK_MiscWorkspace
 	sta $32
 	ldy #$00
 	ldx #$02
-L9610
-	lda ($31),y		; get byte
+
+cs_loop	lda ($31),y		; get byte
 	pha			; save a copy for later
 
 	; calculate running 16-bit checksum
@@ -84,57 +83,53 @@ L9610
 	bne L9639
 	
 	inc L96ac		;  handle overflow
-L9639
-	sta L96ae
+
+L9639	sta L96ae
 	iny			; increment index
-	bne L9610		;  if we didn't overflow, loop
-	inc $32			; fix up high byte of vector
+	bne cs_loop		;  if we didn't overflow, loop
+	inc $32			; fix up high byte of the data vector
 	dex			; decrement page count
-	bne L9610		;  and run until we're out of pages
+	bne cs_loop		;  and run until we're out of pages
 	
 	ldx lba_hi		; get our block back
 	ldy lba_lo
 	inx			;  select next block
-	bne L964e		;  and head back if there's no overflow
+	bne L964e		;  
 	
 	iny			;  handle block low byte overflow by incrementing high byte
-L964e
-	tya
-	bne L9660
+L964e	tya
+	bne L9660		; high block byte nonzero?  Skip to 16-bit checks below
 	
-	cpx #$1a		; luchange.r
-	bne L9656
-	
-	inx
-L9656
-	cpx #$ee		; DISCBITMAP
-	bne L966c
+	cpx #$1a		; luchange.r?
+	bne L9656		;  no, skip
+	inx			;  increment block number to skip luchange.r
+
+L9656	cpx #$ee		; DISCBITMAP?
+	bne L966c		;  no, skip
 	
 	ldx #$ef
-	ldy #$01
-	bne L966c
+	ldy #$01		; skip to 01ef (FIXME: what's here?)
+	bne L966c		;  always branches
 	
-L9660
-	cpy #$02
+L9660	cpy #$02
 	bne L966c
-	
-	cpx #$9e		; defaults.r
-	bne L966c
+	cpx #$9e		; defaults.r?
+	bne L966c		;  no, skip
 	
 	ldx #$2e
-	ldy #$03
-L966c
-	cpy LTK_FileHeaderBlock+$94 ; 9274
+	ldy #$03		; set block to $32e (FIXME: again, what's this)
+
+	; FIXME: Is this checking for the last system block?
+L966c	cpy LTK_FileHeaderBlock+$94 ; 9274
 	beq L9674
-L9671
-	jmp L95f5
+L9671	jmp nxt_blk
                     
-L9674
-	cpx LTK_FileHeaderBlock+$95 ; 9275
+L9674	cpx LTK_FileHeaderBlock+$95 ; 9275
 	bne L9671
+
+	; begin checksum verification (6 bytes in all)
 	ldy #$05
-L967b
-	lda LTK_FileHeaderBlock+$96,y ; 9276
+L967b	lda LTK_FileHeaderBlock+$96,y ; 9276
 	cmp cs_16_l,y
 	bne ChksumBad
 	dey
@@ -158,8 +153,7 @@ ChksumBad			; Checksums failed; warn the user and beep
 	jsr Beep_If_Allowed	;  but not necessarily in that order.
 	ldx #<str_ChecksumsBad
 	ldy #>str_ChecksumsBad
-L96a3
-	jsr LTK_Print
+L96a3	jsr LTK_Print
 	rts
                     
 lba_lo
@@ -189,8 +183,7 @@ Beep_If_Allowed ;$979e
 	beq No_Beep ;$97dd
 	ldy #$18
 	lda #$00
-L97a7
-	sta SID_V1_FreqLo,y
+L97a7	sta SID_V1_FreqLo,y
 	dey
 	bpl L97a7
 	sty SID_V1_SR
@@ -198,8 +191,7 @@ L97a7
 	sta SID_V1_FreqHi
 	sta SID_V1_Control
 	iny
-L97b9
-	sty SID_VolumeAndFilter
+L97b9	sty SID_VolumeAndFilter
 	ldx #$01
 	jsr beep_delay_loop ;$97de
 	iny
@@ -210,8 +202,7 @@ L97b9
 	jsr beep_delay_loop ;$97de
 	ldy #$10
 	sta SID_V1_Control
-L97d1
-	dey
+L97d1	dey
 	sty SID_VolumeAndFilter
 	ldx #$01
 	jsr beep_delay_loop ;$97de

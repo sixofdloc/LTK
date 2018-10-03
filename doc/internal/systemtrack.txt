@@ -23,5 +23,8 @@ start	size	name		usage
 1a	1	drive0_unk	unknown- copied from the geometry tables (setup.asm)
 15	1	drive0_wpcomp	write precompensation value for drive 0
 18	1			$01 (setup.asm)
+2a	1			decremented after checksum verification (checksum.asm)
+94	2			possible end of system blocks in LU 10 (checksum.asm)
+96	6	sys_chksum	Checksum of system blocks (checksum.asm)
 1f4	8	serialnumber	system serial number
 
